@@ -28,4 +28,4 @@ Bootload:
     - length: uint16
     - error: Errors
     - status: Status
-    - statuses: [Status, 5]
+    - statuses: [[Status, 4], 5]

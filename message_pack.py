@@ -1,52 +1,198 @@
 #!/usr/bin/env python3
 
+import textwrap
 import yaml
 
 
-_YAML_TYPES = ['Bitfield', 'Enum', 'Struct']
-_METADATA_FIELDS = ['_description']
-_VALID_FIELDS = {
-    'Bitfield': ['type', 'description', 'fields'],
-    'Enum': ['type', 'description', 'values'],
-    'Struct': ['type', 'description', 'fields'],
-}
-_NATIVE_TYPES = [
-    'uint8',
-    'uint16',
-    'uint32',
-    'uint64',
-    'int8',
-    'int16',
-    'int32',
-    'int64',
-    'bool',
-    'float',
-    'double',
-]
+def _indent(s, level=1):
+  return textwrap.indent(s, '  ' * level)
+
+
+def _yaml_check_map(yaml, required_fields, optional_fields, check_valid=True):
+  if not isinstance(yaml, dict):
+    raise SpecParseError('{} must be a map. Use "key: value" syntax.'.format(yaml))
+
+  for key in required_fields:
+    if key not in yaml:
+      raise SpecParseError('Required field "{}" not found in {}.'.format(key, yaml))
+
+  if check_valid:
+    valid_fields = required_fields + optional_fields
+    for key in yaml.keys():
+      if key not in valid_fields:
+        raise SpecParseError('Unknown field "{}" in {}. Valid fields: {}'.format(
+            key, yaml, valid_fields))
+
+
+def _yaml_get_from_map_with_meta(yaml):
+  for key, value in yaml.items():
+    if not key.startswith('_'):
+      return key, value
+
+  raise KeyError('Non-metadata field not found in {}.'.format(yaml))
+
+
+def _yaml_check_map_with_meta(yaml):
+  if not isinstance(yaml, dict):
+    raise SpecParseError('{} must be a map. Use "key: value" syntax.'.format(yaml))
+
+  found_non_meta = False
+  for key, value in yaml.items():
+    if not isinstance(key, str):
+      raise SpecParseError('Key "{}" in {} must be a string.'.format(key, yaml))
+
+    if not key.startswith('_'):
+      if found_non_meta:
+        raise SpecParseError(
+            'More than one non-metadata field (no leading underscore) in {}.'.format(yaml))
+      found_non_meta = True
+    else:
+      if key == '_description':
+        if not isinstance(value, str):
+          raise SpecParseError('Value of "_description" ({}) in {} must be a string.'.format(
+              value, yaml))
+      else:
+        raise SpecParseError('Unrecognized metadata field "{}" in {}.'.format(key, yaml))
+
+
+def _yaml_check_array(yaml):
+  if not isinstance(yaml, list):
+    raise SpecParseError('Value ({}) must be a list. (use "- entry" syntax)'.format(yaml))
 
 
 class SpecParseError(Exception):
   pass
 
 
+class DataType:
+  all_types = {}
+
+  def __init__(self, name, description=None):
+    if name in self.all_types:
+      raise SpecParseError('Duplicate type name: {}'.format(name))
+
+    self.name = name
+    self.description = description
+
+    self.all_types[name] = self
+
+  @staticmethod
+  def from_yaml(name, yaml):
+    if not isinstance(name, str):
+      raise SpecParseError('Type name ({}) must be a string.'.format(name))
+
+    _yaml_check_map(yaml, ['type'], [], False)
+
+    if 'description' in yaml and not isinstance(yaml['description'], str):
+      raise SpecParseError('Description field ({}) in {} must be a string.'.format(
+          yaml['description'], name))
+
+    if yaml['type'] == 'Bitfield':
+      return Bitfield.from_yaml(name, yaml)
+
+    if yaml['type'] == 'Enum':
+      return Enum.from_yaml(name, yaml)
+
+    if yaml['type'] == 'Struct':
+      return Struct.from_yaml(name, yaml)
+
+    raise SpecParseError('Unrecognized type "{}" in {}.'.format(yaml['type'], name))
+
+  @property
+  def root_type(self):
+    return self
+
+  @classmethod
+  def get_type(cls, type_name):
+    if type_name not in cls.all_types:
+      raise SpecParseError('Unknown type "{}".  Valid types: {}'.format(
+          type_name, cls.all_types.keys()))
+
+    return cls.all_types[type_name]
+
+
+class Primitive(DataType):
+
+  def __init__(self, name, bits):
+    super().__init__(name)
+
+    self.bits = bits
+
+
+Primitive('uint8', 8),
+Primitive('uint16', 16),
+Primitive('uint32', 32),
+Primitive('uint64', 64),
+Primitive('int8', 8),
+Primitive('int16', 16),
+Primitive('int32', 32),
+Primitive('int64', 64),
+Primitive('bool', 8),
+Primitive('float', 32),
+Primitive('double', 64),
+
+
+class Array:
+
+  def __init__(self, elem_type, length):
+    self.type = elem_type
+    self.length = length
+
+  @classmethod
+  def from_yaml(cls, yaml):
+    if (len(yaml) != 2 or not isinstance(yaml[0], (str, list)) or not isinstance(yaml[1], int)):
+      raise SpecParseError(
+          'Array specifier "{}" must be in form: [type (str, list), size (int)].'.format(yaml))
+
+    if isinstance(yaml[0], list):
+      type_object = Array.from_yaml(yaml[0])
+    else:
+      type_object = DataType.get_type(yaml[0])
+
+    length = yaml[1]
+
+    if length < 1:
+      raise SpecParseError('Array length ({}) in "{}" must be greater than zero.'.format(
+          length, yaml))
+
+    return cls(type_object, length)
+
+  @property
+  def name(self):
+    length_list = [self.length]
+    current_type = self.type
+    while isinstance(current_type, Array):
+      length_list.append(current_type.length)
+      current_type = current_type.type
+
+    return current_type.name + ''.join('[{}]'.format(x) for x in length_list)
+
+  @property
+  def root_type(self):
+    return self.type.root_type
+
+  def __str__(self):
+    return self.name
+
+
 class BitfieldField:
+
   def __init__(self, name, bits, description=None):
     self.name = name
     self.bits = bits
     self.description = description
 
   @classmethod
-  def from_yaml(cls, bitfield_name, yaml):
-    check_map_with_meta(bitfield_name, 'fields', yaml)
-    name, bits = get_from_map_with_meta(yaml)
+  def from_yaml(cls, yaml):
+    _yaml_check_map_with_meta(yaml)
+    name, bits = _yaml_get_from_map_with_meta(yaml)
 
     if not isinstance(bits, int):
-      raise SpecParseError('Value ({}) of field ({}) in {} must be a integer.'.format(
-          bits, name, bitfield_name))
+      raise SpecParseError('Value ({}) of field ({}) must be a integer.'.format(bits, name))
 
     if bits < 1:
-      raise SpecParseError('Bit number ({}) for field ({}) in {} must be greater than zero.'.format(
-          bits, name, bitfield_name))
+      raise SpecParseError('Bit number ({}) for field ({}) must be greater than zero.'.format(
+          bits, name))
 
     return cls(name, bits, yaml.get('_description'))
 
@@ -54,10 +200,11 @@ class BitfieldField:
     return str((self.name, self.bits, self.description))
 
 
-class Bitfield:
+class Bitfield(DataType):
+
   def __init__(self, name, description=None):
-    self.name = name
-    self.description = description
+    super().__init__(name, description)
+
     self.fields = []
 
   def add_field(self, field):
@@ -70,194 +217,161 @@ class Bitfield:
 
   @classmethod
   def from_yaml(cls, name, yaml):
-    check_array(name, 'fields', yaml['fields'])
+    _yaml_check_map(yaml, ['type', 'fields'], ['description'])
+    _yaml_check_array(yaml['fields'])
 
     obj = cls(name, yaml.get('description'))
 
     for field in yaml['fields']:
-      obj.add_field(BitfieldField.from_yaml(name, field))
+      obj.add_field(BitfieldField.from_yaml(field))
 
     return obj
 
   def __str__(self):
     s = ''
-    s += 'Name: {}\n'.format(self.name)
+    s += 'Bitfield: {}\n'.format(self.name)
     s += 'Description: {}\n'.format(self.description)
     s += 'Fields:'
 
     for field in self.fields:
-      s += '\n{}'.format(field)
+      s += _indent('\n{}'.format(field))
 
     return s
 
 
-def check_array(name, field, value):
-  if not isinstance(value, list):
-    raise SpecParseError('Value ({}) for {} in {} must be a list. (use "- entry" syntax)'.format(
-        value, field, name))
+class EnumValue:
 
+  def __init__(self, name, description=None):
+    self.name = name
+    self.description = description
 
-def get_from_map_with_meta(m):
-  for k, v in m.items():
-    if not k.startswith('_'):
-      return k, v
+  @classmethod
+  def from_yaml(cls, yaml):
+    _yaml_check_map_with_meta(yaml)
+    name, null = _yaml_get_from_map_with_meta(yaml)
 
-  raise KeyError('Non-metadata field not found in {}.'.format(m))
-
-
-def check_map_with_meta(name, field, m):
-  non_underscore_count = 0
-  for k, v in m.items():
-    if not isinstance(k, str):
-      raise SpecParseError('Key in "{}" element ({}) in {} must be a string.'.format(
-          field, k, name))
-
-    if not k.startswith('_'):
-      non_underscore_count += 1
-      if non_underscore_count > 1:
-        raise SpecParseError(
-            'More than one non-metadata field (no leading underscore) in "{}" of {}.'.format(
-                  field, name))
-
-    elif k not in _METADATA_FIELDS:
-      raise SpecParseError('Unrecognized metadata field "{}" in {}. Valid fields: {}'.format(
-          k, name, _METADATA_FIELDS))
-
-    if k == '_description' and not isinstance(v, str):
-      raise SpecParseError('Value of "_description" ({}) in {} must be a string.'.format(v, name))
-
-
-def check_bitfield(name, t):
-  check_array(name, 'fields', t['fields'])
-
-  bit_count = 0
-  for field in t['fields']:
-    check_map_with_meta(name, 'fields', field)
-    key, value = get_from_map_with_meta(field)
-
-    if not isinstance(value, int):
-      raise SpecParseError('Value ({}) of field key ({}) in {} must be a integer.'.format(
-          value, key, name))
-
-    if value < 1:
+    if null is not None:
       raise SpecParseError(
-          'Field value ({}) for key ({}) in {} must be greater than zero.'.format(value, key, name))
+          'Value for Enum ({}:{}) must be null. (leave empty or use "null")'.format(name, null))
 
-    bit_count += value
-    if bit_count > 64:
-      raise SpecParseError('Bits in bitfield {} exceed 64 bit limit.'.format(name))
+    return cls(name, yaml.get('_description'))
+
+  def __str__(self):
+    return str((self.name, self.description))
 
 
-def check_enum(name, t):
-  check_array(name, 'values', t['values'])
+class Enum(DataType):
 
-  for value in t['values']:
-    check_map_with_meta(name, 'values', value)
-    k, v = get_from_map_with_meta(value)
+  def __init__(self, name, description=None):
+    super().__init__(name, description)
 
-    if v is not None:
+    self.values = []
+
+  def add_value(self, value):
+    value_names = set(x.name for x in self.values)
+    if value.name in value_names:
+      raise SpecParseError('Value "{}" repeated in {}.'.format(value.name, self.name))
+
+    self.values.append(value)
+
+  @classmethod
+  def from_yaml(cls, name, yaml):
+    _yaml_check_map(yaml, ['type', 'values'], ['description'])
+    _yaml_check_array(yaml['values'])
+
+    obj = cls(name, yaml.get('description'))
+    for value in yaml['values']:
+      obj.add_value(EnumValue.from_yaml(value))
+
+    return obj
+
+  def __str__(self):
+    s = ''
+    s += 'Enum: {}\n'.format(self.name)
+    s += 'Description: {}\n'.format(self.description)
+    s += 'Values:'
+
+    for value in self.values:
+      s += _indent('\n{}'.format(value))
+
+    return s
+
+
+class StructField:
+
+  def __init__(self, name, field_type, description=None):
+    self.name = name
+    self.type = field_type
+    self.description = description
+
+  @classmethod
+  def from_yaml(cls, yaml):
+    _yaml_check_map_with_meta(yaml)
+    name, field_type = _yaml_get_from_map_with_meta(yaml)
+
+    if not isinstance(field_type, (str, list)):
       raise SpecParseError(
-          'Value for Enum ({}:{}) in {} must be null. (leave empty or use "null")'.format(
-              k, v, name))
+          ('Struct field value ({}:{}) must be string ' +
+           'or two element list (for describing arrays).').format(name, field_type))
+
+    if isinstance(field_type, list):
+      type_object = Array.from_yaml(field_type)
+    else:
+      type_object = DataType.get_type(field_type)
+
+    return cls(name, type_object, yaml.get('_description'))
+
+  def __str__(self):
+    return str((self.name, self.type.name, self.description))
 
 
-def check_struct_field_type(name, field, t, all_types):
-  if not isinstance(t, (str, list)):
-    raise SpecParseError((
-        'Struct field value ({}:{}) in {} must be string ' +
-        'or two element list (for describing arrays).').format(field, t, name))
+class Struct(DataType):
 
-  if isinstance(t, list):
-    if len(t) != 2 or not isinstance(t[0], str) or not isinstance(t[1], int):
-      raise SpecParseError(
-          'Array specifier ({}) for {} in {} must be in form: [TypeName (str), size (int)].'.format(
-              t, field, name))
-    type_name = t[0]
+  def __init__(self, name, description=None):
+    super().__init__(name, description)
 
-    if t[1] < 1:
-      raise SpecParseError(
-          'Array length ({}) for {} in {} must be greater than zero.'.format(t[1], field, name))
-  else:
-    type_name = t
+    self.fields = []
 
-  if type_name not in _NATIVE_TYPES and type_name not in all_types:
-    raise SpecParseError('Unknown type "{}" for "{}" in {}.  Valid types: {}'.format(
-        type_name, field, name, _NATIVE_TYPES + list(all_types)))
+  def add_field(self, field):
+    if field.type.root_type is self:
+      raise SpecParseError('Recursive use of {} as type for {} in {} not allowed.'.format(
+          self.name, field.name, self.name))
 
-  if type_name == name:
-    raise SpecParseError('Recursive use of {} as type for {} in {} not allowed.'.format(
-        type_name, field, name))
+    self.fields.append(field)
 
+  @classmethod
+  def from_yaml(cls, name, yaml):
+    _yaml_check_map(yaml, ['type', 'fields'], ['description'])
+    _yaml_check_array(yaml['fields'])
 
-def check_struct(name, t, all_types):
-  check_array(name, 'fields', t['fields'])
+    obj = cls(name, yaml.get('description'))
+    for field in yaml['fields']:
+      obj.add_field(StructField.from_yaml(field))
 
-  for field in t['fields']:
-    check_map_with_meta(name, 'fields', field)
-    key, value = get_from_map_with_meta(field)
+    return obj
 
-    check_struct_field_type(name, key, value, all_types)
+  def __str__(self):
+    s = ''
+    s += 'Struct: {}\n'.format(self.name)
+    s += 'Description: {}\n'.format(self.description)
+    s += 'Fields:'
 
+    for field in self.fields:
+      s += _indent('\n{}'.format(field))
 
-def check_type(name, yaml):
-  if 'type' not in yaml:
-    raise SpecParseError('{} does not specify required "type" field.'.format(name))
+    return s
 
-  if yaml['type'] not in _YAML_TYPES:
-    raise SpecParseError('Unrecognized type "{}" in {}. Valid types: {}'.format(
-        yaml['type'], name, _YAML_TYPES))
-
-  valid_fields = _VALID_FIELDS[yaml['type']]
-
-  for field_name, field in yaml.items():
-    if field_name not in valid_fields:
-      raise SpecParseError('Unknown field "{}" in {}. Valid fields: {}'.format(
-          field_name, name, valid_fields))
-
-    if field_name == 'description' and not isinstance(field, str):
-      raise SpecParseError('Description field ({}) in {} is not a string.'.format(field, name))
-
-  if yaml['type'] == 'Bitfield':
-    print(Bitfield.from_yaml(name, yaml))
-
-
-#def check_type(name, t, all_types):
-#  if 'type' not in t:
-#    raise SpecParseError('{} does not specify required "type" field.'.format(name))
-#
-#  if t['type'] not in _YAML_TYPES:
-#    raise SpecParseError('Unrecognized type "{}" in {}. Valid types: {}'.format(
-#        t['type'], name, _YAML_TYPES))
-#
-#  fields = _VALID_FIELDS[t['type']]
-#
-#  for k, v in t.items():
-#    if k not in fields:
-#      raise SpecParseError('Unknown field "{}" in {}'.format(k, name))
-#
-#    if k == 'description' and not isinstance(v, str):
-#      raise SpecParseError('Description field ({}) in {} is not a string.'.format(v, name))
-#
-#  if t['type'] == 'Bitfield':
-#    check_bitfield(name, t)
-#
-#  if t['type'] == 'Enum':
-#    check_enum(name, t)
-#
-#  if t['type'] == 'Struct':
-#    check_struct(name, t, all_types)
-
-
-def check_types(types):
-  all_types = types.keys()
-  for name, t in types.items():
-    check_type(name, t)
 
 def main():
   with open('message_spec.yaml', 'r') as f:
-    types = yaml.unsafe_load(f)
+    type_map = yaml.unsafe_load(f)
 
-  check_types(types)
+  _yaml_check_map(type_map, [], [], False)
+
+  types = [DataType.from_yaml(name, info) for name, info in type_map.items()]
+
+  for t in types:
+    print(t)
 
 
 if __name__ == '__main__':
