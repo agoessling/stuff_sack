@@ -1,11 +1,30 @@
-#!/usr/bin/env python3
-
 import textwrap
 import yaml
 
 
 def _indent(s, level=1):
   return textwrap.indent(s, '  ' * level)
+
+
+def _bytes_for_value(value, signed):
+  if value < 0:
+    raise ValueError('Negative values not allowed.')
+
+  sign_bit = 1 if signed else 0
+  return _bytes_for_bits(value.bit_length() + sign_bit)
+
+
+def _bytes_for_bits(bits):
+  if bits < 0:
+    raise ValueError('Negative bits not allowed.')
+
+  raw_bytes = (bits - 1) // 8 + 1
+
+  for x in [1, 2, 4, 8]:
+    if x >= raw_bytes:
+      return x
+
+  raise ValueError('Value greater than 8 bytes.'.format(value))
 
 
 def _yaml_check_map(yaml, required_fields, optional_fields, check_valid=True):
@@ -206,12 +225,19 @@ class Bitfield(DataType):
     super().__init__(name, description)
 
     self.fields = []
+    self.bytes = 1
 
   def add_field(self, field):
-    total_bits = sum(x.bits for x in self.fields)
-    if total_bits + field.bits > 64:
+    total_bits = sum(x.bits for x in self.fields) + field.bits
+
+    if total_bits > 64:
       raise SpecParseError('{}:{} causes {} to exceed 64 bit limit.'.format(
           field.name, field.bits, self.name))
+
+    self.bytes = _bytes_for_bits(total_bits)
+
+    if field.name in (x.name for x in self.fields):
+      raise SpecParseError('Duplicate field "{}" in {}.'.format(field.name, self.name))
 
     self.fields.append(field)
 
@@ -245,6 +271,8 @@ class EnumValue:
     self.name = name
     self.description = description
 
+    self.value = None
+
   @classmethod
   def from_yaml(cls, yaml):
     _yaml_check_map_with_meta(yaml)
@@ -265,14 +293,17 @@ class Enum(DataType):
   def __init__(self, name, description=None):
     super().__init__(name, description)
 
+    self.bytes = 1
     self.values = []
 
   def add_value(self, value):
-    value_names = set(x.name for x in self.values)
-    if value.name in value_names:
+    if value.name in (x.name for x in self.values):
       raise SpecParseError('Value "{}" repeated in {}.'.format(value.name, self.name))
 
+    value.value = len(self.values)
     self.values.append(value)
+
+    self.bytes = _bytes_for_value(len(self.values), signed=True)
 
   @classmethod
   def from_yaml(cls, name, yaml):
@@ -333,6 +364,9 @@ class Struct(DataType):
     self.fields = []
 
   def add_field(self, field):
+    if field.name in (x.name for x in self.fields):
+      raise SpecParseError('Duplicate field "{}" in {}.'.format(field.name, self.name))
+
     if field.type.root_type is self:
       raise SpecParseError('Recursive use of {} as type for {} in {} not allowed.'.format(
           self.name, field.name, self.name))
@@ -362,17 +396,10 @@ class Struct(DataType):
     return s
 
 
-def main():
-  with open('message_spec.yaml', 'r') as f:
+def parse_yaml(filename):
+  with open(filename, 'r') as f:
     type_map = yaml.unsafe_load(f)
 
   _yaml_check_map(type_map, [], [], False)
 
-  types = [DataType.from_yaml(name, info) for name, info in type_map.items()]
-
-  for t in types:
-    print(t)
-
-
-if __name__ == '__main__':
-  main()
+  return [DataType.from_yaml(name, info) for name, info in type_map.items()]
