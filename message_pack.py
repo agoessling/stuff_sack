@@ -132,23 +132,24 @@ class DataType:
 
 class Primitive(DataType):
 
-  def __init__(self, name, bits):
+  def __init__(self, name, byte_num):
     super().__init__(name)
 
-    self.bits = bits
+    self.bytes = byte_num
+    self.packed_size = byte_num
 
 
-Primitive('uint8', 8),
-Primitive('uint16', 16),
-Primitive('uint32', 32),
-Primitive('uint64', 64),
-Primitive('int8', 8),
-Primitive('int16', 16),
-Primitive('int32', 32),
-Primitive('int64', 64),
-Primitive('bool', 8),
-Primitive('float', 32),
-Primitive('double', 64),
+Primitive('uint8', 1),
+Primitive('uint16', 2),
+Primitive('uint32', 4),
+Primitive('uint64', 8),
+Primitive('int8', 1),
+Primitive('int16', 2),
+Primitive('int32', 4),
+Primitive('int64', 8),
+Primitive('bool', 1),
+Primitive('float', 4),
+Primitive('double', 8),
 
 
 class Array:
@@ -175,6 +176,10 @@ class Array:
           length, yaml))
 
     return cls(type_object, length)
+
+  @property
+  def packed_size(self):
+    return self.type.packed_size * self.length
 
   @property
   def name(self):
@@ -226,6 +231,10 @@ class Bitfield(DataType):
 
     self.fields = []
     self.bytes = 1
+
+  @property
+  def packed_size(self):
+    return self.bytes
 
   def add_field(self, field):
     total_bits = sum(x.bits for x in self.fields) + field.bits
@@ -296,6 +305,10 @@ class Enum(DataType):
     self.bytes = 1
     self.values = []
 
+  @property
+  def packed_size(self):
+    return self.bytes
+
   def add_value(self, value):
     if value.name in (x.name for x in self.values):
       raise SpecParseError('Value "{}" repeated in {}.'.format(value.name, self.name))
@@ -362,6 +375,10 @@ class Struct(DataType):
     super().__init__(name, description)
 
     self.fields = []
+
+  @property
+  def packed_size(self):
+    return sum(x.type.packed_size for x in self.fields)
 
   def add_field(self, field):
     if field.name in (x.name for x in self.fields):
