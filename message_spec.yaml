@@ -6,7 +6,7 @@ Errors:
     - {over_voltage: 1, _description: 'Voltage is too high.'}
     - {over_temp: 1, _description: 'Temperature is too high'}
     - num_glitches: 3
-    - extra: 6
+    - extra: 3
 
 CommandType:
   type: Enum
@@ -22,7 +22,7 @@ Status:
     - positions: uint8
 
 Bootload:
-  type: Struct
+  type: Message
   fields:
     - command: CommandType
     - length: uint16

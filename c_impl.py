@@ -1,3 +1,4 @@
+import argparse
 import textwrap
 
 import message_pack as mp
@@ -40,14 +41,17 @@ def c_field_name(field):
 
 
 def pack_function_name(obj):
-  return 'Pack{}'.format(obj.name)
+  return 'MpPack{}'.format(obj.name)
 
 
 def unpack_function_name(obj):
-  return 'Unpack{}'.format(obj.name)
+  return 'MpUnpack{}'.format(obj.name)
 
 
 def declaration(type_object):
+  if type(type_object) is mp.Primitive:
+    return None
+
   if isinstance(type_object, mp.Bitfield):
     return bitfield_declaration(type_object)
 
@@ -67,10 +71,7 @@ def bitfield_declaration(bitfield):
   for field in bitfield.fields:
     s += _indent('uint{}_t {} : {};\n'.format(bitfield.bytes * 8, field.name, field.bits))
 
-  s += '}} {};\n\n'.format(bitfield.name)
-
-  s += 'static_assert(sizeof({}) == {}, "{} size mismatch");'.format(bitfield.name, bitfield.bytes,
-                                                                     bitfield.name)
+  s += '}} {};'.format(bitfield.name)
 
   return s
 
@@ -84,10 +85,7 @@ def enum_declaration(enum):
     s += _indent('k{}{} = {},\n'.format(enum.name, value.name, value.value))
 
   s += _indent('kNum{} = {},\n'.format(enum.name, len(enum.values)))
-  s += '}} {};\n\n'.format(enum.name)
-
-  s += 'static_assert(sizeof({}) == {}, "{} size mismatch");'.format(enum.name, enum.bytes,
-                                                                     enum.name)
+  s += '}} {};'.format(enum.name)
 
   return s
 
@@ -105,33 +103,39 @@ def struct_declaration(struct):
 
 
 def pack(type_object):
-  if isinstance(type_object, mp.Primitive):
-    return primitive_pack(type_object)
-
   if isinstance(type_object, mp.Bitfield):
-    return primitive_pack(type_object)
+    return bitfield_pack(type_object)
 
   if isinstance(type_object, mp.Enum):
     return primitive_pack(type_object)
 
+  if isinstance(type_object, mp.Message):
+    return message_pack(type_object)
+
   if isinstance(type_object, mp.Struct):
     return struct_pack(type_object)
+
+  if isinstance(type_object, mp.Primitive):
+    return primitive_pack(type_object)
 
   raise TypeError('Unknown type: {}'.format(type(type_object)))
 
 
 def unpack(type_object):
-  if isinstance(type_object, mp.Primitive):
-    return primitive_unpack(type_object)
-
   if isinstance(type_object, mp.Bitfield):
-    return primitive_unpack(type_object)
+    return bitfield_unpack(type_object)
 
   if isinstance(type_object, mp.Enum):
     return primitive_unpack(type_object)
 
+  if isinstance(type_object, mp.Message):
+    return message_unpack(type_object)
+
   if isinstance(type_object, mp.Struct):
     return struct_unpack(type_object)
+
+  if isinstance(type_object, mp.Primitive):
+    return primitive_unpack(type_object)
 
   raise TypeError('Unknown type: {}'.format(type(type_object)))
 
@@ -144,8 +148,28 @@ def primitive_pack(obj):
   s += _indent('uint{}_t raw_data = (uint{}_t)*data;\n'.format(bits, bits))
 
   for i in range(obj.bytes):
-    s += _indent('buffer[{}] = (uint{}_t)(raw_data >> {});\n'.format(i, bits,
-                                                                     (obj.bytes - i - 1) * 8))
+    s += _indent('buffer[{}] = (uint8_t)(raw_data >> {});\n'.format(i, (obj.bytes - i - 1) * 8))
+
+  s += '}'
+
+  return s
+
+
+def bitfield_pack(obj):
+  bits = obj.bytes * 8
+  s = ''
+  s += 'static inline void {}(const {} *data, uint8_t *buffer) {{\n'.format(
+      pack_function_name(obj), c_type_name(obj))
+  s += _indent('union {\n')
+  s += _indent('{} data;\n'.format(c_type_name(obj)), 2)
+  s += _indent('uint{}_t raw_data;\n'.format(bits), 2)
+  s += _indent('} data_union;\n\n')
+
+  s += _indent('data_union.data = *data;\n')
+
+  for i in range(obj.bytes):
+    s += _indent('buffer[{}] = (uint8_t)(data_union.raw_data >> {});\n'.format(
+        i, (obj.bytes - i - 1) * 8))
 
   s += '}'
 
@@ -173,24 +197,78 @@ def array_pack(name, obj, offset, index_str='', iter_var='i'):
   return s
 
 
+def message_pack_prototype(obj):
+  return 'void {}({} *data, uint8_t *buffer)'.format(pack_function_name(obj), c_type_name(obj))
+
+
+def message_unpack_prototype(obj):
+  return 'MpStatus {}(const uint8_t *buffer, {} *data)'.format(unpack_function_name(obj),
+                                                               c_type_name(obj))
+
+
+def message_pack(obj):
+  s = ''
+  s += '{} {{\n'.format(message_pack_prototype(obj))
+
+  s += _indent('data->header.uid = {:#010x};\n'.format(obj.uid))
+  s += _indent('data->header.len = {};\n\n'.format(obj.packed_size))
+
+  s += _indent('{}\n'.format(struct_pack_body(obj)))
+
+  s += '}'
+
+  return s
+
+
+def message_unpack(obj):
+  s = ''
+  s += '{} {{\n'.format(message_unpack_prototype(obj))
+
+  s += _indent('{}(buffer + 0, &data->header);\n\n'.format(unpack_function_name(
+      obj.fields[0].type)))
+
+  s += _indent('if (data->header.uid != {:#010x}) {{\n'.format(obj.uid))
+  s += _indent('return kMpStatusInvalidUid;\n', 2)
+  s += _indent('}\n\n')
+
+  s += _indent('if (data->header.len != {}) {{\n'.format(obj.packed_size))
+  s += _indent('return kMpStatusInvalidLen;\n', 2)
+  s += _indent('}\n\n')
+
+  s += _indent('{}\n\n'.format(struct_unpack_body(obj, skip_header=True)))
+
+  s += _indent('return kMpStatusSuccess;\n')
+  s += '}'
+
+  return s
+
+
 def struct_pack(obj):
   s = ''
   s += 'static inline void {}(const {} *data, uint8_t *buffer) {{\n'.format(
       pack_function_name(obj), c_type_name(obj))
 
-  offset = 0
-  for field in obj.fields:
-    if isinstance(field.type, mp.Array):
-      s += _indent(array_pack(field.name, field.type, offset))
-    else:
-      s += _indent('{}(&data->{}, buffer + {});\n'.format(pack_function_name(field.type),
-                                                          field.name, offset))
-
-    offset += field.type.packed_size
+  s += _indent(struct_pack_body(obj))
 
   s += '}'
 
   return s
+
+
+def struct_pack_body(obj):
+  s = ''
+
+  offset = 0
+  for field in obj.fields:
+    if isinstance(field.type, mp.Array):
+      s += array_pack(field.name, field.type, offset)
+    else:
+      s += '{}(&data->{}, buffer + {});\n'.format(pack_function_name(field.type), field.name,
+                                                  offset)
+
+    offset += field.type.packed_size
+
+  return s[:-1]
 
 
 def primitive_unpack(obj):
@@ -210,17 +288,187 @@ def primitive_unpack(obj):
   return s
 
 
+def bitfield_unpack(obj):
+  bits = obj.bytes * 8
+  s = ''
+  s += 'static inline void {}(const uint8_t *buffer, {} *data) {{\n'.format(
+      unpack_function_name(obj), c_type_name(obj))
+
+  s += _indent('union {\n')
+  s += _indent('{} data;\n'.format(c_type_name(obj)), 2)
+  s += _indent('uint{}_t raw_data;\n'.format(bits), 2)
+  s += _indent('} data_union;\n\n')
+
+  s += _indent('data_union.raw_data = 0;\n')
+
+  for i in range(obj.bytes):
+    s += _indent('data_union.raw_data |= (uint{}_t)buffer[{}] << {};\n'.format(
+        bits, i, (obj.bytes - i - 1) * 8))
+
+  s += _indent('\n*data = data_union.data;\n')
+  s += '}'
+
+  return s
+
+
+def array_unpack(name, obj, offset, index_str='', iter_var='i'):
+  if ord(iter_var) > ord('z'):
+    raise ValueError('Invalid iteration variable: {}'.format(iter_var))
+
+  offset_str = '{} * {} + {}'.format(iter_var, obj.type.packed_size, offset)
+  index_str += '[{}]'.format(iter_var)
+
+  s = ''
+  s += 'for(int32_t {0} = 0; {0} < {1}; ++{0}) {{\n'.format(iter_var, obj.length)
+
+  if isinstance(obj.type, mp.Array):
+    s += _indent(array_unpack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
+  else:
+    s += _indent('{}(buffer + {}, &data->{}{});\n'.format(unpack_function_name(obj.root_type),
+                                                          offset_str, name, index_str))
+
+  s += '}\n'
+
+  return s
+
+
 def struct_unpack(obj):
-  return ''
+  s = ''
+  s += 'static inline void {}(const uint8_t *buffer, {} *data) {{\n'.format(
+      unpack_function_name(obj), c_type_name(obj))
+
+  s += _indent('{}\n'.format(struct_unpack_body(obj)))
+
+  s += '}'
+
+  return s
+
+
+def struct_unpack_body(obj, skip_header=False):
+  s = ''
+
+  offset = 0
+  for field in obj.fields:
+    if skip_header and field.type.name == 'MpHeader':
+      pass
+    elif isinstance(field.type, mp.Array):
+      s += array_unpack(field.name, field.type, offset)
+    else:
+      s += '{}(buffer + {}, &data->{});\n'.format(unpack_function_name(field.type), offset,
+                                                  field.name)
+
+    offset += field.type.packed_size
+
+  return s[:-1]
+
+
+def c_header(all_types):
+  messages = [x for x in all_types if isinstance(x, mp.Message)]
+
+  s = ''
+  s += '#pragma once\n\n'
+  s += '#include <stdbool.h>\n'
+  s += '#include <stdint.h>\n\n'
+
+  s += 'typedef enum {\n'
+  s += _indent('kMpMsgTypeForceSigned = -1,\n')
+
+  for i, msg in enumerate(messages):
+    s += _indent('kMpMsgType{} = {},\n'.format(msg.name, i))
+
+  s += _indent('kMpMsgTypeUnknown = {},\n'.format(len(messages)))
+  s += _indent('kNumMpMsgType = {},\n'.format(len(messages) + 1))
+  s += '} MpMsgType;\n\n'
+
+  s += \
+'''typedef enum {
+  kMpStatusForceSigned = -1,
+  kMpStatusSuccess = 0,
+  kMpStatusInvalidUid = 1,
+  kMpStatusInvalidLen = 2,
+  kNumMpStatus = 3,
+} MpStatus;\n\n'''
+
+  for t in all_types:
+    d = declaration(t)
+    if d:
+      s += '{}\n\n'.format(d)
+
+  s += 'MpMsgType MpInspectHeader(uint8_t *buffer);\n'
+
+  for msg in messages:
+    s += '{};\n'.format(message_pack_prototype(msg))
+    s += '{};\n'.format(message_unpack_prototype(msg))
+
+  return s[:-1]
+
+
+def c_file(all_types, header):
+  messages = [x for x in all_types if isinstance(x, mp.Message)]
+
+  s = ''
+  s += '#include "{}"\n\n'.format(header)
+
+  s += '#include <stdbool.h>\n'
+  s += '#include <stdint.h>\n\n'
+
+  for t in all_types:
+    s += '{}\n\n'.format(pack(t))
+    s += '{}\n\n'.format(unpack(t))
+
+  s += 'static const uint32_t kMessageUids[{}] = {{\n'.format(len(messages))
+
+  for msg in messages:
+    s += _indent('{:#010x},\n'.format(msg.uid))
+
+  s += '};\n\n'
+
+  s += 'static const MpMsgType kMpMsgTypes[{}] = {{\n'.format(len(messages))
+
+  for msg in messages:
+    s += _indent('kMpMsgType{},\n'.format(msg.name))
+
+  s += '};\n\n'
+
+  s += \
+'''static inline MpMsgType GetMpMsgTypeFromUid(uint32_t uid) {
+  for (int32_t i = 0; i < sizeof(kMessageUids) / sizeof(kMessageUids[0]); ++i) {
+    if (uid == kMessageUids[i]) {
+      return kMpMsgTypes[i];
+    }
+  }
+  return kMpMsgTypeUnknown;
+}
+
+MpMsgType MpInspectHeader(uint8_t *buffer) {
+  MpHeader header;
+  MpUnpackMpHeader(buffer, &header);
+  return GetMpMsgTypeFromUid(header.uid);
+}'''
+
+  return s
 
 
 def main():
-  types = mp.parse_yaml('message_spec.yaml')
+  parser = argparse.ArgumentParser(description='Generate message pack C library.')
+  parser.add_argument('--yaml', required=True, help='YAML message specification.')
+  parser.add_argument('--header', required=True, help='Library header file name.')
+  parser.add_argument('--c_file', required=True, help='C library file name.')
+  parser.add_argument('--header_include', help='Include string to header file.')
+  args = parser.parse_args()
 
-  for t in types:
-    print(declaration(t))
-    print(pack(t))
-    print(unpack(t))
+  all_types = mp.parse_yaml(args.yaml)
+
+  with open(args.header, 'w') as f:
+    f.write(c_header(all_types))
+
+  with open(args.c_file, 'w') as f:
+    if args.header_include:
+      include = args.header_include
+    else:
+      include = args.header
+
+    f.write(c_file(all_types, include))
 
 
 if __name__ == '__main__':

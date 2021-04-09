@@ -1,5 +1,6 @@
 import textwrap
 import yaml
+import zlib
 
 
 def _indent(s, level=1):
@@ -95,6 +96,10 @@ class DataType:
 
     self.all_types[name] = self
 
+  @classmethod
+  def get_all_types(cls):
+    return cls.all_types.values()
+
   @staticmethod
   def from_yaml(name, yaml):
     if not isinstance(name, str):
@@ -115,6 +120,9 @@ class DataType:
     if yaml['type'] == 'Struct':
       return Struct.from_yaml(name, yaml)
 
+    if yaml['type'] == 'Message':
+      return Message.from_yaml(name, yaml)
+
     raise SpecParseError('Unrecognized type "{}" in {}.'.format(yaml['type'], name))
 
   @property
@@ -129,6 +137,9 @@ class DataType:
 
     return cls.all_types[type_name]
 
+  def get_contained_types(self):
+    return set([self])
+
 
 class Primitive(DataType):
 
@@ -138,18 +149,9 @@ class Primitive(DataType):
     self.bytes = byte_num
     self.packed_size = byte_num
 
-
-Primitive('uint8', 1),
-Primitive('uint16', 2),
-Primitive('uint32', 4),
-Primitive('uint64', 8),
-Primitive('int8', 1),
-Primitive('int16', 2),
-Primitive('int32', 4),
-Primitive('int64', 8),
-Primitive('bool', 1),
-Primitive('float', 4),
-Primitive('double', 8),
+  @property
+  def uid(self):
+    return zlib.crc32(str((self.name, self.bytes)).encode())
 
 
 class Array:
@@ -157,6 +159,10 @@ class Array:
   def __init__(self, elem_type, length):
     self.type = elem_type
     self.length = length
+
+  @property
+  def uid(self):
+    return zlib.crc32(str((self.type.uid, self.length)).encode())
 
   @classmethod
   def from_yaml(cls, yaml):
@@ -195,6 +201,9 @@ class Array:
   def root_type(self):
     return self.type.root_type
 
+  def get_contained_types(self):
+    return self.type.get_contained_types()
+
   def __str__(self):
     return self.name
 
@@ -205,6 +214,10 @@ class BitfieldField:
     self.name = name
     self.bits = bits
     self.description = description
+
+  @property
+  def uid(self):
+    return zlib.crc32(str((self.name, self.bits)).encode())
 
   @classmethod
   def from_yaml(cls, yaml):
@@ -231,6 +244,10 @@ class Bitfield(DataType):
 
     self.fields = []
     self.bytes = 1
+
+  @property
+  def uid(self):
+    return zlib.crc32(str((self.name, [x.uid for x in self.fields])).encode())
 
   @property
   def packed_size(self):
@@ -282,6 +299,10 @@ class EnumValue:
 
     self.value = None
 
+  @property
+  def uid(self):
+    return zlib.crc32(str((self.name, self.value)).encode())
+
   @classmethod
   def from_yaml(cls, yaml):
     _yaml_check_map_with_meta(yaml)
@@ -304,6 +325,10 @@ class Enum(DataType):
 
     self.bytes = 1
     self.values = []
+
+  @property
+  def uid(self):
+    return zlib.crc32(str((self.name, [x.uid for x in self.values])).encode())
 
   @property
   def packed_size(self):
@@ -348,6 +373,10 @@ class StructField:
     self.type = field_type
     self.description = description
 
+  @property
+  def uid(self):
+    return zlib.crc32(str((self.name, self.type.uid)).encode())
+
   @classmethod
   def from_yaml(cls, yaml):
     _yaml_check_map_with_meta(yaml)
@@ -375,6 +404,10 @@ class Struct(DataType):
     super().__init__(name, description)
 
     self.fields = []
+
+  @property
+  def uid(self):
+    return zlib.crc32(str((self.name, [x.uid for x in self.fields])).encode())
 
   @property
   def packed_size(self):
@@ -412,6 +445,40 @@ class Struct(DataType):
 
     return s
 
+  def get_contained_types(self):
+    types = {self}
+    for field in self.fields:
+      types |= field.type.get_contained_types()
+    return types
+
+
+class Message(Struct):
+
+  def __init__(self, name, description=None):
+    super().__init__(name, description)
+
+    self.add_field(StructField('header', DataType.get_type('MpHeader'), 'Message header.'))
+
+
+def reset_types():
+  DataType.all_types = {}
+
+  Primitive('uint8', 1),
+  Primitive('uint16', 2),
+  Primitive('uint32', 4),
+  Primitive('uint64', 8),
+  Primitive('int8', 1),
+  Primitive('int16', 2),
+  Primitive('int32', 4),
+  Primitive('int64', 8),
+  Primitive('bool', 1),
+  Primitive('float', 4),
+  Primitive('double', 8),
+
+  header = Struct('MpHeader', 'Message header.')
+  header.add_field(StructField('uid', DataType.get_type('uint32'), 'Message unique id.'))
+  header.add_field(StructField('len', DataType.get_type('uint16'), 'Message length.'))
+
 
 def parse_yaml(filename):
   with open(filename, 'r') as f:
@@ -419,4 +486,11 @@ def parse_yaml(filename):
 
   _yaml_check_map(type_map, [], [], False)
 
-  return [DataType.from_yaml(name, info) for name, info in type_map.items()]
+  reset_types()
+  for name, info in type_map.items():
+    DataType.from_yaml(name, info)
+
+  all_types = DataType.get_all_types()
+  reset_types()
+
+  return all_types
