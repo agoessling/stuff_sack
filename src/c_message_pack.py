@@ -3,6 +3,14 @@ import textwrap
 
 import message_pack as mp
 
+def _camel_to_snake(s):
+  return ''.join(['_' + c.lower() if c.isupper() else c for c in s]).lstrip('_')
+
+
+def _snake_to_camel(s):
+  return ''.join(
+      ['{:s}{:s}'.format(x[0].upper(), x[1:]) if len(x) > 1 else x for x in s.split('_')])
+
 
 def _indent(s, level=1):
   return textwrap.indent(s, '  ' * level)
@@ -41,11 +49,11 @@ def c_field_name(field):
 
 
 def pack_function_name(obj):
-  return 'MpPack{}'.format(obj.name)
+  return 'MpPack{}'.format(_snake_to_camel(obj.name))
 
 
 def unpack_function_name(obj):
-  return 'MpUnpack{}'.format(obj.name)
+  return 'MpUnpack{}'.format(_snake_to_camel(obj.name))
 
 
 def declaration(type_object):
@@ -104,7 +112,10 @@ def struct_declaration(struct):
 
 def pack(type_object):
   if isinstance(type_object, mp.Bitfield):
-    return bitfield_pack(type_object)
+    return primitive_union_pack(type_object)
+
+  if type_object.name in ('float', 'double'):
+    return primitive_union_pack(type_object)
 
   if isinstance(type_object, mp.Enum):
     return primitive_pack(type_object)
@@ -123,7 +134,10 @@ def pack(type_object):
 
 def unpack(type_object):
   if isinstance(type_object, mp.Bitfield):
-    return bitfield_unpack(type_object)
+    return primitive_union_unpack(type_object)
+
+  if type_object.name in ('float', 'double'):
+    return primitive_union_unpack(type_object)
 
   if isinstance(type_object, mp.Enum):
     return primitive_unpack(type_object)
@@ -155,7 +169,7 @@ def primitive_pack(obj):
   return s
 
 
-def bitfield_pack(obj):
+def primitive_union_pack(obj):
   bits = obj.bytes * 8
   s = ''
   s += 'static inline void {}(const {} *data, uint8_t *buffer) {{\n'.format(
@@ -288,7 +302,7 @@ def primitive_unpack(obj):
   return s
 
 
-def bitfield_unpack(obj):
+def primitive_union_unpack(obj):
   bits = obj.bytes * 8
   s = ''
   s += 'static inline void {}(const uint8_t *buffer, {} *data) {{\n'.format(
@@ -362,6 +376,20 @@ def struct_unpack_body(obj, skip_header=False):
   return s[:-1]
 
 
+def static_assert(all_types):
+  s = ''
+
+  for t in all_types:
+    if isinstance(t, (mp.Primitive, mp.Bitfield)):
+      s += 'static_assert(sizeof({}) == {}, "{} size mismatch.");\n'.format(
+          c_type_name(t), t.bytes, c_type_name(t))
+    if isinstance(t, mp.Enum):
+      s += 'static_assert(kNum{} < {} / 2, "{} size mismatch.");\n'.format(
+          t.name, ' * '.join(['256'] * t.bytes), t.name)
+
+  return s[:-1]
+
+
 def c_header(all_types):
   messages = [x for x in all_types if isinstance(x, mp.Message)]
 
@@ -394,7 +422,11 @@ def c_header(all_types):
     if d:
       s += '{}\n\n'.format(d)
 
-  s += 'MpMsgType MpInspectHeader(uint8_t *buffer);\n'
+  for msg in messages:
+    s += '#define MP_{}_PACKED_SIZE {}\n'.format(_camel_to_snake(msg.name).upper(), msg.packed_size)
+  s += '\n'
+
+  s += 'MpMsgType MpInspectHeader(const uint8_t *buffer);\n'
 
   for msg in messages:
     s += '{};\n'.format(message_pack_prototype(msg))
@@ -409,8 +441,11 @@ def c_file(all_types, header):
   s = ''
   s += '#include "{}"\n\n'.format(header)
 
+  s += '#include <assert.h>\n'
   s += '#include <stdbool.h>\n'
   s += '#include <stdint.h>\n\n'
+
+  s += '{}\n\n'.format(static_assert(all_types))
 
   for t in all_types:
     s += '{}\n\n'.format(pack(t))
@@ -440,7 +475,7 @@ def c_file(all_types, header):
   return kMpMsgTypeUnknown;
 }
 
-MpMsgType MpInspectHeader(uint8_t *buffer) {
+MpMsgType MpInspectHeader(const uint8_t *buffer) {
   MpHeader header;
   MpUnpackMpHeader(buffer, &header);
   return GetMpMsgTypeFromUid(header.uid);
@@ -451,13 +486,13 @@ MpMsgType MpInspectHeader(uint8_t *buffer) {
 
 def main():
   parser = argparse.ArgumentParser(description='Generate message pack C library.')
-  parser.add_argument('--yaml', required=True, help='YAML message specification.')
+  parser.add_argument('--spec', required=True, help='YAML message specification.')
   parser.add_argument('--header', required=True, help='Library header file name.')
   parser.add_argument('--c_file', required=True, help='C library file name.')
   parser.add_argument('--header_include', help='Include string to header file.')
   args = parser.parse_args()
 
-  all_types = mp.parse_yaml(args.yaml)
+  all_types = mp.parse_yaml(args.spec)
 
   with open(args.header, 'w') as f:
     f.write(c_header(all_types))
