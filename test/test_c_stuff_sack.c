@@ -21,20 +21,20 @@ static void TestBitfield(void) {
   };
   BitfieldTest unpacked;
 
-  uint8_t bytes[MP_BITFIELD_TEST_PACKED_SIZE] = {
+  uint8_t bytes[SS_BITFIELD_TEST_PACKED_SIZE] = {
     0x00, 0x00, 0x00, 0x00,
     0x00, 0x00,
     0x00, 0x01, 0x69, 0xde,
   };
-  uint8_t packed[MP_BITFIELD_TEST_PACKED_SIZE];
+  uint8_t packed[SS_BITFIELD_TEST_PACKED_SIZE];
 
-  MpPackBitfieldTest(&bitfield_test, packed);
+  SsPackBitfieldTest(&bitfield_test, packed);
 
   TEST_ASSERT_EQUAL_HEX8_ARRAY(&bytes[6], &packed[6], 3);
 
   memcpy(bytes, packed, 6);
-  MpStatus status = MpUnpackBitfieldTest(bytes, &unpacked);
-  TEST_ASSERT_EQUAL_INT(kMpStatusSuccess, status);
+  SsStatus status = SsUnpackBitfieldTest(bytes, &unpacked);
+  TEST_ASSERT_EQUAL_INT(kSsStatusSuccess, status);
 
   TEST_ASSERT_EQUAL_INT(bitfield_test.bitfield.field0, unpacked.bitfield.field0);
   TEST_ASSERT_EQUAL_INT(bitfield_test.bitfield.field1, unpacked.bitfield.field1);
@@ -44,30 +44,30 @@ static void TestBitfield(void) {
 
 static void TestEnum(void) {
   TEST_ASSERT_EQUAL_INT(127, kNumEnum1Bytes);
-  TEST_ASSERT_EQUAL_INT(7, MP_ENUM1_BYTES_TEST_PACKED_SIZE);
+  TEST_ASSERT_EQUAL_INT(7, SS_ENUM1_BYTES_TEST_PACKED_SIZE);
 
   TEST_ASSERT_EQUAL_INT(128, kNumEnum2Bytes);
-  TEST_ASSERT_EQUAL_INT(8, MP_ENUM2_BYTES_TEST_PACKED_SIZE);
+  TEST_ASSERT_EQUAL_INT(8, SS_ENUM2_BYTES_TEST_PACKED_SIZE);
 
   Enum2BytesTest enum_test = {
     .enumeration = kNumEnum2Bytes,
   };
   Enum2BytesTest unpacked;
 
-  uint8_t bytes[MP_ENUM2_BYTES_TEST_PACKED_SIZE] = {
+  uint8_t bytes[SS_ENUM2_BYTES_TEST_PACKED_SIZE] = {
     0x00, 0x00, 0x00, 0x00,
     0x00, 0x00,
     0x00, 0x80,
   };
-  uint8_t packed[MP_ENUM2_BYTES_TEST_PACKED_SIZE];
+  uint8_t packed[SS_ENUM2_BYTES_TEST_PACKED_SIZE];
 
-  MpPackEnum2BytesTest(&enum_test, packed);
+  SsPackEnum2BytesTest(&enum_test, packed);
 
   TEST_ASSERT_EQUAL_HEX8_ARRAY(&bytes[6], &packed[6], 2);
 
   memcpy(bytes, packed, 6);
-  MpStatus status = MpUnpackEnum2BytesTest(bytes, &unpacked);
-  TEST_ASSERT_EQUAL_INT(kMpStatusSuccess, status);
+  SsStatus status = SsUnpackEnum2BytesTest(bytes, &unpacked);
+  TEST_ASSERT_EQUAL_INT(kSsStatusSuccess, status);
 
   TEST_ASSERT_EQUAL_INT(enum_test.enumeration, unpacked.enumeration);
 }
@@ -88,7 +88,7 @@ static void TestPrimitive(void) {
   };
   PrimitiveTest unpacked;
 
-  uint8_t bytes[MP_PRIMITIVE_TEST_PACKED_SIZE] = {
+  uint8_t bytes[SS_PRIMITIVE_TEST_PACKED_SIZE] = {
     0x00, 0x00, 0x00, 0x00, // uid
     0x00, 0x00, // len, 4
     0x01, // uint8, 5
@@ -103,15 +103,15 @@ static void TestPrimitive(void) {
     0x40, 0x49, 0x0f, 0xda, // float, 37
     0x40, 0x09, 0x21, 0xFB, 0x4D, 0x12, 0xD8, 0x4A, // double, 41
   };
-  uint8_t packed[MP_PRIMITIVE_TEST_PACKED_SIZE];
+  uint8_t packed[SS_PRIMITIVE_TEST_PACKED_SIZE];
 
-  MpPackPrimitiveTest(&primitive_test, packed);
+  SsPackPrimitiveTest(&primitive_test, packed);
 
-  TEST_ASSERT_EQUAL_HEX8_ARRAY(&bytes[6], &packed[6], MP_PRIMITIVE_TEST_PACKED_SIZE - 6);
+  TEST_ASSERT_EQUAL_HEX8_ARRAY(&bytes[6], &packed[6], SS_PRIMITIVE_TEST_PACKED_SIZE - 6);
 
   memcpy(bytes, packed, 6);
-  MpStatus status = MpUnpackPrimitiveTest(bytes, &unpacked);
-  TEST_ASSERT_EQUAL_INT(kMpStatusSuccess, status);
+  SsStatus status = SsUnpackPrimitiveTest(bytes, &unpacked);
+  TEST_ASSERT_EQUAL_INT(kSsStatusSuccess, status);
 
   TEST_ASSERT_EQUAL_HEX8(primitive_test.uint8, unpacked.uint8);
   TEST_ASSERT_EQUAL_HEX16(primitive_test.uint16, unpacked.uint16);
@@ -158,7 +158,7 @@ static void TestArray(void) {
   };
   ArrayTest unpacked;
 
-  uint8_t bytes[MP_ARRAY_TEST_PACKED_SIZE] = {
+  uint8_t bytes[SS_ARRAY_TEST_PACKED_SIZE] = {
     0x00, 0x00, 0x00, 0x00,
     0x00, 0x00,
     0x00, 0x00, 0x00,
@@ -181,15 +181,15 @@ static void TestArray(void) {
     0x00, 0x00, 0x0e,
     0x00, 0x00, 0x0f,
   };
-  uint8_t packed[MP_ARRAY_TEST_PACKED_SIZE];
+  uint8_t packed[SS_ARRAY_TEST_PACKED_SIZE];
 
-  MpPackArrayTest(&array_test, packed);
+  SsPackArrayTest(&array_test, packed);
 
-  TEST_ASSERT_EQUAL_HEX8_ARRAY(&bytes[6], &packed[6], MP_ARRAY_TEST_PACKED_SIZE - 6);
+  TEST_ASSERT_EQUAL_HEX8_ARRAY(&bytes[6], &packed[6], SS_ARRAY_TEST_PACKED_SIZE - 6);
 
   memcpy(bytes, packed, 6);
-  MpStatus status = MpUnpackArrayTest(bytes, &unpacked);
-  TEST_ASSERT_EQUAL_INT(kMpStatusSuccess, status);
+  SsStatus status = SsUnpackArrayTest(bytes, &unpacked);
+  TEST_ASSERT_EQUAL_INT(kSsStatusSuccess, status);
 
   for (int32_t i = 0; i < 2; ++i) {
     TEST_ASSERT_EQUAL_INT(array_test.array_1d[i].field0, unpacked.array_1d[i].field0);
@@ -208,38 +208,38 @@ static void TestArray(void) {
 
 static void TestInspectHeader(void) {
   PrimitiveTest primitive_test = {0};
-  uint8_t packed[MP_PRIMITIVE_TEST_PACKED_SIZE];
+  uint8_t packed[SS_PRIMITIVE_TEST_PACKED_SIZE];
 
-  MpPackPrimitiveTest(&primitive_test, packed);
-  TEST_ASSERT_EQUAL_INT(kMpMsgTypePrimitiveTest, MpInspectHeader(packed));
+  SsPackPrimitiveTest(&primitive_test, packed);
+  TEST_ASSERT_EQUAL_INT(kSsMsgTypePrimitiveTest, SsInspectHeader(packed));
 
   packed[0] = 0x00;
   packed[1] = 0x00;
   packed[2] = 0x00;
   packed[3] = 0x00;
 
-  TEST_ASSERT_EQUAL_INT(kMpMsgTypeUnknown, MpInspectHeader(packed));
+  TEST_ASSERT_EQUAL_INT(kSsMsgTypeUnknown, SsInspectHeader(packed));
 }
 
 static void TestHeaderCheck(void) {
   PrimitiveTest primitive_test = {0};
-  uint8_t packed[MP_PRIMITIVE_TEST_PACKED_SIZE];
+  uint8_t packed[SS_PRIMITIVE_TEST_PACKED_SIZE];
 
-  MpPackPrimitiveTest(&primitive_test, packed);
+  SsPackPrimitiveTest(&primitive_test, packed);
 
   packed[4] = 0x00;
   packed[5] = 0x00;
 
-  TEST_ASSERT_EQUAL_INT(kMpStatusInvalidLen, MpUnpackPrimitiveTest(packed, &primitive_test));
+  TEST_ASSERT_EQUAL_INT(kSsStatusInvalidLen, SsUnpackPrimitiveTest(packed, &primitive_test));
 
-  MpPackPrimitiveTest(&primitive_test, packed);
+  SsPackPrimitiveTest(&primitive_test, packed);
 
   packed[0] = 0x00;
   packed[1] = 0x00;
   packed[2] = 0x00;
   packed[3] = 0x00;
 
-  TEST_ASSERT_EQUAL_INT(kMpStatusInvalidUid, MpUnpackPrimitiveTest(packed, &primitive_test));
+  TEST_ASSERT_EQUAL_INT(kSsStatusInvalidUid, SsUnpackPrimitiveTest(packed, &primitive_test));
 }
 
 void setUp(void) {}

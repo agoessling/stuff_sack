@@ -6,8 +6,8 @@ gen_message_def(
 )
 
 cc_test(
-    name = "test_c_message_pack",
-    srcs = ["test_c_message_pack.c"],
+    name = "test_c_stuff_sack",
+    srcs = ["test_c_stuff_sack.c"],
     deps = [
         ":test_message_def",
         "@unity//:unity",

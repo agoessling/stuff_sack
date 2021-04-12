@@ -6,10 +6,10 @@ def gen_message_def(name, message_spec, **kwargs):
             name + ".c",
             name + ".h",
         ],
-        cmd = ("$(execpath //src:c_message_pack) --spec $(location {}) " +
+        cmd = ("$(execpath @stuff_sack//src:c_stuff_sack) --spec $(location {}) " +
                "--header $(location {}) --c_file $(location {})").format(
                    message_spec, name + ".h", name + ".c"),
-        tools = ["//src:c_message_pack"],
+        tools = ["@stuff_sack//src:c_stuff_sack"],
         visibility = ["//visibility:private"],
     )
 

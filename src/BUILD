@@ -1,13 +1,13 @@
 py_binary(
-    name = "c_message_pack",
-    srcs = ["c_message_pack.py"],
+    name = "c_stuff_sack",
+    srcs = ["c_stuff_sack.py"],
     deps = [
-        ":message_pack",
+        ":stuff_sack",
     ],
     visibility = ["//visibility:public"],
 )
 
 py_library(
-    name = "message_pack",
-    srcs = ["message_pack.py"],
+    name = "stuff_sack",
+    srcs = ["stuff_sack.py"],
 )

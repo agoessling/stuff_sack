@@ -1,7 +1,7 @@
 import argparse
 import textwrap
 
-import message_pack as mp
+import src.stuff_sack as ss
 
 def _camel_to_snake(s):
   return ''.join(['_' + c.lower() if c.isupper() else c for c in s]).lstrip('_')
@@ -39,7 +39,7 @@ def c_type_name(type_object):
 def c_field_name(field):
   length_list = []
   current_type = field.type
-  while isinstance(current_type, mp.Array):
+  while isinstance(current_type, ss.Array):
     length_list.append(current_type.length)
     current_type = current_type.type
 
@@ -49,24 +49,24 @@ def c_field_name(field):
 
 
 def pack_function_name(obj):
-  return 'MpPack{}'.format(_snake_to_camel(obj.name))
+  return 'SsPack{}'.format(_snake_to_camel(obj.name))
 
 
 def unpack_function_name(obj):
-  return 'MpUnpack{}'.format(_snake_to_camel(obj.name))
+  return 'SsUnpack{}'.format(_snake_to_camel(obj.name))
 
 
 def declaration(type_object):
-  if type(type_object) is mp.Primitive:
+  if type(type_object) is ss.Primitive:
     return None
 
-  if isinstance(type_object, mp.Bitfield):
+  if isinstance(type_object, ss.Bitfield):
     return bitfield_declaration(type_object)
 
-  if isinstance(type_object, mp.Enum):
+  if isinstance(type_object, ss.Enum):
     return enum_declaration(type_object)
 
-  if isinstance(type_object, mp.Struct):
+  if isinstance(type_object, ss.Struct):
     return struct_declaration(type_object)
 
   raise TypeError('Unknown type: {}'.format(type(type_object)))
@@ -111,44 +111,44 @@ def struct_declaration(struct):
 
 
 def pack(type_object):
-  if isinstance(type_object, mp.Bitfield):
+  if isinstance(type_object, ss.Bitfield):
     return primitive_union_pack(type_object)
 
   if type_object.name in ('float', 'double'):
     return primitive_union_pack(type_object)
 
-  if isinstance(type_object, mp.Enum):
+  if isinstance(type_object, ss.Enum):
     return primitive_pack(type_object)
 
-  if isinstance(type_object, mp.Message):
+  if isinstance(type_object, ss.Message):
     return message_pack(type_object)
 
-  if isinstance(type_object, mp.Struct):
+  if isinstance(type_object, ss.Struct):
     return struct_pack(type_object)
 
-  if isinstance(type_object, mp.Primitive):
+  if isinstance(type_object, ss.Primitive):
     return primitive_pack(type_object)
 
   raise TypeError('Unknown type: {}'.format(type(type_object)))
 
 
 def unpack(type_object):
-  if isinstance(type_object, mp.Bitfield):
+  if isinstance(type_object, ss.Bitfield):
     return primitive_union_unpack(type_object)
 
   if type_object.name in ('float', 'double'):
     return primitive_union_unpack(type_object)
 
-  if isinstance(type_object, mp.Enum):
+  if isinstance(type_object, ss.Enum):
     return primitive_unpack(type_object)
 
-  if isinstance(type_object, mp.Message):
+  if isinstance(type_object, ss.Message):
     return message_unpack(type_object)
 
-  if isinstance(type_object, mp.Struct):
+  if isinstance(type_object, ss.Struct):
     return struct_unpack(type_object)
 
-  if isinstance(type_object, mp.Primitive):
+  if isinstance(type_object, ss.Primitive):
     return primitive_unpack(type_object)
 
   raise TypeError('Unknown type: {}'.format(type(type_object)))
@@ -200,7 +200,7 @@ def array_pack(name, obj, offset, index_str='', iter_var='i'):
   s = ''
   s += 'for(int32_t {0} = 0; {0} < {1}; ++{0}) {{\n'.format(iter_var, obj.length)
 
-  if isinstance(obj.type, mp.Array):
+  if isinstance(obj.type, ss.Array):
     s += _indent(array_pack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
   else:
     s += _indent('{}(&data->{}{}, buffer + {});\n'.format(pack_function_name(obj.root_type), name,
@@ -216,7 +216,7 @@ def message_pack_prototype(obj):
 
 
 def message_unpack_prototype(obj):
-  return 'MpStatus {}(const uint8_t *buffer, {} *data)'.format(unpack_function_name(obj),
+  return 'SsStatus {}(const uint8_t *buffer, {} *data)'.format(unpack_function_name(obj),
                                                                c_type_name(obj))
 
 
@@ -224,8 +224,8 @@ def message_pack(obj):
   s = ''
   s += '{} {{\n'.format(message_pack_prototype(obj))
 
-  s += _indent('data->header.uid = {:#010x};\n'.format(obj.uid))
-  s += _indent('data->header.len = {};\n\n'.format(obj.packed_size))
+  s += _indent('data->ss_header.uid = {:#010x};\n'.format(obj.uid))
+  s += _indent('data->ss_header.len = {};\n\n'.format(obj.packed_size))
 
   s += _indent('{}\n'.format(struct_pack_body(obj)))
 
@@ -238,20 +238,20 @@ def message_unpack(obj):
   s = ''
   s += '{} {{\n'.format(message_unpack_prototype(obj))
 
-  s += _indent('{}(buffer + 0, &data->header);\n\n'.format(unpack_function_name(
+  s += _indent('{}(buffer + 0, &data->ss_header);\n\n'.format(unpack_function_name(
       obj.fields[0].type)))
 
-  s += _indent('if (data->header.uid != {:#010x}) {{\n'.format(obj.uid))
-  s += _indent('return kMpStatusInvalidUid;\n', 2)
+  s += _indent('if (data->ss_header.uid != {:#010x}) {{\n'.format(obj.uid))
+  s += _indent('return kSsStatusInvalidUid;\n', 2)
   s += _indent('}\n\n')
 
-  s += _indent('if (data->header.len != {}) {{\n'.format(obj.packed_size))
-  s += _indent('return kMpStatusInvalidLen;\n', 2)
+  s += _indent('if (data->ss_header.len != {}) {{\n'.format(obj.packed_size))
+  s += _indent('return kSsStatusInvalidLen;\n', 2)
   s += _indent('}\n\n')
 
   s += _indent('{}\n\n'.format(struct_unpack_body(obj, skip_header=True)))
 
-  s += _indent('return kMpStatusSuccess;\n')
+  s += _indent('return kSsStatusSuccess;\n')
   s += '}'
 
   return s
@@ -274,7 +274,7 @@ def struct_pack_body(obj):
 
   offset = 0
   for field in obj.fields:
-    if isinstance(field.type, mp.Array):
+    if isinstance(field.type, ss.Array):
       s += array_pack(field.name, field.type, offset)
     else:
       s += '{}(&data->{}, buffer + {});\n'.format(pack_function_name(field.type), field.name,
@@ -335,7 +335,7 @@ def array_unpack(name, obj, offset, index_str='', iter_var='i'):
   s = ''
   s += 'for(int32_t {0} = 0; {0} < {1}; ++{0}) {{\n'.format(iter_var, obj.length)
 
-  if isinstance(obj.type, mp.Array):
+  if isinstance(obj.type, ss.Array):
     s += _indent(array_unpack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
   else:
     s += _indent('{}(buffer + {}, &data->{}{});\n'.format(unpack_function_name(obj.root_type),
@@ -363,9 +363,9 @@ def struct_unpack_body(obj, skip_header=False):
 
   offset = 0
   for field in obj.fields:
-    if skip_header and field.type.name == 'MpHeader':
+    if skip_header and field.type.name == 'SsHeader':
       pass
-    elif isinstance(field.type, mp.Array):
+    elif isinstance(field.type, ss.Array):
       s += array_unpack(field.name, field.type, offset)
     else:
       s += '{}(buffer + {}, &data->{});\n'.format(unpack_function_name(field.type), offset,
@@ -380,10 +380,10 @@ def static_assert(all_types):
   s = ''
 
   for t in all_types:
-    if isinstance(t, (mp.Primitive, mp.Bitfield)):
+    if isinstance(t, (ss.Primitive, ss.Bitfield)):
       s += 'static_assert(sizeof({}) == {}, "{} size mismatch.");\n'.format(
           c_type_name(t), t.bytes, c_type_name(t))
-    if isinstance(t, mp.Enum):
+    if isinstance(t, ss.Enum):
       s += 'static_assert(kNum{} < {} / 2, "{} size mismatch.");\n'.format(
           t.name, ' * '.join(['256'] * t.bytes), t.name)
 
@@ -391,7 +391,7 @@ def static_assert(all_types):
 
 
 def c_header(all_types):
-  messages = [x for x in all_types if isinstance(x, mp.Message)]
+  messages = [x for x in all_types if isinstance(x, ss.Message)]
 
   s = ''
   s += '#pragma once\n\n'
@@ -399,23 +399,23 @@ def c_header(all_types):
   s += '#include <stdint.h>\n\n'
 
   s += 'typedef enum {\n'
-  s += _indent('kMpMsgTypeForceSigned = -1,\n')
+  s += _indent('kSsMsgTypeForceSigned = -1,\n')
 
   for i, msg in enumerate(messages):
-    s += _indent('kMpMsgType{} = {},\n'.format(msg.name, i))
+    s += _indent('kSsMsgType{} = {},\n'.format(msg.name, i))
 
-  s += _indent('kMpMsgTypeUnknown = {},\n'.format(len(messages)))
-  s += _indent('kNumMpMsgType = {},\n'.format(len(messages) + 1))
-  s += '} MpMsgType;\n\n'
+  s += _indent('kSsMsgTypeUnknown = {},\n'.format(len(messages)))
+  s += _indent('kNumSsMsgType = {},\n'.format(len(messages) + 1))
+  s += '} SsMsgType;\n\n'
 
   s += \
 '''typedef enum {
-  kMpStatusForceSigned = -1,
-  kMpStatusSuccess = 0,
-  kMpStatusInvalidUid = 1,
-  kMpStatusInvalidLen = 2,
-  kNumMpStatus = 3,
-} MpStatus;\n\n'''
+  kSsStatusForceSigned = -1,
+  kSsStatusSuccess = 0,
+  kSsStatusInvalidUid = 1,
+  kSsStatusInvalidLen = 2,
+  kNumSsStatus = 3,
+} SsStatus;\n\n'''
 
   for t in all_types:
     d = declaration(t)
@@ -423,10 +423,10 @@ def c_header(all_types):
       s += '{}\n\n'.format(d)
 
   for msg in messages:
-    s += '#define MP_{}_PACKED_SIZE {}\n'.format(_camel_to_snake(msg.name).upper(), msg.packed_size)
+    s += '#define SS_{}_PACKED_SIZE {}\n'.format(_camel_to_snake(msg.name).upper(), msg.packed_size)
   s += '\n'
 
-  s += 'MpMsgType MpInspectHeader(const uint8_t *buffer);\n'
+  s += 'SsMsgType SsInspectHeader(const uint8_t *buffer);\n'
 
   for msg in messages:
     s += '{};\n'.format(message_pack_prototype(msg))
@@ -436,7 +436,7 @@ def c_header(all_types):
 
 
 def c_file(all_types, header):
-  messages = [x for x in all_types if isinstance(x, mp.Message)]
+  messages = [x for x in all_types if isinstance(x, ss.Message)]
 
   s = ''
   s += '#include "{}"\n\n'.format(header)
@@ -458,27 +458,27 @@ def c_file(all_types, header):
 
   s += '};\n\n'
 
-  s += 'static const MpMsgType kMpMsgTypes[{}] = {{\n'.format(len(messages))
+  s += 'static const SsMsgType kSsMsgTypes[{}] = {{\n'.format(len(messages))
 
   for msg in messages:
-    s += _indent('kMpMsgType{},\n'.format(msg.name))
+    s += _indent('kSsMsgType{},\n'.format(msg.name))
 
   s += '};\n\n'
 
   s += \
-'''static inline MpMsgType GetMpMsgTypeFromUid(uint32_t uid) {
+'''static inline SsMsgType GetSsMsgTypeFromUid(uint32_t uid) {
   for (int32_t i = 0; i < sizeof(kMessageUids) / sizeof(kMessageUids[0]); ++i) {
     if (uid == kMessageUids[i]) {
-      return kMpMsgTypes[i];
+      return kSsMsgTypes[i];
     }
   }
-  return kMpMsgTypeUnknown;
+  return kSsMsgTypeUnknown;
 }
 
-MpMsgType MpInspectHeader(const uint8_t *buffer) {
-  MpHeader header;
-  MpUnpackMpHeader(buffer, &header);
-  return GetMpMsgTypeFromUid(header.uid);
+SsMsgType SsInspectHeader(const uint8_t *buffer) {
+  SsHeader header;
+  SsUnpackSsHeader(buffer, &header);
+  return GetSsMsgTypeFromUid(header.uid);
 }'''
 
   return s
@@ -492,7 +492,7 @@ def main():
   parser.add_argument('--header_include', help='Include string to header file.')
   args = parser.parse_args()
 
-  all_types = mp.parse_yaml(args.spec)
+  all_types = ss.parse_yaml(args.spec)
 
   with open(args.header, 'w') as f:
     f.write(c_header(all_types))

@@ -457,7 +457,7 @@ class Message(Struct):
   def __init__(self, name, description=None):
     super().__init__(name, description)
 
-    self.add_field(StructField('header', DataType.get_type('MpHeader'), 'Message header.'))
+    self.add_field(StructField('ss_header', DataType.get_type('SsHeader'), 'Message header.'))
 
 
 def reset_types():
@@ -475,7 +475,7 @@ def reset_types():
   Primitive('float', 4),
   Primitive('double', 8),
 
-  header = Struct('MpHeader', 'Message header.')
+  header = Struct('SsHeader', 'Message header.')
   header.add_field(StructField('uid', DataType.get_type('uint32'), 'Message unique id.'))
   header.add_field(StructField('len', DataType.get_type('uint16'), 'Message length.'))
 
