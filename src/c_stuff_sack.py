@@ -3,6 +3,7 @@ import textwrap
 
 import src.stuff_sack as ss
 
+
 def _camel_to_snake(s):
   return ''.join(['_' + c.lower() if c.isupper() else c for c in s]).lstrip('_')
 
@@ -238,8 +239,8 @@ def message_unpack(obj):
   s = ''
   s += '{} {{\n'.format(message_unpack_prototype(obj))
 
-  s += _indent('{}(buffer + 0, &data->ss_header);\n\n'.format(unpack_function_name(
-      obj.fields[0].type)))
+  s += _indent('{}(buffer + 0, &data->ss_header);\n\n'.format(
+      unpack_function_name(obj.fields[0].type)))
 
   s += _indent('if (data->ss_header.uid != {:#010x}) {{\n'.format(obj.uid))
   s += _indent('return kSsStatusInvalidUid;\n', 2)

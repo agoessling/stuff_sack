@@ -129,6 +129,10 @@ class DataType:
   def root_type(self):
     return self
 
+  @property
+  def all_lengths(self):
+    return []
+
   @classmethod
   def get_type(cls, type_name):
     if type_name not in cls.all_types:
@@ -152,6 +156,9 @@ class Primitive(DataType):
   @property
   def uid(self):
     return zlib.crc32(str((self.name, self.bytes)).encode())
+
+  def __str__(self):
+    return str((self.name, self.bytes))
 
 
 class Array:
@@ -188,14 +195,18 @@ class Array:
     return self.type.packed_size * self.length
 
   @property
-  def name(self):
+  def all_lengths(self):
     length_list = [self.length]
     current_type = self.type
     while isinstance(current_type, Array):
       length_list.append(current_type.length)
       current_type = current_type.type
 
-    return current_type.name + ''.join('[{}]'.format(x) for x in length_list)
+    return length_list
+
+  @property
+  def name(self):
+    return self.root_type.name + ''.join('[{}]'.format(x) for x in self.all_lengths)
 
   @property
   def root_type(self):
@@ -376,6 +387,10 @@ class StructField:
   @property
   def uid(self):
     return zlib.crc32(str((self.name, self.type.uid)).encode())
+
+  @property
+  def root_type(self):
+    return self.type.root_type
 
   @classmethod
   def from_yaml(cls, yaml):

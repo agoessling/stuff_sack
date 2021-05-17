@@ -8,10 +8,10 @@
 #include "test/test_message_def.h"
 
 static void TestBitfield(void) {
-  TEST_ASSERT_EQUAL_INT(2, sizeof(Bitfield2Bytes));
-  TEST_ASSERT_EQUAL_INT(4, sizeof(Bitfield4Bytes));
+  TEST_ASSERT_EQUAL_INT(8, SS_BITFIELD2_BYTES_TEST_PACKED_SIZE);
+  TEST_ASSERT_EQUAL_INT(10, SS_BITFIELD4_BYTES_TEST_PACKED_SIZE);
 
-  BitfieldTest bitfield_test = {
+  Bitfield4BytesTest bitfield_test = {
     .bitfield = {
       .field0 = 6,
       .field1 = 27,
@@ -19,21 +19,21 @@ static void TestBitfield(void) {
       .field3 = 1,
     },
   };
-  BitfieldTest unpacked;
+  Bitfield4BytesTest unpacked;
 
-  uint8_t bytes[SS_BITFIELD_TEST_PACKED_SIZE] = {
+  uint8_t bytes[SS_BITFIELD4_BYTES_TEST_PACKED_SIZE] = {
     0x00, 0x00, 0x00, 0x00,
     0x00, 0x00,
     0x00, 0x01, 0x69, 0xde,
   };
-  uint8_t packed[SS_BITFIELD_TEST_PACKED_SIZE];
+  uint8_t packed[SS_BITFIELD4_BYTES_TEST_PACKED_SIZE];
 
-  SsPackBitfieldTest(&bitfield_test, packed);
+  SsPackBitfield4BytesTest(&bitfield_test, packed);
 
   TEST_ASSERT_EQUAL_HEX8_ARRAY(&bytes[6], &packed[6], 3);
 
   memcpy(bytes, packed, 6);
-  SsStatus status = SsUnpackBitfieldTest(bytes, &unpacked);
+  SsStatus status = SsUnpackBitfield4BytesTest(bytes, &unpacked);
   TEST_ASSERT_EQUAL_INT(kSsStatusSuccess, status);
 
   TEST_ASSERT_EQUAL_INT(bitfield_test.bitfield.field0, unpacked.bitfield.field0);

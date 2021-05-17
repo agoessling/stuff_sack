@@ -277,7 +277,12 @@ Enum2Bytes:
     - Value126:
     - Value127:
 
-BitfieldTest:
+Bitfield2BytesTest:
+  type: Message
+  fields:
+    - bitfield: Bitfield2Bytes
+
+Bitfield4BytesTest:
   type: Message
   fields:
     - bitfield: Bitfield4Bytes
