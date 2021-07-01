@@ -84,6 +84,24 @@ class _Message(ctypes.Structure):
     return buf
 
 
+def to_ctypes_name(name, default=None):
+  ctypes_map = {
+      'uint8': 'ctypes.c_uint8',
+      'uint16': 'ctypes.c_uint16',
+      'uint32': 'ctypes.c_uint32',
+      'uint64': 'ctypes.c_uint64',
+      'int8': 'ctypes.c_int8',
+      'int16': 'ctypes.c_int16',
+      'int32': 'ctypes.c_int32',
+      'int64': 'ctypes.c_int64',
+      'bool': 'ctypes.c_bool',
+      'float': 'ctypes.c_float',
+      'double': 'ctypes.c_double',
+  }
+
+  return ctypes_map.get(name, default)
+
+
 def get_globals(library, message_spec):
   ENUM_MAP = {
       1: ctypes.c_int8,

@@ -1,5 +1,7 @@
 load("//tools:gen_message_def.bzl", "gen_message_def")
 
+exports_files(["test_message_spec.yaml"])
+
 gen_message_def(
     name = "test_message_def",
     message_spec = "test_message_spec.yaml",

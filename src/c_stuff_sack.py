@@ -73,12 +73,20 @@ def declaration(type_object):
   raise TypeError('Unknown type: {}'.format(type(type_object)))
 
 
+def bitfield_c_type(bitfield):
+  return 'uint{}_t'.format(bitfield.bytes * 8)
+
+
+def bitfield_field_declaration(bitfield, field):
+  return '{} {} : {}'.format(bitfield_c_type(bitfield), field.name, field.bits)
+
+
 def bitfield_declaration(bitfield):
   s = ''
   s += 'typedef struct {\n'
 
   for field in bitfield.fields:
-    s += _indent('uint{}_t {} : {};\n'.format(bitfield.bytes * 8, field.name, field.bits))
+    s += _indent('{};\n'.format(bitfield_field_declaration(bitfield, field)))
 
   s += '}} {};'.format(bitfield.name)
 
@@ -99,12 +107,16 @@ def enum_declaration(enum):
   return s
 
 
+def struct_field_declaration(field):
+  return '{} {}'.format(c_type_name(field.type), c_field_name(field))
+
+
 def struct_declaration(struct):
   s = ''
   s += 'typedef struct {\n'
 
   for field in struct.fields:
-    s += _indent('{} {};\n'.format(c_type_name(field.type), c_field_name(field)))
+    s += _indent('{};\n'.format(struct_field_declaration(field)))
 
   s += '}} {};'.format(struct.name)
 
@@ -377,6 +389,10 @@ def struct_unpack_body(obj, skip_header=False):
   return s[:-1]
 
 
+def packed_size_name(message):
+  return 'SS_{}_PACKED_SIZE'.format(_camel_to_snake(message.name).upper())
+
+
 def static_assert(all_types):
   s = ''
 
@@ -424,7 +440,7 @@ def c_header(all_types):
       s += '{}\n\n'.format(d)
 
   for msg in messages:
-    s += '#define SS_{}_PACKED_SIZE {}\n'.format(_camel_to_snake(msg.name).upper(), msg.packed_size)
+    s += '#define {} {}\n'.format(packed_size_name(msg), msg.packed_size)
   s += '\n'
 
   s += 'SsMsgType SsInspectHeader(const uint8_t *buffer);\n'
@@ -483,6 +499,24 @@ SsMsgType SsInspectHeader(const uint8_t *buffer) {
 }'''
 
   return s
+
+
+def parse_yaml(spec):
+  all_types = ss.parse_yaml(spec)
+
+  messages = [x for x in all_types if isinstance(x, ss.Message)]
+
+  msg_type = ss.Enum('SsMsgType', 'Message types.')
+  for m in messages:
+    msg_type.add_value(ss.EnumValue(m.name, m.description))
+  msg_type.add_value(ss.EnumValue('Unknown', 'Unknown message type.'))
+
+  status = ss.Enum('SsStatus', 'Stuff Sack status code.')
+  status.add_value(ss.EnumValue('Success', 'Success.'))
+  status.add_value(ss.EnumValue('InvalidUid', 'Invalid message UID.'))
+  status.add_value(ss.EnumValue('InvalidLen', 'Invalid message length.'))
+
+  return [msg_type, status] + list(all_types)
 
 
 def main():

@@ -9,3 +9,16 @@ http_archive(
     strip_prefix = "Unity-2.5.1",
     url = "https://github.com/ThrowTheSwitch/Unity/archive/v2.5.1.zip",
 )
+
+http_archive(
+    name = "rules_sphinx",
+    strip_prefix = "rules_sphinx-0.1.0",
+    sha256 = "526d6b2777ab6e94f7eef6cb9919a6ede5162f02772fa43e7514b211cad09c3e",
+    url = "https://github.com/agoessling/rules_sphinx/archive/v0.1.0.zip",
+)
+
+load("@rules_sphinx//sphinx:direct_repositories.bzl", "rules_sphinx_direct_deps")
+rules_sphinx_direct_deps()
+
+load("@rules_sphinx//sphinx:indirect_repositories.bzl", "rules_sphinx_indirect_deps")
+rules_sphinx_indirect_deps()
