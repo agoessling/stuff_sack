@@ -1,0 +1,7 @@
+project = 'PROJECT_NAME'
+html_show_copyright = False
+
+html_theme = 'sphinx_rtd_theme'
+extensions = ['sphinx.ext.intersphinx']
+
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
