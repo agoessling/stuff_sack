@@ -29,21 +29,57 @@ class _EnumType(type(ctypes.c_int)):
   def __init__(cls, name, bases, attrs, **kwargs):
     super().__init__(name, bases, attrs, **kwargs)
 
-    cls._values_ = getattr(cls, '_values_', {})
-    for key, value in cls._values_.items():
-      setattr(cls, key, value)
+    values = getattr(cls, '_values_', {})
+    cls._values_ = values
+    cls._rev_values_ = {v: k for k, v in values.items()}
 
-  def __contains__(cls, item):
-    return item in cls._values_
+  def __getattr__(cls, name):
+    if name in cls._values_:
+      return cls(cls._values_[name])
 
-  def __iter__(cls):
-    return cls._values_.keys()
+    raise AttributeError('\'{}\' class has no attribute \'{}\''.format(cls.__name__, name))
 
   def __len__(cls):
     return len(cls._values_)
 
+  def __contains__(cls, item):
+    if isinstance(item, str):
+      return item in cls._values_
+
+    if isinstance(item, int):
+      return item in cls._rev_values_
+
+    if hasattr(item, 'value'):
+      return item.value in cls._rev_values_
+
+    return False
+
+  def __iter__(cls):
+    return (cls(x) for x in cls._rev_values_)
+
+  def __getitem__(cls, key):
+    if key in cls._values_:
+      return cls(cls._values_[key])
+
+    raise KeyError('\'{}\' class has no key \'{}\''.format(cls.__name__, key))
+
 
 class EnumMixin:
+
+  @property
+  def name(self):
+    if self.value in self._rev_values_:
+      return self._rev_values_[self.value]
+
+    return 'InvalidEnumValue'
+
+  def is_valid(self):
+    return self.value in self._rev_values_
+
+  def __str__(self):
+    return '<{}.{}: {}>'.format(type(self).__name__, self.name, self.value)
+
+  __repr__ = __str__
 
   def __eq__(self, other):
     return self.value == other

@@ -64,6 +64,66 @@ class TestEnum(unittest.TestCase):
     unpacked = msg_def.Enum2BytesTest.unpack(packed)
     self.assertEqual(msg.enumeration, unpacked.enumeration)
 
+  def test_enum_behavior(self):
+    # Test int comparison.
+    self.assertEqual(msg_def.Enum1Bytes(1), 1)
+
+    # Test length.
+    self.assertEqual(127, len(msg_def.Enum1Bytes))
+
+    # Test __contains__.
+    self.assertIn('Value0', msg_def.Enum1Bytes)
+    self.assertNotIn('Value-1', msg_def.Enum1Bytes)
+
+    self.assertIn(0, msg_def.Enum1Bytes)
+    self.assertNotIn(-1, msg_def.Enum1Bytes)
+
+    self.assertIn(msg_def.Enum1Bytes(0), msg_def.Enum1Bytes)
+    self.assertNotIn(msg_def.Enum1Bytes(-1), msg_def.Enum1Bytes)
+
+    # Test class attributes.
+    self.assertIsInstance(msg_def.Enum1Bytes.Value0, msg_def.Enum1Bytes)
+    self.assertEqual(msg_def.Enum1Bytes.Value1, msg_def.Enum1Bytes(1))
+
+    with self.assertRaises(AttributeError):
+      msg_def.Enum1Bytes.NoValue
+
+    # Test string representation.
+    self.assertEqual('<Enum1Bytes.Value0: 0>', str(msg_def.Enum1Bytes(0)))
+    self.assertEqual('<Enum1Bytes.InvalidEnumValue: -1>', str(msg_def.Enum1Bytes(-1)))
+
+    # Test name.
+    e = msg_def.Enum1Bytes(0)
+    self.assertEqual('Value0', e.name)
+    e.value = 1
+    self.assertEqual('Value1', e.name)
+    e.value = -1
+    self.assertEqual('InvalidEnumValue', e.name)
+
+    # Test iterator.
+    self.assertEqual([msg_def.Enum1Bytes(x) for x in range(len(msg_def.Enum1Bytes))],
+                     list(msg_def.Enum1Bytes))
+
+    # Test key access.
+    self.assertIsInstance(msg_def.Enum1Bytes['Value0'], msg_def.Enum1Bytes)
+    self.assertEqual(msg_def.Enum1Bytes.Value1, msg_def.Enum1Bytes['Value1'])
+
+    with self.assertRaises(KeyError):
+      msg_def.Enum1Bytes['NoValue']
+
+    # Test valid.
+    self.assertTrue(msg_def.Enum1Bytes(1).is_valid())
+    self.assertFalse(msg_def.Enum1Bytes(-1).is_valid())
+
+    # Test in structure.
+    s = msg_def.Enum1BytesTest()
+    self.assertIsInstance(s.enumeration, msg_def.Enum1Bytes)
+    s.enumeration = 1
+    self.assertEqual('Value1', s.enumeration.name)
+    s.enumeration.value = 2
+    self.assertEqual('Value2', s.enumeration.name)
+    s.enumeration = msg_def.Enum1Bytes.Value10
+    self.assertEqual('Value10', s.enumeration.name)
 
 class TestPrimitive(unittest.TestCase):
 
