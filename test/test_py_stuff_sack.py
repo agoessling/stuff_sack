@@ -1,6 +1,5 @@
 import unittest
 
-from src import py_stuff_sack
 import test.test_message_def as msg_def
 
 
@@ -247,18 +246,18 @@ class UnpackTest(unittest.TestCase):
     self.assertIsInstance(msg_def.unpack_message(buf), msg_def.PrimitiveTest)
 
     buf[:4] = [0x00, 0x00, 0x00, 0x00]
-    with self.assertRaises(py_stuff_sack.UnknownMessage):
+    with self.assertRaises(msg_def.UnknownMessage):
       msg_def.unpack_message(buf)
 
-    with self.assertRaises(py_stuff_sack.IncorrectBufferSize):
+    with self.assertRaises(msg_def.IncorrectBufferSize):
       msg_def.PrimitiveTest.unpack(buf[1:])
 
-    with self.assertRaises(py_stuff_sack.InvalidUid):
+    with self.assertRaises(msg_def.InvalidUid):
       msg_def.PrimitiveTest.unpack(buf)
 
     buf = msg.pack()
     buf[5:7] = [0x00, 0x00]
-    with self.assertRaises(py_stuff_sack.InvalidLen):
+    with self.assertRaises(msg_def.InvalidLen):
       msg_def.PrimitiveTest.unpack(buf)
 
 

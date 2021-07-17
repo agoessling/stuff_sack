@@ -225,4 +225,11 @@ def get_globals(library, message_spec):
 
   global_vars['unpack_message'] = unpack_message
 
+  # Add exceptions.
+  global_vars['UnpackError'] = UnpackError
+  global_vars['UnknownMessage'] = UnknownMessage
+  global_vars['IncorrectBufferSize'] = IncorrectBufferSize
+  global_vars['InvalidUid'] = InvalidUid
+  global_vars['InvalidLen'] = InvalidLen
+
   return global_vars

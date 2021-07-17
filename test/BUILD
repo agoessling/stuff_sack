@@ -1,7 +1,5 @@
 load("//tools:gen_message_def.bzl", "gen_message_def")
 
-exports_files(["test_message_spec.yaml"])
-
 gen_message_def(
     name = "test_message_def",
     message_spec = "test_message_spec.yaml",
@@ -23,7 +21,6 @@ py_test(
     srcs = ["test_py_stuff_sack.py"],
     deps = [
         ":test_message_def-py",
-        "//src:py_stuff_sack",
     ],
     visibility = ["//visibility:public"],
 )
