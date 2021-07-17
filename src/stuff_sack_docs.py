@@ -98,13 +98,32 @@ def py_enum_doc(e):
   s += '\n\n'
 
   s += '.. py:class:: {}\n\n'.format(e.name)
-  s += '  **Bases:** :py:class:`ctypes.c_uint{}`\n\n'.format(e.bytes * 8)
+  s += '  **Bases:** :py:class:`ctypes.c_int{}`\n\n'.format(e.bytes * 8)
 
-  s += '  **Values:**\n'
+  s += '  **Class Attributes:**\n'
   for value in e.values:
     s += '\n'
     s += '    .. py:attribute:: {}\n'.format(value.name)
     s += '      :value: {}\n'.format(value.value)
+    s += '\n'
+    s += '      Retrieves an instance of :py:class:`{}`'.format(e.name)
+    s += ' initialized to value :py:attr:`~{}.{}`.\n'.format(e.name, value.name)
+
+  s += '\n'
+  s += '  **Instance Attributes:**\n\n'
+
+  s += '    .. py:property:: name\n'
+  s += '      :type: str\n\n'
+  s += '      String representation of :py:attr:`~ctypes._SimpleCData.value`.\n'
+  s += '      If the integer is not a valid value returns `\'InvalidEnumValue\'`.\n'
+
+  s += '\n'
+  s += '  **Instance Methods:**\n\n'
+
+  s += '    .. py:method:: is_valid()\n\n'
+  s += '      Check if :py:attr:`~ctypes._SimpleCData.value` is a valid enum value.\n\n'
+  s += '      :return: a boolean representing whether integer is a valid enum value.\n'
+  s += '      :rtype: bool\n\n'
 
   return s
 
@@ -197,8 +216,9 @@ def py_message_doc(m):
   s += '      :raises InvalidLen: length in buffer header does not match message'
   s += ':py:attr:`~{}.packed_size`.\n\n'.format(m.name)
 
-  s += '    .. py:method:: pack()\n'
-  s += '      :classmethod:\n\n'
+  s += '  **Instance Methods:**\n\n'
+
+  s += '    .. py:method:: pack()\n\n'
   s += '      Pack message into array.\n\n'
   s += '      :return: a packed array of length :py:attr:`~{}.packed_size`.\n'.format(m.name)
   s += '      :rtype: ctypes.c_uint8\n\n'
@@ -301,12 +321,26 @@ def write_py_doc(directory, lib_name, enums, bitfields, structs, messages):
 
     f.write('''\n\
 The metaclass for enum classes includes implementations for :py:meth:`~object.__contains__`,
-:py:meth:`~object.__iter__`, and :py:meth:`~object.__len__` with allows usage such as::
+:py:meth:`~object.__iter__`, :py:meth:`~object.__getitem__`, and :py:meth:`~object.__len__` which
+allows usage such as::
 
-  if EnumClass.Value in EnumClass:
+  # __contains__
+  if EnumClass.Value0 in EnumClass:
+    pass
+  elif 'Value0' in EnumClass:
+    pass
+  elif 0 in EnumClass:
     pass
 
+  # __iter__
   for value in EnumClass:
+    pass
+
+  # __getitem__
+  e = EnumClass['Value0']
+
+  # __len__
+  if len(EnumClass) > 100:
     pass
 ''')
 
