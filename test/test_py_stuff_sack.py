@@ -125,6 +125,7 @@ class TestEnum(unittest.TestCase):
     s.enumeration = msg_def.Enum1Bytes.Value10
     self.assertEqual('Value10', s.enumeration.name)
 
+
 class TestPrimitive(unittest.TestCase):
 
   @staticmethod
