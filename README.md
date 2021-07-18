@@ -1,28 +1,56 @@
 # stuff_sack
 
 Efficient multi-language message packing / serialization. Targeted at lightweight or embedded
-applications where runtime performance and memory usage are key.  Generated libraries currently
-implemented for:
+applications where runtime performance and memory usage are key.
+
+If you have worked on applications where embedded devices need to send and recieve messages between
+each other and possibly a host machine, you have probably hand written and re-written packing and
+unpacking functions, possibly in multiple languages.  `stuff_sack` provides a single source of truth
+across languages and devices for message definitions while ensuring both sides are operating on a
+consistent (up-to-date) definition before unpacking.
+
+Generated libraries currently implemented for:
 
 * **C** - without dynamic memory allocation
 * **Python**
 
 ## Table of Contents
 
+* [Examples and Test](#examples-and-test)
 * [Message Specification](#message-specification)
-  + [Document Start / Format](#document-start---format)
+  + [Document Start / Format](#document-start--format)
   + [Primitive Types](#primitive-types)
   + [Bitfields](#bitfields)
   + [Enums](#enums)
   + [Structs](#structs)
     - [Type Descriptions](#type-descriptions)
   + [Messages](#messages)
-* [Generating / Building Libraries](#generating---building-libraries)
+* [Generating / Building Libraries](#generating--building-libraries)
   + [Viewing Generated Library Documentation](#viewing-generated-library-documentation)
 * [Implementation Details](#implementation-details)
   + [Messages](#messages-1)
   + [Packing](#packing)
-* [Examples and Test](#examples-and-test)
+
+## Examples and Test
+
+The library is built using [Bazel](https://bazel.build/).  You can run the test suites for all of
+the generated libraries like so:
+
+```Shell
+bazel test //test/...
+```
+
+You can find examples for:
+* `BUILD` file -- [test/BUILD](test/BUILD).
+* Message definitions -- [test/test_message_spec.yaml](test/test_message_spec.yaml)
+* C library usage -- [test/test_c_stuff_sack.c](test/test_c_stuff_sack.c)
+* Python library usage -- [test/test_py_stuff_sack.py](test/test_py_stuff_sack.py)
+
+You can view the documentation for the generated libraries like so:
+
+```Shell
+bazel run //test:test_message_def-docs.view
+```
 
 ## Message Specification
 
@@ -260,24 +288,4 @@ would be packed into the byte sequence:
  ┌─uid──┬─uid──┬─uid──┬─uid──┬─len──┬─len──┐first─┬─sec.─┬─sec.─┬─sec.─┬─sec.─┐
  │byte 3│byte 2│byte 1│byte 0│byte 1│byte 0│byte 0│byte 3│byte 2│byte 1│byte 0│
  └──0───┴──1───┴──2───┴──3───┴──4───┴──5───┴──6───┴──7───┴──8───┴──9───┴──10──┘
-```
-
-## Examples and Test
-
-You can run the test suites for all of the generated libraries like so:
-
-```Shell
-bazel test //test/...
-```
-
-You can find examples for:
-* `BUILD` file -- [test/BUILD](test/BUILD).
-* Message definitions -- [test/test_message_spec.yaml](test/test_message_spec.yaml)
-* C library usage -- [test/test_c_stuff_sack.c](test/test_c_stuff_sack.c)
-* Python library usage -- [test/test_py_stuff_sack.py](test/test_py_stuff_sack.py)
-
-You can view the documentation for the generated libraries like so:
-
-```Shell
-bazel run //test:test_message_def-docs.view
 ```
