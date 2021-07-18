@@ -46,7 +46,8 @@ You can find examples for:
 * C library usage -- [test/test_c_stuff_sack.c](test/test_c_stuff_sack.c)
 * Python library usage -- [test/test_py_stuff_sack.py](test/test_py_stuff_sack.py)
 
-You can view the documentation for the generated libraries like so:
+You can build and view the documentation for the generated libraries like so (or view a snapshot
+[here](https://agoessling.github.io/stuff_sack/)):
 
 ```Shell
 bazel run //test:test_message_def-docs.view
