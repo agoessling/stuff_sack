@@ -1,0 +1,18 @@
+test_message_def Definitions
+----------------------------
+
+.. toctree::
+  :maxdepth: 2
+  :caption: Contents:
+  :glob:
+
+  *_c
+  *_cc
+  *_py
+
+YAML Definition
+^^^^^^^^^^^^^^^
+
+.. literalinclude:: test_message_spec.yaml
+  :language: YAML
+

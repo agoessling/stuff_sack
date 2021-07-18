@@ -1,0 +1,653 @@
+test_message_def C Documentation
+--------------------------------
+
+Helper Functions
+^^^^^^^^^^^^^^^^
+
+.. c:macro:: SS_HEADER_PACKED_SIZE
+
+  Packed size of :c:struct:`SsHeader` is 6 bytes.
+
+.. c:function:: SsMsgType SsInspectHeader(const uint8_t *buffer)
+
+  Determine message type from header in :c:var:`buffer`.
+
+.. c:var:: static const char kSsLogDelimiter[]
+
+  Delimiter used to separate YAML definition from binary packed data in log.
+
+.. c:function:: int SsWriteFile(void *fd, const void *data, unsigned int len)
+
+  Forward declared function used by :c:func:`SsWriteLogHeader` as well as
+  :c:func:`SsLogXXX` functions. This function must be defined by the user and
+  linked into the library via the ``c_deps`` argument of the ``gen_message_def``
+  Bazel macro.
+
+  :param fd: User defined pointer referencing the file to be written. Transparently
+    passed from calling functions e.g. :c:func:`SsWriteLogHeader`
+  :param data: Pointer to binary data to be written to file.
+  :param len: Size of data to be written in bytes.
+  :returns: Number of bytes written.  Negative values indicate an error.
+
+.. c:function:: int SsReadFile(void *fd, void *data, unsigned int len)
+
+  Forward declared function used by :c:func:`SsFindLogDelimiter`. This function
+  must be defined by the user and linked into the library via the ``c_deps``
+  argument of the ``gen_message_def`` Bazel macro.
+
+  :param fd: User defined pointer referencing the file to be read. Transparently
+    passed from calling functions e.g. :c:func:`SsFindLogDelimiter`
+  :param data: Pointer to buffer to be written with data read from file.
+  :param len: Size of data to be read in bytes.
+  :returns: Number of bytes read.  Negative values indicate an error.
+
+.. c:function:: int SsWriteLogHeader(void *fd)
+
+  Write YAML message definition header and delimiter to file.
+
+  :param fd: User defined pointer referencing the file to be written. Transparently
+    passed to :c:func:`SsWriteFile`
+  :returns: Number of bytes written.  Negative values indicate an error.
+
+.. c:function:: int SsFindLogDelimiter(void *fd)
+
+  Find file offset of binary data immediately following delimiter separating the
+  YAML message definition from the binary log data.
+
+  :param fd: User defined pointer referencing the file to be read. Transparently
+    passed to :c:func:`SsReadFile`
+  :returns: File offset in bytes.  Negative values indicate an error such as
+    no delimiter found.
+
+Enums
+^^^^^
+
+SsMsgType
+"""""""""
+
+
+.. c:enum:: SsMsgType
+
+  Message types.
+
+  .. c:enumerator:: kForceSigned = -1
+  .. c:enumerator:: kSsMsgTypeBitfield2BytesTest = 0
+  .. c:enumerator:: kSsMsgTypeBitfield4BytesTest = 1
+  .. c:enumerator:: kSsMsgTypeEnum1BytesTest = 2
+  .. c:enumerator:: kSsMsgTypeEnum2BytesTest = 3
+  .. c:enumerator:: kSsMsgTypePrimitiveTest = 4
+  .. c:enumerator:: kSsMsgTypeArrayTest = 5
+
+    This is a message description.
+  .. c:enumerator:: kSsMsgTypeUnknown = 6
+
+    Unknown message type.
+  .. c:enumerator:: kNumSsMsgType = 7
+
+SsStatus
+""""""""
+
+
+.. c:enum:: SsStatus
+
+  Stuff Sack status code.
+
+  .. c:enumerator:: kForceSigned = -1
+  .. c:enumerator:: kSsStatusSuccess = 0
+
+    Success.
+  .. c:enumerator:: kSsStatusInvalidUid = 1
+
+    Invalid message UID.
+  .. c:enumerator:: kSsStatusInvalidLen = 2
+
+    Invalid message length.
+  .. c:enumerator:: kNumSsStatus = 3
+
+Enum1Bytes
+""""""""""
+
+
+.. c:enum:: Enum1Bytes
+
+  
+
+  .. c:enumerator:: kForceSigned = -1
+  .. c:enumerator:: kEnum1BytesValue0 = 0
+  .. c:enumerator:: kEnum1BytesValue1 = 1
+  .. c:enumerator:: kEnum1BytesValue2 = 2
+  .. c:enumerator:: kEnum1BytesValue3 = 3
+  .. c:enumerator:: kEnum1BytesValue4 = 4
+  .. c:enumerator:: kEnum1BytesValue5 = 5
+  .. c:enumerator:: kEnum1BytesValue6 = 6
+  .. c:enumerator:: kEnum1BytesValue7 = 7
+  .. c:enumerator:: kEnum1BytesValue8 = 8
+  .. c:enumerator:: kEnum1BytesValue9 = 9
+  .. c:enumerator:: kEnum1BytesValue10 = 10
+  .. c:enumerator:: kEnum1BytesValue11 = 11
+  .. c:enumerator:: kEnum1BytesValue12 = 12
+  .. c:enumerator:: kEnum1BytesValue13 = 13
+  .. c:enumerator:: kEnum1BytesValue14 = 14
+  .. c:enumerator:: kEnum1BytesValue15 = 15
+  .. c:enumerator:: kEnum1BytesValue16 = 16
+  .. c:enumerator:: kEnum1BytesValue17 = 17
+  .. c:enumerator:: kEnum1BytesValue18 = 18
+  .. c:enumerator:: kEnum1BytesValue19 = 19
+  .. c:enumerator:: kEnum1BytesValue20 = 20
+  .. c:enumerator:: kEnum1BytesValue21 = 21
+  .. c:enumerator:: kEnum1BytesValue22 = 22
+  .. c:enumerator:: kEnum1BytesValue23 = 23
+  .. c:enumerator:: kEnum1BytesValue24 = 24
+  .. c:enumerator:: kEnum1BytesValue25 = 25
+  .. c:enumerator:: kEnum1BytesValue26 = 26
+  .. c:enumerator:: kEnum1BytesValue27 = 27
+  .. c:enumerator:: kEnum1BytesValue28 = 28
+  .. c:enumerator:: kEnum1BytesValue29 = 29
+  .. c:enumerator:: kEnum1BytesValue30 = 30
+  .. c:enumerator:: kEnum1BytesValue31 = 31
+  .. c:enumerator:: kEnum1BytesValue32 = 32
+  .. c:enumerator:: kEnum1BytesValue33 = 33
+  .. c:enumerator:: kEnum1BytesValue34 = 34
+  .. c:enumerator:: kEnum1BytesValue35 = 35
+  .. c:enumerator:: kEnum1BytesValue36 = 36
+  .. c:enumerator:: kEnum1BytesValue37 = 37
+  .. c:enumerator:: kEnum1BytesValue38 = 38
+  .. c:enumerator:: kEnum1BytesValue39 = 39
+  .. c:enumerator:: kEnum1BytesValue40 = 40
+  .. c:enumerator:: kEnum1BytesValue41 = 41
+  .. c:enumerator:: kEnum1BytesValue42 = 42
+  .. c:enumerator:: kEnum1BytesValue43 = 43
+  .. c:enumerator:: kEnum1BytesValue44 = 44
+  .. c:enumerator:: kEnum1BytesValue45 = 45
+  .. c:enumerator:: kEnum1BytesValue46 = 46
+  .. c:enumerator:: kEnum1BytesValue47 = 47
+  .. c:enumerator:: kEnum1BytesValue48 = 48
+  .. c:enumerator:: kEnum1BytesValue49 = 49
+  .. c:enumerator:: kEnum1BytesValue50 = 50
+  .. c:enumerator:: kEnum1BytesValue51 = 51
+  .. c:enumerator:: kEnum1BytesValue52 = 52
+  .. c:enumerator:: kEnum1BytesValue53 = 53
+  .. c:enumerator:: kEnum1BytesValue54 = 54
+  .. c:enumerator:: kEnum1BytesValue55 = 55
+  .. c:enumerator:: kEnum1BytesValue56 = 56
+  .. c:enumerator:: kEnum1BytesValue57 = 57
+  .. c:enumerator:: kEnum1BytesValue58 = 58
+  .. c:enumerator:: kEnum1BytesValue59 = 59
+  .. c:enumerator:: kEnum1BytesValue60 = 60
+  .. c:enumerator:: kEnum1BytesValue61 = 61
+  .. c:enumerator:: kEnum1BytesValue62 = 62
+  .. c:enumerator:: kEnum1BytesValue63 = 63
+  .. c:enumerator:: kEnum1BytesValue64 = 64
+  .. c:enumerator:: kEnum1BytesValue65 = 65
+  .. c:enumerator:: kEnum1BytesValue66 = 66
+  .. c:enumerator:: kEnum1BytesValue67 = 67
+  .. c:enumerator:: kEnum1BytesValue68 = 68
+  .. c:enumerator:: kEnum1BytesValue69 = 69
+  .. c:enumerator:: kEnum1BytesValue70 = 70
+  .. c:enumerator:: kEnum1BytesValue71 = 71
+  .. c:enumerator:: kEnum1BytesValue72 = 72
+  .. c:enumerator:: kEnum1BytesValue73 = 73
+  .. c:enumerator:: kEnum1BytesValue74 = 74
+  .. c:enumerator:: kEnum1BytesValue75 = 75
+  .. c:enumerator:: kEnum1BytesValue76 = 76
+  .. c:enumerator:: kEnum1BytesValue77 = 77
+  .. c:enumerator:: kEnum1BytesValue78 = 78
+  .. c:enumerator:: kEnum1BytesValue79 = 79
+  .. c:enumerator:: kEnum1BytesValue80 = 80
+  .. c:enumerator:: kEnum1BytesValue81 = 81
+  .. c:enumerator:: kEnum1BytesValue82 = 82
+  .. c:enumerator:: kEnum1BytesValue83 = 83
+  .. c:enumerator:: kEnum1BytesValue84 = 84
+  .. c:enumerator:: kEnum1BytesValue85 = 85
+  .. c:enumerator:: kEnum1BytesValue86 = 86
+  .. c:enumerator:: kEnum1BytesValue87 = 87
+  .. c:enumerator:: kEnum1BytesValue88 = 88
+  .. c:enumerator:: kEnum1BytesValue89 = 89
+  .. c:enumerator:: kEnum1BytesValue90 = 90
+  .. c:enumerator:: kEnum1BytesValue91 = 91
+  .. c:enumerator:: kEnum1BytesValue92 = 92
+  .. c:enumerator:: kEnum1BytesValue93 = 93
+  .. c:enumerator:: kEnum1BytesValue94 = 94
+  .. c:enumerator:: kEnum1BytesValue95 = 95
+  .. c:enumerator:: kEnum1BytesValue96 = 96
+  .. c:enumerator:: kEnum1BytesValue97 = 97
+  .. c:enumerator:: kEnum1BytesValue98 = 98
+  .. c:enumerator:: kEnum1BytesValue99 = 99
+  .. c:enumerator:: kEnum1BytesValue100 = 100
+  .. c:enumerator:: kEnum1BytesValue101 = 101
+  .. c:enumerator:: kEnum1BytesValue102 = 102
+  .. c:enumerator:: kEnum1BytesValue103 = 103
+  .. c:enumerator:: kEnum1BytesValue104 = 104
+  .. c:enumerator:: kEnum1BytesValue105 = 105
+  .. c:enumerator:: kEnum1BytesValue106 = 106
+  .. c:enumerator:: kEnum1BytesValue107 = 107
+  .. c:enumerator:: kEnum1BytesValue108 = 108
+  .. c:enumerator:: kEnum1BytesValue109 = 109
+  .. c:enumerator:: kEnum1BytesValue110 = 110
+  .. c:enumerator:: kEnum1BytesValue111 = 111
+  .. c:enumerator:: kEnum1BytesValue112 = 112
+  .. c:enumerator:: kEnum1BytesValue113 = 113
+  .. c:enumerator:: kEnum1BytesValue114 = 114
+  .. c:enumerator:: kEnum1BytesValue115 = 115
+  .. c:enumerator:: kEnum1BytesValue116 = 116
+  .. c:enumerator:: kEnum1BytesValue117 = 117
+  .. c:enumerator:: kEnum1BytesValue118 = 118
+  .. c:enumerator:: kEnum1BytesValue119 = 119
+  .. c:enumerator:: kEnum1BytesValue120 = 120
+  .. c:enumerator:: kEnum1BytesValue121 = 121
+  .. c:enumerator:: kEnum1BytesValue122 = 122
+  .. c:enumerator:: kEnum1BytesValue123 = 123
+  .. c:enumerator:: kEnum1BytesValue124 = 124
+  .. c:enumerator:: kEnum1BytesValue125 = 125
+  .. c:enumerator:: kEnum1BytesValue126 = 126
+  .. c:enumerator:: kNumEnum1Bytes = 127
+
+Enum2Bytes
+""""""""""
+
+
+.. c:enum:: Enum2Bytes
+
+  This is an enum description.
+
+  .. c:enumerator:: kForceSigned = -1
+  .. c:enumerator:: kEnum2BytesValue0 = 0
+
+    This is a enum value description
+  .. c:enumerator:: kEnum2BytesValue1 = 1
+  .. c:enumerator:: kEnum2BytesValue2 = 2
+  .. c:enumerator:: kEnum2BytesValue3 = 3
+  .. c:enumerator:: kEnum2BytesValue4 = 4
+  .. c:enumerator:: kEnum2BytesValue5 = 5
+  .. c:enumerator:: kEnum2BytesValue6 = 6
+  .. c:enumerator:: kEnum2BytesValue7 = 7
+  .. c:enumerator:: kEnum2BytesValue8 = 8
+  .. c:enumerator:: kEnum2BytesValue9 = 9
+  .. c:enumerator:: kEnum2BytesValue10 = 10
+  .. c:enumerator:: kEnum2BytesValue11 = 11
+  .. c:enumerator:: kEnum2BytesValue12 = 12
+  .. c:enumerator:: kEnum2BytesValue13 = 13
+  .. c:enumerator:: kEnum2BytesValue14 = 14
+  .. c:enumerator:: kEnum2BytesValue15 = 15
+  .. c:enumerator:: kEnum2BytesValue16 = 16
+  .. c:enumerator:: kEnum2BytesValue17 = 17
+  .. c:enumerator:: kEnum2BytesValue18 = 18
+  .. c:enumerator:: kEnum2BytesValue19 = 19
+  .. c:enumerator:: kEnum2BytesValue20 = 20
+  .. c:enumerator:: kEnum2BytesValue21 = 21
+  .. c:enumerator:: kEnum2BytesValue22 = 22
+  .. c:enumerator:: kEnum2BytesValue23 = 23
+  .. c:enumerator:: kEnum2BytesValue24 = 24
+  .. c:enumerator:: kEnum2BytesValue25 = 25
+  .. c:enumerator:: kEnum2BytesValue26 = 26
+  .. c:enumerator:: kEnum2BytesValue27 = 27
+  .. c:enumerator:: kEnum2BytesValue28 = 28
+  .. c:enumerator:: kEnum2BytesValue29 = 29
+  .. c:enumerator:: kEnum2BytesValue30 = 30
+  .. c:enumerator:: kEnum2BytesValue31 = 31
+  .. c:enumerator:: kEnum2BytesValue32 = 32
+  .. c:enumerator:: kEnum2BytesValue33 = 33
+  .. c:enumerator:: kEnum2BytesValue34 = 34
+  .. c:enumerator:: kEnum2BytesValue35 = 35
+  .. c:enumerator:: kEnum2BytesValue36 = 36
+  .. c:enumerator:: kEnum2BytesValue37 = 37
+  .. c:enumerator:: kEnum2BytesValue38 = 38
+  .. c:enumerator:: kEnum2BytesValue39 = 39
+  .. c:enumerator:: kEnum2BytesValue40 = 40
+  .. c:enumerator:: kEnum2BytesValue41 = 41
+  .. c:enumerator:: kEnum2BytesValue42 = 42
+  .. c:enumerator:: kEnum2BytesValue43 = 43
+  .. c:enumerator:: kEnum2BytesValue44 = 44
+  .. c:enumerator:: kEnum2BytesValue45 = 45
+  .. c:enumerator:: kEnum2BytesValue46 = 46
+  .. c:enumerator:: kEnum2BytesValue47 = 47
+  .. c:enumerator:: kEnum2BytesValue48 = 48
+  .. c:enumerator:: kEnum2BytesValue49 = 49
+  .. c:enumerator:: kEnum2BytesValue50 = 50
+  .. c:enumerator:: kEnum2BytesValue51 = 51
+  .. c:enumerator:: kEnum2BytesValue52 = 52
+  .. c:enumerator:: kEnum2BytesValue53 = 53
+  .. c:enumerator:: kEnum2BytesValue54 = 54
+  .. c:enumerator:: kEnum2BytesValue55 = 55
+  .. c:enumerator:: kEnum2BytesValue56 = 56
+  .. c:enumerator:: kEnum2BytesValue57 = 57
+  .. c:enumerator:: kEnum2BytesValue58 = 58
+  .. c:enumerator:: kEnum2BytesValue59 = 59
+  .. c:enumerator:: kEnum2BytesValue60 = 60
+  .. c:enumerator:: kEnum2BytesValue61 = 61
+  .. c:enumerator:: kEnum2BytesValue62 = 62
+  .. c:enumerator:: kEnum2BytesValue63 = 63
+  .. c:enumerator:: kEnum2BytesValue64 = 64
+  .. c:enumerator:: kEnum2BytesValue65 = 65
+  .. c:enumerator:: kEnum2BytesValue66 = 66
+  .. c:enumerator:: kEnum2BytesValue67 = 67
+  .. c:enumerator:: kEnum2BytesValue68 = 68
+  .. c:enumerator:: kEnum2BytesValue69 = 69
+  .. c:enumerator:: kEnum2BytesValue70 = 70
+  .. c:enumerator:: kEnum2BytesValue71 = 71
+  .. c:enumerator:: kEnum2BytesValue72 = 72
+  .. c:enumerator:: kEnum2BytesValue73 = 73
+  .. c:enumerator:: kEnum2BytesValue74 = 74
+  .. c:enumerator:: kEnum2BytesValue75 = 75
+  .. c:enumerator:: kEnum2BytesValue76 = 76
+  .. c:enumerator:: kEnum2BytesValue77 = 77
+  .. c:enumerator:: kEnum2BytesValue78 = 78
+  .. c:enumerator:: kEnum2BytesValue79 = 79
+  .. c:enumerator:: kEnum2BytesValue80 = 80
+  .. c:enumerator:: kEnum2BytesValue81 = 81
+  .. c:enumerator:: kEnum2BytesValue82 = 82
+  .. c:enumerator:: kEnum2BytesValue83 = 83
+  .. c:enumerator:: kEnum2BytesValue84 = 84
+  .. c:enumerator:: kEnum2BytesValue85 = 85
+  .. c:enumerator:: kEnum2BytesValue86 = 86
+  .. c:enumerator:: kEnum2BytesValue87 = 87
+  .. c:enumerator:: kEnum2BytesValue88 = 88
+  .. c:enumerator:: kEnum2BytesValue89 = 89
+  .. c:enumerator:: kEnum2BytesValue90 = 90
+  .. c:enumerator:: kEnum2BytesValue91 = 91
+  .. c:enumerator:: kEnum2BytesValue92 = 92
+  .. c:enumerator:: kEnum2BytesValue93 = 93
+  .. c:enumerator:: kEnum2BytesValue94 = 94
+  .. c:enumerator:: kEnum2BytesValue95 = 95
+  .. c:enumerator:: kEnum2BytesValue96 = 96
+  .. c:enumerator:: kEnum2BytesValue97 = 97
+  .. c:enumerator:: kEnum2BytesValue98 = 98
+  .. c:enumerator:: kEnum2BytesValue99 = 99
+  .. c:enumerator:: kEnum2BytesValue100 = 100
+  .. c:enumerator:: kEnum2BytesValue101 = 101
+  .. c:enumerator:: kEnum2BytesValue102 = 102
+  .. c:enumerator:: kEnum2BytesValue103 = 103
+  .. c:enumerator:: kEnum2BytesValue104 = 104
+  .. c:enumerator:: kEnum2BytesValue105 = 105
+  .. c:enumerator:: kEnum2BytesValue106 = 106
+  .. c:enumerator:: kEnum2BytesValue107 = 107
+  .. c:enumerator:: kEnum2BytesValue108 = 108
+  .. c:enumerator:: kEnum2BytesValue109 = 109
+  .. c:enumerator:: kEnum2BytesValue110 = 110
+  .. c:enumerator:: kEnum2BytesValue111 = 111
+  .. c:enumerator:: kEnum2BytesValue112 = 112
+  .. c:enumerator:: kEnum2BytesValue113 = 113
+  .. c:enumerator:: kEnum2BytesValue114 = 114
+  .. c:enumerator:: kEnum2BytesValue115 = 115
+  .. c:enumerator:: kEnum2BytesValue116 = 116
+  .. c:enumerator:: kEnum2BytesValue117 = 117
+  .. c:enumerator:: kEnum2BytesValue118 = 118
+  .. c:enumerator:: kEnum2BytesValue119 = 119
+  .. c:enumerator:: kEnum2BytesValue120 = 120
+  .. c:enumerator:: kEnum2BytesValue121 = 121
+  .. c:enumerator:: kEnum2BytesValue122 = 122
+  .. c:enumerator:: kEnum2BytesValue123 = 123
+  .. c:enumerator:: kEnum2BytesValue124 = 124
+  .. c:enumerator:: kEnum2BytesValue125 = 125
+  .. c:enumerator:: kEnum2BytesValue126 = 126
+  .. c:enumerator:: kEnum2BytesValue127 = 127
+  .. c:enumerator:: kNumEnum2Bytes = 128
+
+Bitfields
+^^^^^^^^^
+
+Bitfield2Bytes
+""""""""""""""
+
+
+.. c:struct:: Bitfield2Bytes
+
+  
+
+  .. c:var:: uint16_t field0 : 3
+  .. c:var:: uint16_t field1 : 5
+  .. c:var:: uint16_t field2 : 8
+
+Bitfield4Bytes
+""""""""""""""
+
+
+.. c:struct:: Bitfield4Bytes
+
+  This is a bitfield description.
+
+  .. c:var:: uint32_t field0 : 3
+
+    This is a bitfield field description.
+  .. c:var:: uint32_t field1 : 5
+  .. c:var:: uint32_t field2 : 9
+
+Structures
+^^^^^^^^^^
+
+SsHeader
+""""""""
+
+
+.. c:struct:: SsHeader
+
+  Message header.
+
+  .. c:var:: uint32_t uid
+
+    Message unique id.
+  .. c:var:: uint16_t len
+
+    Message length.
+
+ArrayElem
+"""""""""
+
+
+.. c:struct:: ArrayElem
+
+  This is a struct description.
+
+  .. c:var:: bool field0
+
+    This is a struct field description.
+  .. c:var:: uint16_t field1
+
+Messages
+^^^^^^^^
+
+Bitfield2BytesTest
+""""""""""""""""""
+
+
+.. c:struct:: Bitfield2BytesTest
+
+  
+
+  .. c:var:: SsHeader ss_header
+
+    Message header.
+  .. c:var:: Bitfield2Bytes bitfield
+
+.. c:macro:: SS_BITFIELD2_BYTES_TEST_PACKED_SIZE
+
+  Packed size of :c:struct:`Bitfield2BytesTest` is 8 bytes.
+
+.. c:function:: void SsPackBitfield2BytesTest(Bitfield2BytesTest *data, uint8_t *buffer)
+
+  Pack message (:c:var:`data`) into :c:var:`buffer`.
+
+.. c:function:: SsStatus SsUnpackBitfield2BytesTest(const uint8_t *buffer, Bitfield2BytesTest *data)
+
+  Unpack :c:var:`buffer` into message (:c:var:`data`).
+
+.. c:function:: int SsLogBitfield2BytesTest(void *fd, Bitfield2BytesTest *data)
+
+  Write message (:c:var:`data`) to log described by :c:var:`fd` (transparently passed to
+  :c:func:`SsWriteFile`). Returns the number of bytes written and negative values on
+  error.
+
+
+Bitfield4BytesTest
+""""""""""""""""""
+
+
+.. c:struct:: Bitfield4BytesTest
+
+  
+
+  .. c:var:: SsHeader ss_header
+
+    Message header.
+  .. c:var:: Bitfield4Bytes bitfield
+
+.. c:macro:: SS_BITFIELD4_BYTES_TEST_PACKED_SIZE
+
+  Packed size of :c:struct:`Bitfield4BytesTest` is 10 bytes.
+
+.. c:function:: void SsPackBitfield4BytesTest(Bitfield4BytesTest *data, uint8_t *buffer)
+
+  Pack message (:c:var:`data`) into :c:var:`buffer`.
+
+.. c:function:: SsStatus SsUnpackBitfield4BytesTest(const uint8_t *buffer, Bitfield4BytesTest *data)
+
+  Unpack :c:var:`buffer` into message (:c:var:`data`).
+
+.. c:function:: int SsLogBitfield4BytesTest(void *fd, Bitfield4BytesTest *data)
+
+  Write message (:c:var:`data`) to log described by :c:var:`fd` (transparently passed to
+  :c:func:`SsWriteFile`). Returns the number of bytes written and negative values on
+  error.
+
+
+Enum1BytesTest
+""""""""""""""
+
+
+.. c:struct:: Enum1BytesTest
+
+  
+
+  .. c:var:: SsHeader ss_header
+
+    Message header.
+  .. c:var:: Enum1Bytes enumeration
+
+.. c:macro:: SS_ENUM1_BYTES_TEST_PACKED_SIZE
+
+  Packed size of :c:struct:`Enum1BytesTest` is 7 bytes.
+
+.. c:function:: void SsPackEnum1BytesTest(Enum1BytesTest *data, uint8_t *buffer)
+
+  Pack message (:c:var:`data`) into :c:var:`buffer`.
+
+.. c:function:: SsStatus SsUnpackEnum1BytesTest(const uint8_t *buffer, Enum1BytesTest *data)
+
+  Unpack :c:var:`buffer` into message (:c:var:`data`).
+
+.. c:function:: int SsLogEnum1BytesTest(void *fd, Enum1BytesTest *data)
+
+  Write message (:c:var:`data`) to log described by :c:var:`fd` (transparently passed to
+  :c:func:`SsWriteFile`). Returns the number of bytes written and negative values on
+  error.
+
+
+Enum2BytesTest
+""""""""""""""
+
+
+.. c:struct:: Enum2BytesTest
+
+  
+
+  .. c:var:: SsHeader ss_header
+
+    Message header.
+  .. c:var:: Enum2Bytes enumeration
+
+.. c:macro:: SS_ENUM2_BYTES_TEST_PACKED_SIZE
+
+  Packed size of :c:struct:`Enum2BytesTest` is 8 bytes.
+
+.. c:function:: void SsPackEnum2BytesTest(Enum2BytesTest *data, uint8_t *buffer)
+
+  Pack message (:c:var:`data`) into :c:var:`buffer`.
+
+.. c:function:: SsStatus SsUnpackEnum2BytesTest(const uint8_t *buffer, Enum2BytesTest *data)
+
+  Unpack :c:var:`buffer` into message (:c:var:`data`).
+
+.. c:function:: int SsLogEnum2BytesTest(void *fd, Enum2BytesTest *data)
+
+  Write message (:c:var:`data`) to log described by :c:var:`fd` (transparently passed to
+  :c:func:`SsWriteFile`). Returns the number of bytes written and negative values on
+  error.
+
+
+PrimitiveTest
+"""""""""""""
+
+
+.. c:struct:: PrimitiveTest
+
+  
+
+  .. c:var:: SsHeader ss_header
+
+    Message header.
+  .. c:var:: uint8_t uint8
+  .. c:var:: uint16_t uint16
+  .. c:var:: uint32_t uint32
+  .. c:var:: uint64_t uint64
+  .. c:var:: int8_t int8
+  .. c:var:: int16_t int16
+  .. c:var:: int32_t int32
+  .. c:var:: int64_t int64
+  .. c:var:: bool boolean
+  .. c:var:: float float_type
+  .. c:var:: double double_type
+
+.. c:macro:: SS_PRIMITIVE_TEST_PACKED_SIZE
+
+  Packed size of :c:struct:`PrimitiveTest` is 49 bytes.
+
+.. c:function:: void SsPackPrimitiveTest(PrimitiveTest *data, uint8_t *buffer)
+
+  Pack message (:c:var:`data`) into :c:var:`buffer`.
+
+.. c:function:: SsStatus SsUnpackPrimitiveTest(const uint8_t *buffer, PrimitiveTest *data)
+
+  Unpack :c:var:`buffer` into message (:c:var:`data`).
+
+.. c:function:: int SsLogPrimitiveTest(void *fd, PrimitiveTest *data)
+
+  Write message (:c:var:`data`) to log described by :c:var:`fd` (transparently passed to
+  :c:func:`SsWriteFile`). Returns the number of bytes written and negative values on
+  error.
+
+
+ArrayTest
+"""""""""
+
+
+.. c:struct:: ArrayTest
+
+  This is a message description.
+
+  .. c:var:: SsHeader ss_header
+
+    Message header.
+  .. c:var:: ArrayElem array_1d[3]
+
+    This is a message field description.
+  .. c:var:: ArrayElem array_2d[2][3]
+  .. c:var:: ArrayElem array_3d[1][2][3]
+
+.. c:macro:: SS_ARRAY_TEST_PACKED_SIZE
+
+  Packed size of :c:struct:`ArrayTest` is 51 bytes.
+
+.. c:function:: void SsPackArrayTest(ArrayTest *data, uint8_t *buffer)
+
+  Pack message (:c:var:`data`) into :c:var:`buffer`.
+
+.. c:function:: SsStatus SsUnpackArrayTest(const uint8_t *buffer, ArrayTest *data)
+
+  Unpack :c:var:`buffer` into message (:c:var:`data`).
+
+.. c:function:: int SsLogArrayTest(void *fd, ArrayTest *data)
+
+  Write message (:c:var:`data`) to log described by :c:var:`fd` (transparently passed to
+  :c:func:`SsWriteFile`). Returns the number of bytes written and negative values on
+  error.
+

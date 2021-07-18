@@ -1,0 +1,2041 @@
+test_message_def Python Documentation
+-------------------------------------
+
+.. highlight:: python
+
+Functions
+^^^^^^^^^
+
+.. py:function:: unpack_message(buf)
+
+  Unpack buffer into message instance based on header UID.
+
+  :param bytes-like buf: an array to be unpacked.
+  :return: a message instance.
+  :raises UnknownMessage: UID from buffer header is unknown.
+  :raises Various: See individual :py:meth:`unpack` methods.
+
+Exceptions
+^^^^^^^^^^
+
+.. py:exception:: UnpackError
+
+  General unpack error.
+
+.. py:exception:: UnknownMessage
+
+  **Bases:** :py:exc:`UnpackError`
+
+  Unknown UID in buffer header.
+
+.. py:exception:: IncorrectBufferSize
+
+  **Bases:** :py:exc:`UnpackError`
+
+  Buffer has incorrect length for message.
+
+.. py:exception:: InvalidUid
+
+  **Bases:** :py:exc:`UnpackError`
+
+  Buffer header has incorrect UID for message.
+
+.. py:exception:: InvalidLen
+
+  **Bases:** :py:exc:`UnpackError`
+
+  Buffer header has incorrect length for message.
+
+Enums
+^^^^^
+
+The metaclass for enum classes includes implementations for :py:meth:`~object.__contains__`,
+:py:meth:`~object.__iter__`, :py:meth:`~object.__getitem__`, and :py:meth:`~object.__len__` which
+allows usage such as::
+
+  # __contains__
+  if EnumClass.Value0 in EnumClass:
+    pass
+  elif 'Value0' in EnumClass:
+    pass
+  elif 0 in EnumClass:
+    pass
+
+  # __iter__
+  for value in EnumClass:
+    pass
+
+  # __getitem__
+  e = EnumClass['Value0']
+
+  # __len__
+  if len(EnumClass) > 100:
+    pass
+
+SsMsgType
+"""""""""
+
+
+.. py:class:: SsMsgType
+
+  **Bases:** :py:class:`ctypes.c_int8`
+
+  Message types.
+
+  **Class Attributes:**
+
+    .. py:attribute:: Bitfield2BytesTest
+      :value: 0
+
+      Retrieves an instance of :py:class:`SsMsgType` initialized to value :py:attr:`~SsMsgType.Bitfield2BytesTest`.
+
+    .. py:attribute:: Bitfield4BytesTest
+      :value: 1
+
+      Retrieves an instance of :py:class:`SsMsgType` initialized to value :py:attr:`~SsMsgType.Bitfield4BytesTest`.
+
+    .. py:attribute:: Enum1BytesTest
+      :value: 2
+
+      Retrieves an instance of :py:class:`SsMsgType` initialized to value :py:attr:`~SsMsgType.Enum1BytesTest`.
+
+    .. py:attribute:: Enum2BytesTest
+      :value: 3
+
+      Retrieves an instance of :py:class:`SsMsgType` initialized to value :py:attr:`~SsMsgType.Enum2BytesTest`.
+
+    .. py:attribute:: PrimitiveTest
+      :value: 4
+
+      Retrieves an instance of :py:class:`SsMsgType` initialized to value :py:attr:`~SsMsgType.PrimitiveTest`.
+
+    .. py:attribute:: ArrayTest
+      :value: 5
+
+
+      This is a message description.
+
+      Retrieves an instance of :py:class:`SsMsgType` initialized to value :py:attr:`~SsMsgType.ArrayTest`.
+
+    .. py:attribute:: Unknown
+      :value: 6
+
+
+      Unknown message type.
+
+      Retrieves an instance of :py:class:`SsMsgType` initialized to value :py:attr:`~SsMsgType.Unknown`.
+
+  **Instance Attributes:**
+
+    .. py:property:: name
+      :type: str
+
+      String representation of :py:attr:`~ctypes._SimpleCData.value`.
+      If the integer is not a valid value returns `'InvalidEnumValue'`.
+
+  **Instance Methods:**
+
+    .. py:method:: is_valid()
+
+      Check if :py:attr:`~ctypes._SimpleCData.value` is a valid enum value.
+
+      :return: a boolean representing whether integer is a valid enum value.
+      :rtype: bool
+
+
+SsStatus
+""""""""
+
+
+.. py:class:: SsStatus
+
+  **Bases:** :py:class:`ctypes.c_int8`
+
+  Stuff Sack status code.
+
+  **Class Attributes:**
+
+    .. py:attribute:: Success
+      :value: 0
+
+
+      Success.
+
+      Retrieves an instance of :py:class:`SsStatus` initialized to value :py:attr:`~SsStatus.Success`.
+
+    .. py:attribute:: InvalidUid
+      :value: 1
+
+
+      Invalid message UID.
+
+      Retrieves an instance of :py:class:`SsStatus` initialized to value :py:attr:`~SsStatus.InvalidUid`.
+
+    .. py:attribute:: InvalidLen
+      :value: 2
+
+
+      Invalid message length.
+
+      Retrieves an instance of :py:class:`SsStatus` initialized to value :py:attr:`~SsStatus.InvalidLen`.
+
+  **Instance Attributes:**
+
+    .. py:property:: name
+      :type: str
+
+      String representation of :py:attr:`~ctypes._SimpleCData.value`.
+      If the integer is not a valid value returns `'InvalidEnumValue'`.
+
+  **Instance Methods:**
+
+    .. py:method:: is_valid()
+
+      Check if :py:attr:`~ctypes._SimpleCData.value` is a valid enum value.
+
+      :return: a boolean representing whether integer is a valid enum value.
+      :rtype: bool
+
+
+Enum1Bytes
+""""""""""
+
+
+.. py:class:: Enum1Bytes
+
+  **Bases:** :py:class:`ctypes.c_int8`
+
+  
+
+  **Class Attributes:**
+
+    .. py:attribute:: Value0
+      :value: 0
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value0`.
+
+    .. py:attribute:: Value1
+      :value: 1
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value1`.
+
+    .. py:attribute:: Value2
+      :value: 2
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value2`.
+
+    .. py:attribute:: Value3
+      :value: 3
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value3`.
+
+    .. py:attribute:: Value4
+      :value: 4
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value4`.
+
+    .. py:attribute:: Value5
+      :value: 5
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value5`.
+
+    .. py:attribute:: Value6
+      :value: 6
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value6`.
+
+    .. py:attribute:: Value7
+      :value: 7
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value7`.
+
+    .. py:attribute:: Value8
+      :value: 8
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value8`.
+
+    .. py:attribute:: Value9
+      :value: 9
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value9`.
+
+    .. py:attribute:: Value10
+      :value: 10
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value10`.
+
+    .. py:attribute:: Value11
+      :value: 11
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value11`.
+
+    .. py:attribute:: Value12
+      :value: 12
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value12`.
+
+    .. py:attribute:: Value13
+      :value: 13
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value13`.
+
+    .. py:attribute:: Value14
+      :value: 14
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value14`.
+
+    .. py:attribute:: Value15
+      :value: 15
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value15`.
+
+    .. py:attribute:: Value16
+      :value: 16
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value16`.
+
+    .. py:attribute:: Value17
+      :value: 17
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value17`.
+
+    .. py:attribute:: Value18
+      :value: 18
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value18`.
+
+    .. py:attribute:: Value19
+      :value: 19
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value19`.
+
+    .. py:attribute:: Value20
+      :value: 20
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value20`.
+
+    .. py:attribute:: Value21
+      :value: 21
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value21`.
+
+    .. py:attribute:: Value22
+      :value: 22
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value22`.
+
+    .. py:attribute:: Value23
+      :value: 23
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value23`.
+
+    .. py:attribute:: Value24
+      :value: 24
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value24`.
+
+    .. py:attribute:: Value25
+      :value: 25
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value25`.
+
+    .. py:attribute:: Value26
+      :value: 26
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value26`.
+
+    .. py:attribute:: Value27
+      :value: 27
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value27`.
+
+    .. py:attribute:: Value28
+      :value: 28
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value28`.
+
+    .. py:attribute:: Value29
+      :value: 29
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value29`.
+
+    .. py:attribute:: Value30
+      :value: 30
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value30`.
+
+    .. py:attribute:: Value31
+      :value: 31
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value31`.
+
+    .. py:attribute:: Value32
+      :value: 32
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value32`.
+
+    .. py:attribute:: Value33
+      :value: 33
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value33`.
+
+    .. py:attribute:: Value34
+      :value: 34
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value34`.
+
+    .. py:attribute:: Value35
+      :value: 35
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value35`.
+
+    .. py:attribute:: Value36
+      :value: 36
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value36`.
+
+    .. py:attribute:: Value37
+      :value: 37
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value37`.
+
+    .. py:attribute:: Value38
+      :value: 38
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value38`.
+
+    .. py:attribute:: Value39
+      :value: 39
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value39`.
+
+    .. py:attribute:: Value40
+      :value: 40
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value40`.
+
+    .. py:attribute:: Value41
+      :value: 41
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value41`.
+
+    .. py:attribute:: Value42
+      :value: 42
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value42`.
+
+    .. py:attribute:: Value43
+      :value: 43
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value43`.
+
+    .. py:attribute:: Value44
+      :value: 44
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value44`.
+
+    .. py:attribute:: Value45
+      :value: 45
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value45`.
+
+    .. py:attribute:: Value46
+      :value: 46
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value46`.
+
+    .. py:attribute:: Value47
+      :value: 47
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value47`.
+
+    .. py:attribute:: Value48
+      :value: 48
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value48`.
+
+    .. py:attribute:: Value49
+      :value: 49
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value49`.
+
+    .. py:attribute:: Value50
+      :value: 50
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value50`.
+
+    .. py:attribute:: Value51
+      :value: 51
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value51`.
+
+    .. py:attribute:: Value52
+      :value: 52
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value52`.
+
+    .. py:attribute:: Value53
+      :value: 53
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value53`.
+
+    .. py:attribute:: Value54
+      :value: 54
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value54`.
+
+    .. py:attribute:: Value55
+      :value: 55
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value55`.
+
+    .. py:attribute:: Value56
+      :value: 56
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value56`.
+
+    .. py:attribute:: Value57
+      :value: 57
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value57`.
+
+    .. py:attribute:: Value58
+      :value: 58
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value58`.
+
+    .. py:attribute:: Value59
+      :value: 59
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value59`.
+
+    .. py:attribute:: Value60
+      :value: 60
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value60`.
+
+    .. py:attribute:: Value61
+      :value: 61
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value61`.
+
+    .. py:attribute:: Value62
+      :value: 62
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value62`.
+
+    .. py:attribute:: Value63
+      :value: 63
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value63`.
+
+    .. py:attribute:: Value64
+      :value: 64
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value64`.
+
+    .. py:attribute:: Value65
+      :value: 65
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value65`.
+
+    .. py:attribute:: Value66
+      :value: 66
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value66`.
+
+    .. py:attribute:: Value67
+      :value: 67
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value67`.
+
+    .. py:attribute:: Value68
+      :value: 68
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value68`.
+
+    .. py:attribute:: Value69
+      :value: 69
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value69`.
+
+    .. py:attribute:: Value70
+      :value: 70
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value70`.
+
+    .. py:attribute:: Value71
+      :value: 71
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value71`.
+
+    .. py:attribute:: Value72
+      :value: 72
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value72`.
+
+    .. py:attribute:: Value73
+      :value: 73
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value73`.
+
+    .. py:attribute:: Value74
+      :value: 74
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value74`.
+
+    .. py:attribute:: Value75
+      :value: 75
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value75`.
+
+    .. py:attribute:: Value76
+      :value: 76
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value76`.
+
+    .. py:attribute:: Value77
+      :value: 77
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value77`.
+
+    .. py:attribute:: Value78
+      :value: 78
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value78`.
+
+    .. py:attribute:: Value79
+      :value: 79
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value79`.
+
+    .. py:attribute:: Value80
+      :value: 80
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value80`.
+
+    .. py:attribute:: Value81
+      :value: 81
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value81`.
+
+    .. py:attribute:: Value82
+      :value: 82
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value82`.
+
+    .. py:attribute:: Value83
+      :value: 83
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value83`.
+
+    .. py:attribute:: Value84
+      :value: 84
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value84`.
+
+    .. py:attribute:: Value85
+      :value: 85
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value85`.
+
+    .. py:attribute:: Value86
+      :value: 86
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value86`.
+
+    .. py:attribute:: Value87
+      :value: 87
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value87`.
+
+    .. py:attribute:: Value88
+      :value: 88
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value88`.
+
+    .. py:attribute:: Value89
+      :value: 89
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value89`.
+
+    .. py:attribute:: Value90
+      :value: 90
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value90`.
+
+    .. py:attribute:: Value91
+      :value: 91
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value91`.
+
+    .. py:attribute:: Value92
+      :value: 92
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value92`.
+
+    .. py:attribute:: Value93
+      :value: 93
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value93`.
+
+    .. py:attribute:: Value94
+      :value: 94
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value94`.
+
+    .. py:attribute:: Value95
+      :value: 95
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value95`.
+
+    .. py:attribute:: Value96
+      :value: 96
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value96`.
+
+    .. py:attribute:: Value97
+      :value: 97
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value97`.
+
+    .. py:attribute:: Value98
+      :value: 98
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value98`.
+
+    .. py:attribute:: Value99
+      :value: 99
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value99`.
+
+    .. py:attribute:: Value100
+      :value: 100
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value100`.
+
+    .. py:attribute:: Value101
+      :value: 101
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value101`.
+
+    .. py:attribute:: Value102
+      :value: 102
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value102`.
+
+    .. py:attribute:: Value103
+      :value: 103
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value103`.
+
+    .. py:attribute:: Value104
+      :value: 104
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value104`.
+
+    .. py:attribute:: Value105
+      :value: 105
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value105`.
+
+    .. py:attribute:: Value106
+      :value: 106
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value106`.
+
+    .. py:attribute:: Value107
+      :value: 107
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value107`.
+
+    .. py:attribute:: Value108
+      :value: 108
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value108`.
+
+    .. py:attribute:: Value109
+      :value: 109
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value109`.
+
+    .. py:attribute:: Value110
+      :value: 110
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value110`.
+
+    .. py:attribute:: Value111
+      :value: 111
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value111`.
+
+    .. py:attribute:: Value112
+      :value: 112
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value112`.
+
+    .. py:attribute:: Value113
+      :value: 113
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value113`.
+
+    .. py:attribute:: Value114
+      :value: 114
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value114`.
+
+    .. py:attribute:: Value115
+      :value: 115
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value115`.
+
+    .. py:attribute:: Value116
+      :value: 116
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value116`.
+
+    .. py:attribute:: Value117
+      :value: 117
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value117`.
+
+    .. py:attribute:: Value118
+      :value: 118
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value118`.
+
+    .. py:attribute:: Value119
+      :value: 119
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value119`.
+
+    .. py:attribute:: Value120
+      :value: 120
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value120`.
+
+    .. py:attribute:: Value121
+      :value: 121
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value121`.
+
+    .. py:attribute:: Value122
+      :value: 122
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value122`.
+
+    .. py:attribute:: Value123
+      :value: 123
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value123`.
+
+    .. py:attribute:: Value124
+      :value: 124
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value124`.
+
+    .. py:attribute:: Value125
+      :value: 125
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value125`.
+
+    .. py:attribute:: Value126
+      :value: 126
+
+      Retrieves an instance of :py:class:`Enum1Bytes` initialized to value :py:attr:`~Enum1Bytes.Value126`.
+
+  **Instance Attributes:**
+
+    .. py:property:: name
+      :type: str
+
+      String representation of :py:attr:`~ctypes._SimpleCData.value`.
+      If the integer is not a valid value returns `'InvalidEnumValue'`.
+
+  **Instance Methods:**
+
+    .. py:method:: is_valid()
+
+      Check if :py:attr:`~ctypes._SimpleCData.value` is a valid enum value.
+
+      :return: a boolean representing whether integer is a valid enum value.
+      :rtype: bool
+
+
+Enum2Bytes
+""""""""""
+
+
+.. py:class:: Enum2Bytes
+
+  **Bases:** :py:class:`ctypes.c_int16`
+
+  This is an enum description.
+
+  **Class Attributes:**
+
+    .. py:attribute:: Value0
+      :value: 0
+
+
+      This is a enum value description
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value0`.
+
+    .. py:attribute:: Value1
+      :value: 1
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value1`.
+
+    .. py:attribute:: Value2
+      :value: 2
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value2`.
+
+    .. py:attribute:: Value3
+      :value: 3
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value3`.
+
+    .. py:attribute:: Value4
+      :value: 4
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value4`.
+
+    .. py:attribute:: Value5
+      :value: 5
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value5`.
+
+    .. py:attribute:: Value6
+      :value: 6
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value6`.
+
+    .. py:attribute:: Value7
+      :value: 7
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value7`.
+
+    .. py:attribute:: Value8
+      :value: 8
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value8`.
+
+    .. py:attribute:: Value9
+      :value: 9
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value9`.
+
+    .. py:attribute:: Value10
+      :value: 10
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value10`.
+
+    .. py:attribute:: Value11
+      :value: 11
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value11`.
+
+    .. py:attribute:: Value12
+      :value: 12
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value12`.
+
+    .. py:attribute:: Value13
+      :value: 13
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value13`.
+
+    .. py:attribute:: Value14
+      :value: 14
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value14`.
+
+    .. py:attribute:: Value15
+      :value: 15
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value15`.
+
+    .. py:attribute:: Value16
+      :value: 16
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value16`.
+
+    .. py:attribute:: Value17
+      :value: 17
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value17`.
+
+    .. py:attribute:: Value18
+      :value: 18
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value18`.
+
+    .. py:attribute:: Value19
+      :value: 19
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value19`.
+
+    .. py:attribute:: Value20
+      :value: 20
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value20`.
+
+    .. py:attribute:: Value21
+      :value: 21
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value21`.
+
+    .. py:attribute:: Value22
+      :value: 22
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value22`.
+
+    .. py:attribute:: Value23
+      :value: 23
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value23`.
+
+    .. py:attribute:: Value24
+      :value: 24
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value24`.
+
+    .. py:attribute:: Value25
+      :value: 25
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value25`.
+
+    .. py:attribute:: Value26
+      :value: 26
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value26`.
+
+    .. py:attribute:: Value27
+      :value: 27
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value27`.
+
+    .. py:attribute:: Value28
+      :value: 28
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value28`.
+
+    .. py:attribute:: Value29
+      :value: 29
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value29`.
+
+    .. py:attribute:: Value30
+      :value: 30
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value30`.
+
+    .. py:attribute:: Value31
+      :value: 31
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value31`.
+
+    .. py:attribute:: Value32
+      :value: 32
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value32`.
+
+    .. py:attribute:: Value33
+      :value: 33
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value33`.
+
+    .. py:attribute:: Value34
+      :value: 34
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value34`.
+
+    .. py:attribute:: Value35
+      :value: 35
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value35`.
+
+    .. py:attribute:: Value36
+      :value: 36
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value36`.
+
+    .. py:attribute:: Value37
+      :value: 37
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value37`.
+
+    .. py:attribute:: Value38
+      :value: 38
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value38`.
+
+    .. py:attribute:: Value39
+      :value: 39
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value39`.
+
+    .. py:attribute:: Value40
+      :value: 40
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value40`.
+
+    .. py:attribute:: Value41
+      :value: 41
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value41`.
+
+    .. py:attribute:: Value42
+      :value: 42
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value42`.
+
+    .. py:attribute:: Value43
+      :value: 43
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value43`.
+
+    .. py:attribute:: Value44
+      :value: 44
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value44`.
+
+    .. py:attribute:: Value45
+      :value: 45
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value45`.
+
+    .. py:attribute:: Value46
+      :value: 46
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value46`.
+
+    .. py:attribute:: Value47
+      :value: 47
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value47`.
+
+    .. py:attribute:: Value48
+      :value: 48
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value48`.
+
+    .. py:attribute:: Value49
+      :value: 49
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value49`.
+
+    .. py:attribute:: Value50
+      :value: 50
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value50`.
+
+    .. py:attribute:: Value51
+      :value: 51
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value51`.
+
+    .. py:attribute:: Value52
+      :value: 52
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value52`.
+
+    .. py:attribute:: Value53
+      :value: 53
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value53`.
+
+    .. py:attribute:: Value54
+      :value: 54
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value54`.
+
+    .. py:attribute:: Value55
+      :value: 55
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value55`.
+
+    .. py:attribute:: Value56
+      :value: 56
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value56`.
+
+    .. py:attribute:: Value57
+      :value: 57
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value57`.
+
+    .. py:attribute:: Value58
+      :value: 58
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value58`.
+
+    .. py:attribute:: Value59
+      :value: 59
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value59`.
+
+    .. py:attribute:: Value60
+      :value: 60
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value60`.
+
+    .. py:attribute:: Value61
+      :value: 61
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value61`.
+
+    .. py:attribute:: Value62
+      :value: 62
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value62`.
+
+    .. py:attribute:: Value63
+      :value: 63
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value63`.
+
+    .. py:attribute:: Value64
+      :value: 64
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value64`.
+
+    .. py:attribute:: Value65
+      :value: 65
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value65`.
+
+    .. py:attribute:: Value66
+      :value: 66
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value66`.
+
+    .. py:attribute:: Value67
+      :value: 67
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value67`.
+
+    .. py:attribute:: Value68
+      :value: 68
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value68`.
+
+    .. py:attribute:: Value69
+      :value: 69
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value69`.
+
+    .. py:attribute:: Value70
+      :value: 70
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value70`.
+
+    .. py:attribute:: Value71
+      :value: 71
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value71`.
+
+    .. py:attribute:: Value72
+      :value: 72
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value72`.
+
+    .. py:attribute:: Value73
+      :value: 73
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value73`.
+
+    .. py:attribute:: Value74
+      :value: 74
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value74`.
+
+    .. py:attribute:: Value75
+      :value: 75
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value75`.
+
+    .. py:attribute:: Value76
+      :value: 76
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value76`.
+
+    .. py:attribute:: Value77
+      :value: 77
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value77`.
+
+    .. py:attribute:: Value78
+      :value: 78
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value78`.
+
+    .. py:attribute:: Value79
+      :value: 79
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value79`.
+
+    .. py:attribute:: Value80
+      :value: 80
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value80`.
+
+    .. py:attribute:: Value81
+      :value: 81
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value81`.
+
+    .. py:attribute:: Value82
+      :value: 82
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value82`.
+
+    .. py:attribute:: Value83
+      :value: 83
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value83`.
+
+    .. py:attribute:: Value84
+      :value: 84
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value84`.
+
+    .. py:attribute:: Value85
+      :value: 85
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value85`.
+
+    .. py:attribute:: Value86
+      :value: 86
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value86`.
+
+    .. py:attribute:: Value87
+      :value: 87
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value87`.
+
+    .. py:attribute:: Value88
+      :value: 88
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value88`.
+
+    .. py:attribute:: Value89
+      :value: 89
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value89`.
+
+    .. py:attribute:: Value90
+      :value: 90
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value90`.
+
+    .. py:attribute:: Value91
+      :value: 91
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value91`.
+
+    .. py:attribute:: Value92
+      :value: 92
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value92`.
+
+    .. py:attribute:: Value93
+      :value: 93
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value93`.
+
+    .. py:attribute:: Value94
+      :value: 94
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value94`.
+
+    .. py:attribute:: Value95
+      :value: 95
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value95`.
+
+    .. py:attribute:: Value96
+      :value: 96
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value96`.
+
+    .. py:attribute:: Value97
+      :value: 97
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value97`.
+
+    .. py:attribute:: Value98
+      :value: 98
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value98`.
+
+    .. py:attribute:: Value99
+      :value: 99
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value99`.
+
+    .. py:attribute:: Value100
+      :value: 100
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value100`.
+
+    .. py:attribute:: Value101
+      :value: 101
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value101`.
+
+    .. py:attribute:: Value102
+      :value: 102
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value102`.
+
+    .. py:attribute:: Value103
+      :value: 103
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value103`.
+
+    .. py:attribute:: Value104
+      :value: 104
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value104`.
+
+    .. py:attribute:: Value105
+      :value: 105
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value105`.
+
+    .. py:attribute:: Value106
+      :value: 106
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value106`.
+
+    .. py:attribute:: Value107
+      :value: 107
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value107`.
+
+    .. py:attribute:: Value108
+      :value: 108
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value108`.
+
+    .. py:attribute:: Value109
+      :value: 109
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value109`.
+
+    .. py:attribute:: Value110
+      :value: 110
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value110`.
+
+    .. py:attribute:: Value111
+      :value: 111
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value111`.
+
+    .. py:attribute:: Value112
+      :value: 112
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value112`.
+
+    .. py:attribute:: Value113
+      :value: 113
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value113`.
+
+    .. py:attribute:: Value114
+      :value: 114
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value114`.
+
+    .. py:attribute:: Value115
+      :value: 115
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value115`.
+
+    .. py:attribute:: Value116
+      :value: 116
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value116`.
+
+    .. py:attribute:: Value117
+      :value: 117
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value117`.
+
+    .. py:attribute:: Value118
+      :value: 118
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value118`.
+
+    .. py:attribute:: Value119
+      :value: 119
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value119`.
+
+    .. py:attribute:: Value120
+      :value: 120
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value120`.
+
+    .. py:attribute:: Value121
+      :value: 121
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value121`.
+
+    .. py:attribute:: Value122
+      :value: 122
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value122`.
+
+    .. py:attribute:: Value123
+      :value: 123
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value123`.
+
+    .. py:attribute:: Value124
+      :value: 124
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value124`.
+
+    .. py:attribute:: Value125
+      :value: 125
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value125`.
+
+    .. py:attribute:: Value126
+      :value: 126
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value126`.
+
+    .. py:attribute:: Value127
+      :value: 127
+
+      Retrieves an instance of :py:class:`Enum2Bytes` initialized to value :py:attr:`~Enum2Bytes.Value127`.
+
+  **Instance Attributes:**
+
+    .. py:property:: name
+      :type: str
+
+      String representation of :py:attr:`~ctypes._SimpleCData.value`.
+      If the integer is not a valid value returns `'InvalidEnumValue'`.
+
+  **Instance Methods:**
+
+    .. py:method:: is_valid()
+
+      Check if :py:attr:`~ctypes._SimpleCData.value` is a valid enum value.
+
+      :return: a boolean representing whether integer is a valid enum value.
+      :rtype: bool
+
+
+Bitfields
+^^^^^^^^^
+
+Bitfield2Bytes
+""""""""""""""
+
+
+.. py:class:: Bitfield2Bytes
+
+  **Bases:** :py:class:`ctypes.Structure`
+
+  
+
+  **Fields:**
+
+    .. py:attribute:: field0
+      :type: ctypes.c_uint16
+
+      Bits: 3
+
+    .. py:attribute:: field1
+      :type: ctypes.c_uint16
+
+      Bits: 5
+
+    .. py:attribute:: field2
+      :type: ctypes.c_uint16
+
+      Bits: 8
+
+Bitfield4Bytes
+""""""""""""""
+
+
+.. py:class:: Bitfield4Bytes
+
+  **Bases:** :py:class:`ctypes.Structure`
+
+  This is a bitfield description.
+
+  **Fields:**
+
+    .. py:attribute:: field0
+      :type: ctypes.c_uint32
+
+      This is a bitfield field description.
+
+      Bits: 3
+
+    .. py:attribute:: field1
+      :type: ctypes.c_uint32
+
+      Bits: 5
+
+    .. py:attribute:: field2
+      :type: ctypes.c_uint32
+
+      Bits: 9
+
+Structures
+^^^^^^^^^^
+
+SsHeader
+""""""""
+
+
+.. py:class:: SsHeader
+
+  **Bases:** :py:class:`ctypes.Structure`
+
+  Message header.
+
+  **Fields:**
+
+    .. py:attribute:: uid
+      :type: ctypes.c_uint32
+
+      Message unique id.
+
+    .. py:attribute:: len
+      :type: ctypes.c_uint16
+
+      Message length.
+
+ArrayElem
+"""""""""
+
+
+.. py:class:: ArrayElem
+
+  **Bases:** :py:class:`ctypes.Structure`
+
+  This is a struct description.
+
+  **Fields:**
+
+    .. py:attribute:: field0
+      :type: ctypes.c_bool
+
+      This is a struct field description.
+
+    .. py:attribute:: field1
+      :type: ctypes.c_uint16
+
+Messages
+^^^^^^^^
+
+Bitfield2BytesTest
+""""""""""""""""""
+
+
+.. py:class:: Bitfield2BytesTest
+
+  **Bases:** :py:class:`ctypes.Structure`
+
+  
+
+  **Fields:**
+
+    .. py:attribute:: ss_header
+      :type: SsHeader
+
+
+      Message header.
+
+    .. py:attribute:: bitfield
+      :type: Bitfield2Bytes
+
+  **Class Attributes:**
+
+    .. py:attribute:: packed_size
+      :value: 8
+
+  **Class Methods:**
+
+    .. py:method:: get_buffer()
+      :classmethod:
+
+      Get buffer of correct size for message.
+
+      :return: an array of length :py:attr:`~Bitfield2BytesTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+    .. py:method:: unpack(buf)
+      :classmethod:
+
+      Unpack array into message.
+
+      :param bytes-like buf: array of :py:attr:`~Bitfield2BytesTest.packed_size` to be unpacked.
+      :return: the unpacked message.
+      :rtype: Bitfield2BytesTest
+      :raises IncorrectBufferSize: unpack buffer length does not match message :py:attr:`~Bitfield2BytesTest.packed_size`.
+      :raises InvalidUid: UID in buffer header does not match message UID.
+      :raises InvalidLen: length in buffer header does not match message :py:attr:`~Bitfield2BytesTest.packed_size`.
+
+  **Instance Methods:**
+
+    .. py:method:: pack()
+
+      Pack message into array.
+
+      :return: a packed array of length :py:attr:`~Bitfield2BytesTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+
+Bitfield4BytesTest
+""""""""""""""""""
+
+
+.. py:class:: Bitfield4BytesTest
+
+  **Bases:** :py:class:`ctypes.Structure`
+
+  
+
+  **Fields:**
+
+    .. py:attribute:: ss_header
+      :type: SsHeader
+
+
+      Message header.
+
+    .. py:attribute:: bitfield
+      :type: Bitfield4Bytes
+
+  **Class Attributes:**
+
+    .. py:attribute:: packed_size
+      :value: 10
+
+  **Class Methods:**
+
+    .. py:method:: get_buffer()
+      :classmethod:
+
+      Get buffer of correct size for message.
+
+      :return: an array of length :py:attr:`~Bitfield4BytesTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+    .. py:method:: unpack(buf)
+      :classmethod:
+
+      Unpack array into message.
+
+      :param bytes-like buf: array of :py:attr:`~Bitfield4BytesTest.packed_size` to be unpacked.
+      :return: the unpacked message.
+      :rtype: Bitfield4BytesTest
+      :raises IncorrectBufferSize: unpack buffer length does not match message :py:attr:`~Bitfield4BytesTest.packed_size`.
+      :raises InvalidUid: UID in buffer header does not match message UID.
+      :raises InvalidLen: length in buffer header does not match message :py:attr:`~Bitfield4BytesTest.packed_size`.
+
+  **Instance Methods:**
+
+    .. py:method:: pack()
+
+      Pack message into array.
+
+      :return: a packed array of length :py:attr:`~Bitfield4BytesTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+
+Enum1BytesTest
+""""""""""""""
+
+
+.. py:class:: Enum1BytesTest
+
+  **Bases:** :py:class:`ctypes.Structure`
+
+  
+
+  **Fields:**
+
+    .. py:attribute:: ss_header
+      :type: SsHeader
+
+
+      Message header.
+
+    .. py:attribute:: enumeration
+      :type: Enum1Bytes
+
+  **Class Attributes:**
+
+    .. py:attribute:: packed_size
+      :value: 7
+
+  **Class Methods:**
+
+    .. py:method:: get_buffer()
+      :classmethod:
+
+      Get buffer of correct size for message.
+
+      :return: an array of length :py:attr:`~Enum1BytesTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+    .. py:method:: unpack(buf)
+      :classmethod:
+
+      Unpack array into message.
+
+      :param bytes-like buf: array of :py:attr:`~Enum1BytesTest.packed_size` to be unpacked.
+      :return: the unpacked message.
+      :rtype: Enum1BytesTest
+      :raises IncorrectBufferSize: unpack buffer length does not match message :py:attr:`~Enum1BytesTest.packed_size`.
+      :raises InvalidUid: UID in buffer header does not match message UID.
+      :raises InvalidLen: length in buffer header does not match message :py:attr:`~Enum1BytesTest.packed_size`.
+
+  **Instance Methods:**
+
+    .. py:method:: pack()
+
+      Pack message into array.
+
+      :return: a packed array of length :py:attr:`~Enum1BytesTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+
+Enum2BytesTest
+""""""""""""""
+
+
+.. py:class:: Enum2BytesTest
+
+  **Bases:** :py:class:`ctypes.Structure`
+
+  
+
+  **Fields:**
+
+    .. py:attribute:: ss_header
+      :type: SsHeader
+
+
+      Message header.
+
+    .. py:attribute:: enumeration
+      :type: Enum2Bytes
+
+  **Class Attributes:**
+
+    .. py:attribute:: packed_size
+      :value: 8
+
+  **Class Methods:**
+
+    .. py:method:: get_buffer()
+      :classmethod:
+
+      Get buffer of correct size for message.
+
+      :return: an array of length :py:attr:`~Enum2BytesTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+    .. py:method:: unpack(buf)
+      :classmethod:
+
+      Unpack array into message.
+
+      :param bytes-like buf: array of :py:attr:`~Enum2BytesTest.packed_size` to be unpacked.
+      :return: the unpacked message.
+      :rtype: Enum2BytesTest
+      :raises IncorrectBufferSize: unpack buffer length does not match message :py:attr:`~Enum2BytesTest.packed_size`.
+      :raises InvalidUid: UID in buffer header does not match message UID.
+      :raises InvalidLen: length in buffer header does not match message :py:attr:`~Enum2BytesTest.packed_size`.
+
+  **Instance Methods:**
+
+    .. py:method:: pack()
+
+      Pack message into array.
+
+      :return: a packed array of length :py:attr:`~Enum2BytesTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+
+PrimitiveTest
+"""""""""""""
+
+
+.. py:class:: PrimitiveTest
+
+  **Bases:** :py:class:`ctypes.Structure`
+
+  
+
+  **Fields:**
+
+    .. py:attribute:: ss_header
+      :type: SsHeader
+
+
+      Message header.
+
+    .. py:attribute:: uint8
+      :type: ctypes.c_uint8
+
+
+    .. py:attribute:: uint16
+      :type: ctypes.c_uint16
+
+
+    .. py:attribute:: uint32
+      :type: ctypes.c_uint32
+
+
+    .. py:attribute:: uint64
+      :type: ctypes.c_uint64
+
+
+    .. py:attribute:: int8
+      :type: ctypes.c_int8
+
+
+    .. py:attribute:: int16
+      :type: ctypes.c_int16
+
+
+    .. py:attribute:: int32
+      :type: ctypes.c_int32
+
+
+    .. py:attribute:: int64
+      :type: ctypes.c_int64
+
+
+    .. py:attribute:: boolean
+      :type: ctypes.c_bool
+
+
+    .. py:attribute:: float_type
+      :type: ctypes.c_float
+
+
+    .. py:attribute:: double_type
+      :type: ctypes.c_double
+
+  **Class Attributes:**
+
+    .. py:attribute:: packed_size
+      :value: 49
+
+  **Class Methods:**
+
+    .. py:method:: get_buffer()
+      :classmethod:
+
+      Get buffer of correct size for message.
+
+      :return: an array of length :py:attr:`~PrimitiveTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+    .. py:method:: unpack(buf)
+      :classmethod:
+
+      Unpack array into message.
+
+      :param bytes-like buf: array of :py:attr:`~PrimitiveTest.packed_size` to be unpacked.
+      :return: the unpacked message.
+      :rtype: PrimitiveTest
+      :raises IncorrectBufferSize: unpack buffer length does not match message :py:attr:`~PrimitiveTest.packed_size`.
+      :raises InvalidUid: UID in buffer header does not match message UID.
+      :raises InvalidLen: length in buffer header does not match message :py:attr:`~PrimitiveTest.packed_size`.
+
+  **Instance Methods:**
+
+    .. py:method:: pack()
+
+      Pack message into array.
+
+      :return: a packed array of length :py:attr:`~PrimitiveTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+
+ArrayTest
+"""""""""
+
+
+.. py:class:: ArrayTest
+
+  **Bases:** :py:class:`ctypes.Structure`
+
+  This is a message description.
+
+  **Fields:**
+
+    .. py:attribute:: ss_header
+      :type: SsHeader
+
+
+      Message header.
+
+    .. py:attribute:: array_1d
+      :type: ArrayElem [3]
+
+
+      This is a message field description.
+
+    .. py:attribute:: array_2d
+      :type: ArrayElem [2][3]
+
+
+    .. py:attribute:: array_3d
+      :type: ArrayElem [1][2][3]
+
+  **Class Attributes:**
+
+    .. py:attribute:: packed_size
+      :value: 51
+
+  **Class Methods:**
+
+    .. py:method:: get_buffer()
+      :classmethod:
+
+      Get buffer of correct size for message.
+
+      :return: an array of length :py:attr:`~ArrayTest.packed_size`.
+      :rtype: ctypes.c_uint8
+
+    .. py:method:: unpack(buf)
+      :classmethod:
+
+      Unpack array into message.
+
+      :param bytes-like buf: array of :py:attr:`~ArrayTest.packed_size` to be unpacked.
+      :return: the unpacked message.
+      :rtype: ArrayTest
+      :raises IncorrectBufferSize: unpack buffer length does not match message :py:attr:`~ArrayTest.packed_size`.
+      :raises InvalidUid: UID in buffer header does not match message UID.
+      :raises InvalidLen: length in buffer header does not match message :py:attr:`~ArrayTest.packed_size`.
+
+  **Instance Methods:**
+
+    .. py:method:: pack()
+
+      Pack message into array.
+
+      :return: a packed array of length :py:attr:`~ArrayTest.packed_size`.
+      :rtype: ctypes.c_uint8
+

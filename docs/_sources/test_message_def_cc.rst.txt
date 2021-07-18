@@ -1,0 +1,878 @@
+test_message_def C++ Documentation
+----------------------------------
+
+
+.. cpp:namespace:: ss
+
+Helper Functions
+^^^^^^^^^^^^^^^^
+
+
+.. cpp:var:: static constexpr size_t kNumMsgTypes = 6
+
+.. cpp:var:: static constexpr size_t kHeaderPackedSize = 6
+
+.. cpp:function:: MsgType InspectHeader(const uint8_t *buffer)
+
+  Determine message type from header in :c:var:`buffer`.
+
+.. cpp:type:: AnyMessage = std::variant<std::monostate, Bitfield2BytesTest,Bitfield4BytesTest,Enum1BytesTest,Enum2BytesTest,PrimitiveTest,ArrayTest>
+
+.. cpp:function:: std::pair<AnyMessage, Status> UnpackMessage(const uint8_t *buffer, size_t len)
+
+  Unpack :c:var:`buffer` into new message based on header and return it in the form of the
+  AnyMessage variant.
+
+.. cpp:class:: MessageDispatcher
+
+  Dispatch class that can manage the unpacking of messages.  Users can register callbacks for
+  specific messages and when found the dispatcher will call them with with a const reference to
+  the newly unpacked message.
+
+  .. cpp:function:: Status Unpack(const uint8_t *data, size_t len) const
+
+    Attempt to unpack a message from :cpp:var:`data` and call the associated callbacks.
+
+  .. cpp:function:: template <typename T> void AddCallback(std::function<void(const T&)> func)
+
+    Register callback function for message type :cpp:any:`T`.
+
+Enums
+^^^^^
+
+
+.. cpp:enum-class:: MsgType
+
+  Message types.
+
+  .. cpp:enumerator:: kBitfield2BytesTest = 0
+
+  .. cpp:enumerator:: kBitfield4BytesTest = 1
+
+  .. cpp:enumerator:: kEnum1BytesTest = 2
+
+  .. cpp:enumerator:: kEnum2BytesTest = 3
+
+  .. cpp:enumerator:: kPrimitiveTest = 4
+
+  .. cpp:enumerator:: kArrayTest = 5
+
+    This is a message description.
+
+  .. cpp:enumerator:: kUnknown = 6
+
+    Unknown message type.
+.. cpp:enum-class:: Status
+
+  Stuff Sack status code.
+
+  .. cpp:enumerator:: kSuccess = 0
+
+    Success.
+
+  .. cpp:enumerator:: kInvalidUid = 1
+
+    Invalid message UID.
+
+  .. cpp:enumerator:: kInvalidLen = 2
+
+    Invalid message length.
+.. cpp:enum-class:: Enum1Bytes
+
+  
+
+  .. cpp:enumerator:: kValue0 = 0
+
+  .. cpp:enumerator:: kValue1 = 1
+
+  .. cpp:enumerator:: kValue2 = 2
+
+  .. cpp:enumerator:: kValue3 = 3
+
+  .. cpp:enumerator:: kValue4 = 4
+
+  .. cpp:enumerator:: kValue5 = 5
+
+  .. cpp:enumerator:: kValue6 = 6
+
+  .. cpp:enumerator:: kValue7 = 7
+
+  .. cpp:enumerator:: kValue8 = 8
+
+  .. cpp:enumerator:: kValue9 = 9
+
+  .. cpp:enumerator:: kValue10 = 10
+
+  .. cpp:enumerator:: kValue11 = 11
+
+  .. cpp:enumerator:: kValue12 = 12
+
+  .. cpp:enumerator:: kValue13 = 13
+
+  .. cpp:enumerator:: kValue14 = 14
+
+  .. cpp:enumerator:: kValue15 = 15
+
+  .. cpp:enumerator:: kValue16 = 16
+
+  .. cpp:enumerator:: kValue17 = 17
+
+  .. cpp:enumerator:: kValue18 = 18
+
+  .. cpp:enumerator:: kValue19 = 19
+
+  .. cpp:enumerator:: kValue20 = 20
+
+  .. cpp:enumerator:: kValue21 = 21
+
+  .. cpp:enumerator:: kValue22 = 22
+
+  .. cpp:enumerator:: kValue23 = 23
+
+  .. cpp:enumerator:: kValue24 = 24
+
+  .. cpp:enumerator:: kValue25 = 25
+
+  .. cpp:enumerator:: kValue26 = 26
+
+  .. cpp:enumerator:: kValue27 = 27
+
+  .. cpp:enumerator:: kValue28 = 28
+
+  .. cpp:enumerator:: kValue29 = 29
+
+  .. cpp:enumerator:: kValue30 = 30
+
+  .. cpp:enumerator:: kValue31 = 31
+
+  .. cpp:enumerator:: kValue32 = 32
+
+  .. cpp:enumerator:: kValue33 = 33
+
+  .. cpp:enumerator:: kValue34 = 34
+
+  .. cpp:enumerator:: kValue35 = 35
+
+  .. cpp:enumerator:: kValue36 = 36
+
+  .. cpp:enumerator:: kValue37 = 37
+
+  .. cpp:enumerator:: kValue38 = 38
+
+  .. cpp:enumerator:: kValue39 = 39
+
+  .. cpp:enumerator:: kValue40 = 40
+
+  .. cpp:enumerator:: kValue41 = 41
+
+  .. cpp:enumerator:: kValue42 = 42
+
+  .. cpp:enumerator:: kValue43 = 43
+
+  .. cpp:enumerator:: kValue44 = 44
+
+  .. cpp:enumerator:: kValue45 = 45
+
+  .. cpp:enumerator:: kValue46 = 46
+
+  .. cpp:enumerator:: kValue47 = 47
+
+  .. cpp:enumerator:: kValue48 = 48
+
+  .. cpp:enumerator:: kValue49 = 49
+
+  .. cpp:enumerator:: kValue50 = 50
+
+  .. cpp:enumerator:: kValue51 = 51
+
+  .. cpp:enumerator:: kValue52 = 52
+
+  .. cpp:enumerator:: kValue53 = 53
+
+  .. cpp:enumerator:: kValue54 = 54
+
+  .. cpp:enumerator:: kValue55 = 55
+
+  .. cpp:enumerator:: kValue56 = 56
+
+  .. cpp:enumerator:: kValue57 = 57
+
+  .. cpp:enumerator:: kValue58 = 58
+
+  .. cpp:enumerator:: kValue59 = 59
+
+  .. cpp:enumerator:: kValue60 = 60
+
+  .. cpp:enumerator:: kValue61 = 61
+
+  .. cpp:enumerator:: kValue62 = 62
+
+  .. cpp:enumerator:: kValue63 = 63
+
+  .. cpp:enumerator:: kValue64 = 64
+
+  .. cpp:enumerator:: kValue65 = 65
+
+  .. cpp:enumerator:: kValue66 = 66
+
+  .. cpp:enumerator:: kValue67 = 67
+
+  .. cpp:enumerator:: kValue68 = 68
+
+  .. cpp:enumerator:: kValue69 = 69
+
+  .. cpp:enumerator:: kValue70 = 70
+
+  .. cpp:enumerator:: kValue71 = 71
+
+  .. cpp:enumerator:: kValue72 = 72
+
+  .. cpp:enumerator:: kValue73 = 73
+
+  .. cpp:enumerator:: kValue74 = 74
+
+  .. cpp:enumerator:: kValue75 = 75
+
+  .. cpp:enumerator:: kValue76 = 76
+
+  .. cpp:enumerator:: kValue77 = 77
+
+  .. cpp:enumerator:: kValue78 = 78
+
+  .. cpp:enumerator:: kValue79 = 79
+
+  .. cpp:enumerator:: kValue80 = 80
+
+  .. cpp:enumerator:: kValue81 = 81
+
+  .. cpp:enumerator:: kValue82 = 82
+
+  .. cpp:enumerator:: kValue83 = 83
+
+  .. cpp:enumerator:: kValue84 = 84
+
+  .. cpp:enumerator:: kValue85 = 85
+
+  .. cpp:enumerator:: kValue86 = 86
+
+  .. cpp:enumerator:: kValue87 = 87
+
+  .. cpp:enumerator:: kValue88 = 88
+
+  .. cpp:enumerator:: kValue89 = 89
+
+  .. cpp:enumerator:: kValue90 = 90
+
+  .. cpp:enumerator:: kValue91 = 91
+
+  .. cpp:enumerator:: kValue92 = 92
+
+  .. cpp:enumerator:: kValue93 = 93
+
+  .. cpp:enumerator:: kValue94 = 94
+
+  .. cpp:enumerator:: kValue95 = 95
+
+  .. cpp:enumerator:: kValue96 = 96
+
+  .. cpp:enumerator:: kValue97 = 97
+
+  .. cpp:enumerator:: kValue98 = 98
+
+  .. cpp:enumerator:: kValue99 = 99
+
+  .. cpp:enumerator:: kValue100 = 100
+
+  .. cpp:enumerator:: kValue101 = 101
+
+  .. cpp:enumerator:: kValue102 = 102
+
+  .. cpp:enumerator:: kValue103 = 103
+
+  .. cpp:enumerator:: kValue104 = 104
+
+  .. cpp:enumerator:: kValue105 = 105
+
+  .. cpp:enumerator:: kValue106 = 106
+
+  .. cpp:enumerator:: kValue107 = 107
+
+  .. cpp:enumerator:: kValue108 = 108
+
+  .. cpp:enumerator:: kValue109 = 109
+
+  .. cpp:enumerator:: kValue110 = 110
+
+  .. cpp:enumerator:: kValue111 = 111
+
+  .. cpp:enumerator:: kValue112 = 112
+
+  .. cpp:enumerator:: kValue113 = 113
+
+  .. cpp:enumerator:: kValue114 = 114
+
+  .. cpp:enumerator:: kValue115 = 115
+
+  .. cpp:enumerator:: kValue116 = 116
+
+  .. cpp:enumerator:: kValue117 = 117
+
+  .. cpp:enumerator:: kValue118 = 118
+
+  .. cpp:enumerator:: kValue119 = 119
+
+  .. cpp:enumerator:: kValue120 = 120
+
+  .. cpp:enumerator:: kValue121 = 121
+
+  .. cpp:enumerator:: kValue122 = 122
+
+  .. cpp:enumerator:: kValue123 = 123
+
+  .. cpp:enumerator:: kValue124 = 124
+
+  .. cpp:enumerator:: kValue125 = 125
+
+  .. cpp:enumerator:: kValue126 = 126
+.. cpp:enum-class:: Enum2Bytes
+
+  This is an enum description.
+
+  .. cpp:enumerator:: kValue0 = 0
+
+    This is a enum value description
+
+  .. cpp:enumerator:: kValue1 = 1
+
+  .. cpp:enumerator:: kValue2 = 2
+
+  .. cpp:enumerator:: kValue3 = 3
+
+  .. cpp:enumerator:: kValue4 = 4
+
+  .. cpp:enumerator:: kValue5 = 5
+
+  .. cpp:enumerator:: kValue6 = 6
+
+  .. cpp:enumerator:: kValue7 = 7
+
+  .. cpp:enumerator:: kValue8 = 8
+
+  .. cpp:enumerator:: kValue9 = 9
+
+  .. cpp:enumerator:: kValue10 = 10
+
+  .. cpp:enumerator:: kValue11 = 11
+
+  .. cpp:enumerator:: kValue12 = 12
+
+  .. cpp:enumerator:: kValue13 = 13
+
+  .. cpp:enumerator:: kValue14 = 14
+
+  .. cpp:enumerator:: kValue15 = 15
+
+  .. cpp:enumerator:: kValue16 = 16
+
+  .. cpp:enumerator:: kValue17 = 17
+
+  .. cpp:enumerator:: kValue18 = 18
+
+  .. cpp:enumerator:: kValue19 = 19
+
+  .. cpp:enumerator:: kValue20 = 20
+
+  .. cpp:enumerator:: kValue21 = 21
+
+  .. cpp:enumerator:: kValue22 = 22
+
+  .. cpp:enumerator:: kValue23 = 23
+
+  .. cpp:enumerator:: kValue24 = 24
+
+  .. cpp:enumerator:: kValue25 = 25
+
+  .. cpp:enumerator:: kValue26 = 26
+
+  .. cpp:enumerator:: kValue27 = 27
+
+  .. cpp:enumerator:: kValue28 = 28
+
+  .. cpp:enumerator:: kValue29 = 29
+
+  .. cpp:enumerator:: kValue30 = 30
+
+  .. cpp:enumerator:: kValue31 = 31
+
+  .. cpp:enumerator:: kValue32 = 32
+
+  .. cpp:enumerator:: kValue33 = 33
+
+  .. cpp:enumerator:: kValue34 = 34
+
+  .. cpp:enumerator:: kValue35 = 35
+
+  .. cpp:enumerator:: kValue36 = 36
+
+  .. cpp:enumerator:: kValue37 = 37
+
+  .. cpp:enumerator:: kValue38 = 38
+
+  .. cpp:enumerator:: kValue39 = 39
+
+  .. cpp:enumerator:: kValue40 = 40
+
+  .. cpp:enumerator:: kValue41 = 41
+
+  .. cpp:enumerator:: kValue42 = 42
+
+  .. cpp:enumerator:: kValue43 = 43
+
+  .. cpp:enumerator:: kValue44 = 44
+
+  .. cpp:enumerator:: kValue45 = 45
+
+  .. cpp:enumerator:: kValue46 = 46
+
+  .. cpp:enumerator:: kValue47 = 47
+
+  .. cpp:enumerator:: kValue48 = 48
+
+  .. cpp:enumerator:: kValue49 = 49
+
+  .. cpp:enumerator:: kValue50 = 50
+
+  .. cpp:enumerator:: kValue51 = 51
+
+  .. cpp:enumerator:: kValue52 = 52
+
+  .. cpp:enumerator:: kValue53 = 53
+
+  .. cpp:enumerator:: kValue54 = 54
+
+  .. cpp:enumerator:: kValue55 = 55
+
+  .. cpp:enumerator:: kValue56 = 56
+
+  .. cpp:enumerator:: kValue57 = 57
+
+  .. cpp:enumerator:: kValue58 = 58
+
+  .. cpp:enumerator:: kValue59 = 59
+
+  .. cpp:enumerator:: kValue60 = 60
+
+  .. cpp:enumerator:: kValue61 = 61
+
+  .. cpp:enumerator:: kValue62 = 62
+
+  .. cpp:enumerator:: kValue63 = 63
+
+  .. cpp:enumerator:: kValue64 = 64
+
+  .. cpp:enumerator:: kValue65 = 65
+
+  .. cpp:enumerator:: kValue66 = 66
+
+  .. cpp:enumerator:: kValue67 = 67
+
+  .. cpp:enumerator:: kValue68 = 68
+
+  .. cpp:enumerator:: kValue69 = 69
+
+  .. cpp:enumerator:: kValue70 = 70
+
+  .. cpp:enumerator:: kValue71 = 71
+
+  .. cpp:enumerator:: kValue72 = 72
+
+  .. cpp:enumerator:: kValue73 = 73
+
+  .. cpp:enumerator:: kValue74 = 74
+
+  .. cpp:enumerator:: kValue75 = 75
+
+  .. cpp:enumerator:: kValue76 = 76
+
+  .. cpp:enumerator:: kValue77 = 77
+
+  .. cpp:enumerator:: kValue78 = 78
+
+  .. cpp:enumerator:: kValue79 = 79
+
+  .. cpp:enumerator:: kValue80 = 80
+
+  .. cpp:enumerator:: kValue81 = 81
+
+  .. cpp:enumerator:: kValue82 = 82
+
+  .. cpp:enumerator:: kValue83 = 83
+
+  .. cpp:enumerator:: kValue84 = 84
+
+  .. cpp:enumerator:: kValue85 = 85
+
+  .. cpp:enumerator:: kValue86 = 86
+
+  .. cpp:enumerator:: kValue87 = 87
+
+  .. cpp:enumerator:: kValue88 = 88
+
+  .. cpp:enumerator:: kValue89 = 89
+
+  .. cpp:enumerator:: kValue90 = 90
+
+  .. cpp:enumerator:: kValue91 = 91
+
+  .. cpp:enumerator:: kValue92 = 92
+
+  .. cpp:enumerator:: kValue93 = 93
+
+  .. cpp:enumerator:: kValue94 = 94
+
+  .. cpp:enumerator:: kValue95 = 95
+
+  .. cpp:enumerator:: kValue96 = 96
+
+  .. cpp:enumerator:: kValue97 = 97
+
+  .. cpp:enumerator:: kValue98 = 98
+
+  .. cpp:enumerator:: kValue99 = 99
+
+  .. cpp:enumerator:: kValue100 = 100
+
+  .. cpp:enumerator:: kValue101 = 101
+
+  .. cpp:enumerator:: kValue102 = 102
+
+  .. cpp:enumerator:: kValue103 = 103
+
+  .. cpp:enumerator:: kValue104 = 104
+
+  .. cpp:enumerator:: kValue105 = 105
+
+  .. cpp:enumerator:: kValue106 = 106
+
+  .. cpp:enumerator:: kValue107 = 107
+
+  .. cpp:enumerator:: kValue108 = 108
+
+  .. cpp:enumerator:: kValue109 = 109
+
+  .. cpp:enumerator:: kValue110 = 110
+
+  .. cpp:enumerator:: kValue111 = 111
+
+  .. cpp:enumerator:: kValue112 = 112
+
+  .. cpp:enumerator:: kValue113 = 113
+
+  .. cpp:enumerator:: kValue114 = 114
+
+  .. cpp:enumerator:: kValue115 = 115
+
+  .. cpp:enumerator:: kValue116 = 116
+
+  .. cpp:enumerator:: kValue117 = 117
+
+  .. cpp:enumerator:: kValue118 = 118
+
+  .. cpp:enumerator:: kValue119 = 119
+
+  .. cpp:enumerator:: kValue120 = 120
+
+  .. cpp:enumerator:: kValue121 = 121
+
+  .. cpp:enumerator:: kValue122 = 122
+
+  .. cpp:enumerator:: kValue123 = 123
+
+  .. cpp:enumerator:: kValue124 = 124
+
+  .. cpp:enumerator:: kValue125 = 125
+
+  .. cpp:enumerator:: kValue126 = 126
+
+  .. cpp:enumerator:: kValue127 = 127
+
+Bitfields
+^^^^^^^^^
+
+
+Bitfield2Bytes
+""""""""""""""
+
+
+.. cpp:struct:: Bitfield2Bytes
+
+  
+
+  .. cpp:var:: uint16_t field0 : 3
+  .. cpp:var:: uint16_t field1 : 5
+  .. cpp:var:: uint16_t field2 : 8
+
+Bitfield4Bytes
+""""""""""""""
+
+
+.. cpp:struct:: Bitfield4Bytes
+
+  This is a bitfield description.
+
+  .. cpp:var:: uint32_t field0 : 3
+
+    This is a bitfield field description.
+  .. cpp:var:: uint32_t field1 : 5
+  .. cpp:var:: uint32_t field2 : 9
+
+
+Structures
+^^^^^^^^^^
+
+
+SsHeader
+""""""""
+
+
+.. cpp:struct:: SsHeader
+
+  Message header.
+
+  .. cpp:var:: uint32_t uid
+
+    Message unique id.
+  .. cpp:var:: uint16_t len
+
+    Message length.
+
+ArrayElem
+"""""""""
+
+
+.. cpp:struct:: ArrayElem
+
+  This is a struct description.
+
+  .. cpp:var:: bool field0
+
+    This is a struct field description.
+  .. cpp:var:: uint16_t field1
+
+
+Messages
+^^^^^^^^
+
+
+.. cpp:struct:: Bitfield2BytesTest
+
+  
+
+  .. cpp:member:: SsHeader ss_header
+
+    Message header.
+
+  .. cpp:member:: Bitfield2Bytes bitfield
+
+  .. cpp:member:: static constexpr MsgType kType = MsgType::kBitfield2BytesTest
+
+  .. cpp:member:: static constexpr uint32_t kUid = 0x2f19a3ea
+
+  .. cpp:member:: static constexpr size_t kPackedSize = 8
+
+  .. cpp:function:: static std::pair<Bitfield2BytesTest, Status> UnpackNew(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into new message and return it.
+
+  .. cpp:function:: void Pack(uint8_t *buffer)
+
+    Pack message into :cpp:var:`buffer`.
+
+  .. cpp:function:: std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack()
+
+    Pack message into newly allocated buffer and return it.
+
+  .. cpp:function:: Status Unpack(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into message.
+.. cpp:struct:: Bitfield4BytesTest
+
+  
+
+  .. cpp:member:: SsHeader ss_header
+
+    Message header.
+
+  .. cpp:member:: Bitfield4Bytes bitfield
+
+  .. cpp:member:: static constexpr MsgType kType = MsgType::kBitfield4BytesTest
+
+  .. cpp:member:: static constexpr uint32_t kUid = 0xb21760cd
+
+  .. cpp:member:: static constexpr size_t kPackedSize = 10
+
+  .. cpp:function:: static std::pair<Bitfield4BytesTest, Status> UnpackNew(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into new message and return it.
+
+  .. cpp:function:: void Pack(uint8_t *buffer)
+
+    Pack message into :cpp:var:`buffer`.
+
+  .. cpp:function:: std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack()
+
+    Pack message into newly allocated buffer and return it.
+
+  .. cpp:function:: Status Unpack(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into message.
+.. cpp:struct:: Enum1BytesTest
+
+  
+
+  .. cpp:member:: SsHeader ss_header
+
+    Message header.
+
+  .. cpp:member:: Enum1Bytes enumeration
+
+  .. cpp:member:: static constexpr MsgType kType = MsgType::kEnum1BytesTest
+
+  .. cpp:member:: static constexpr uint32_t kUid = 0x96363fc4
+
+  .. cpp:member:: static constexpr size_t kPackedSize = 7
+
+  .. cpp:function:: static std::pair<Enum1BytesTest, Status> UnpackNew(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into new message and return it.
+
+  .. cpp:function:: void Pack(uint8_t *buffer)
+
+    Pack message into :cpp:var:`buffer`.
+
+  .. cpp:function:: std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack()
+
+    Pack message into newly allocated buffer and return it.
+
+  .. cpp:function:: Status Unpack(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into message.
+.. cpp:struct:: Enum2BytesTest
+
+  
+
+  .. cpp:member:: SsHeader ss_header
+
+    Message header.
+
+  .. cpp:member:: Enum2Bytes enumeration
+
+  .. cpp:member:: static constexpr MsgType kType = MsgType::kEnum2BytesTest
+
+  .. cpp:member:: static constexpr uint32_t kUid = 0xbb8ea1d0
+
+  .. cpp:member:: static constexpr size_t kPackedSize = 8
+
+  .. cpp:function:: static std::pair<Enum2BytesTest, Status> UnpackNew(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into new message and return it.
+
+  .. cpp:function:: void Pack(uint8_t *buffer)
+
+    Pack message into :cpp:var:`buffer`.
+
+  .. cpp:function:: std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack()
+
+    Pack message into newly allocated buffer and return it.
+
+  .. cpp:function:: Status Unpack(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into message.
+.. cpp:struct:: PrimitiveTest
+
+  
+
+  .. cpp:member:: SsHeader ss_header
+
+    Message header.
+
+  .. cpp:member:: uint8_t uint8
+
+  .. cpp:member:: uint16_t uint16
+
+  .. cpp:member:: uint32_t uint32
+
+  .. cpp:member:: uint64_t uint64
+
+  .. cpp:member:: int8_t int8
+
+  .. cpp:member:: int16_t int16
+
+  .. cpp:member:: int32_t int32
+
+  .. cpp:member:: int64_t int64
+
+  .. cpp:member:: bool boolean
+
+  .. cpp:member:: float float_type
+
+  .. cpp:member:: double double_type
+
+  .. cpp:member:: static constexpr MsgType kType = MsgType::kPrimitiveTest
+
+  .. cpp:member:: static constexpr uint32_t kUid = 0x2a5a960b
+
+  .. cpp:member:: static constexpr size_t kPackedSize = 49
+
+  .. cpp:function:: static std::pair<PrimitiveTest, Status> UnpackNew(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into new message and return it.
+
+  .. cpp:function:: void Pack(uint8_t *buffer)
+
+    Pack message into :cpp:var:`buffer`.
+
+  .. cpp:function:: std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack()
+
+    Pack message into newly allocated buffer and return it.
+
+  .. cpp:function:: Status Unpack(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into message.
+.. cpp:struct:: ArrayTest
+
+  This is a message description.
+
+  .. cpp:member:: SsHeader ss_header
+
+    Message header.
+
+  .. cpp:member:: ArrayElem array_1d[3]
+
+    This is a message field description.
+
+  .. cpp:member:: ArrayElem array_2d[2][3]
+
+  .. cpp:member:: ArrayElem array_3d[1][2][3]
+
+  .. cpp:member:: static constexpr MsgType kType = MsgType::kArrayTest
+
+  .. cpp:member:: static constexpr uint32_t kUid = 0x5f90abc7
+
+  .. cpp:member:: static constexpr size_t kPackedSize = 51
+
+  .. cpp:function:: static std::pair<ArrayTest, Status> UnpackNew(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into new message and return it.
+
+  .. cpp:function:: void Pack(uint8_t *buffer)
+
+    Pack message into :cpp:var:`buffer`.
+
+  .. cpp:function:: std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack()
+
+    Pack message into newly allocated buffer and return it.
+
+  .. cpp:function:: Status Unpack(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into message.
