@@ -16,6 +16,24 @@ cc_test(
     visibility = ["//visibility:public"],
 )
 
+cc_library(
+    name = "test_message_def-cpp",
+    hdrs = ["test_message_def.hpp"],
+    deps = [
+        ":test_message_def-c",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "test_cc_stuff_sack",
+    srcs = ["test_cc_stuff_sack.cc"],
+    deps = [
+        ":test_message_def-cpp",
+    ],
+    visibility = ["//visibility:public"],
+)
+
 py_test(
     name = "test_py_stuff_sack",
     srcs = ["test_py_stuff_sack.py"],

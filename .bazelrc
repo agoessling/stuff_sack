@@ -1,0 +1,7 @@
+build --copt="-Wall"
+build --copt="-Werror"
+build --copt="-fdiagnostics-color"
+build --cxxopt="-std=c++17"
+
+test --test_output=errors
+test --test_arg=--gtest_color=yes
