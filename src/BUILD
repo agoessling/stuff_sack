@@ -35,6 +35,16 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "cc_stuff_sack",
+    srcs = ["cc_stuff_sack.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":c_stuff_sack",
+        ":stuff_sack",
+    ],
+)
+
 py_library(
     name = "py_stuff_sack",
     srcs = ["py_stuff_sack.py"],

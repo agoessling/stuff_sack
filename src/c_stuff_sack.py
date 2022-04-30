@@ -1,5 +1,4 @@
 import argparse
-import textwrap
 import yaml
 
 import src.stuff_sack as ss
@@ -497,7 +496,7 @@ def c_header(all_types):
 
   for msg in messages:
     s += '#define {} {}\n'.format(packed_size_name(msg), msg.packed_size)
-  s += '\n'
+  s += '#define SS_HEADER_PACKED_SIZE 6\n\n'
 
   s += 'SsMsgType SsInspectHeader(const uint8_t *buffer);\n'
 

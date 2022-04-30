@@ -58,6 +58,32 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
         visibility = ["//visibility:private"],
     )
 
+    native.genrule(
+        name = name + "-cc-gen",
+        srcs = [
+            message_spec,
+            ":" + name + ".h",
+        ],
+        outs = [
+            name + ".hpp",
+        ],
+        cmd = ("$(execpath @stuff_sack//src:cc_stuff_sack) --spec $(execpath {}) " +
+               "--header $(execpath {}) --c_header $(execpath {})").format(
+            message_spec,
+            name + ".hpp",
+            ":" + name + ".h",
+        ),
+        tools = ["@stuff_sack//src:cc_stuff_sack"],
+        visibility = ["//visibility:private"],
+    )
+
+    native.cc_library(
+        name = name + "-cc",
+        hdrs = [name + ".hpp"],
+        deps = [":" + name + "-c"],
+        **kwargs
+    )
+
     native.py_library(
         name = name + "-py",
         srcs = [name + ".py"],

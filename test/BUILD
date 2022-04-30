@@ -21,6 +21,17 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "test_cc_stuff_sack",
+    srcs = ["test_cc_stuff_sack.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":test_message_def-cc",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
 py_test(
     name = "test_py_stuff_sack",
     srcs = ["test_py_stuff_sack.py"],

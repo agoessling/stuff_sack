@@ -7,86 +7,162 @@ from src import utils
 
 def cc_header(all_types, c_header):
   messages = [x for x in all_types if isinstance(x, ss.Message)]
+  structs = [x for x in all_types if isinstance(x, ss.Struct) and not isinstance(x, ss.Message)]
+  bitfields = [x for x in all_types if isinstance(x, ss.Bitfield)]
+  enums = [x for x in all_types if isinstance(x, ss.Enum)]
 
-  s = ''
-  s += '#pragma once\n\n'
-  s += '#include <cstddef>\n'
-  s += '#include <array>\n'
-  s += '#include <memory>\n'
-  s += '#include <utility>\n'
-  s += '#include <variant>\n\n'
+  s = f'''\
+#pragma once
 
-  s += 'namespace ss_c {\n'
-  s += 'extern "C" {\n'
-  s += '#include "{}"\n'.format(c_header)
-  s += '}\n} // namespace ss_c\n\n'
+#include <cstddef>
+#include <array>
+#include <functional>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <variant>
+#include <vector>
 
-  s += 'namespace ss {\n\n'
+namespace ss_c {{
+extern "C" {{
+#include "{c_header}"
+}}
+}} // namespace ss_c
 
-  s += \
-'''enum class Status {
-  kSsStatusSuccess = ss_c::kSsStatusSuccess,
-  kSsStatusInvalidUid = ss_c::kSsStatusInvalidUid,
-  kSsStatusInvalidLen = ss_c::kSsStatusInvalidLen,
-};\n\n'''
+namespace ss {{
+
+enum class Status {{
+  kSuccess = ss_c::kSsStatusSuccess,
+  kInvalidUid = ss_c::kSsStatusInvalidUid,
+  kInvalidLen = ss_c::kSsStatusInvalidLen,
+}};\n\n'''
+
+  s += '\n'.join([f'using {x.name} = ss_c::{x.name};' for x in enums + bitfields + structs])
+  s += '\n\n'
 
   for msg in messages:
-    s += 'struct {} : public ss_c::{} {{\n'.format(msg.name, msg.name)
+    s += f'''\
+struct {msg.name} : public ss_c::{msg.name} {{
+  static constexpr size_t kPackedSize = {c_ss.packed_size_name(msg)};
 
-    s += _indent('static constexpr size_t kPackedSize = {};\n\n'.format(c_ss.packed_size_name(msg)))
+  void Pack(uint8_t *buffer) {{
+    ss_c::{c_ss.pack_function_name(msg)}(this, buffer);
+  }}
 
-    s += _indent('void Pack(uint8_t *buffer) {\n')
-    s += _indent('ss_c::{}(this, buffer);\n'.format(c_ss.pack_function_name(msg)), 2)
-    s += _indent('}\n\n')
+  std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack() {{
+    auto buffer = std::make_unique<std::array<uint8_t, kPackedSize>>();
+    ss_c::{c_ss.pack_function_name(msg)}(this, buffer->data());
+    return buffer;
+  }}
 
-    s += _indent('std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack() {\n')
-    s += _indent('auto buffer = std::make_unique<std::array<uint8_t, kPackedSize>>();\n', 2)
-    s += _indent('ss_c::{}(this, buffer->data());\n'.format(c_ss.pack_function_name(msg)), 2)
-    s += _indent('return buffer;\n', 2)
-    s += _indent('}\n\n')
+  Status UnpackInto(const uint8_t *buffer) {{
+    return static_cast<Status>(ss_c::{c_ss.unpack_function_name(msg)}(buffer, this));
+  }}
 
-    s += _indent('Status UnpackInto(const uint8_t *buffer) {\n')
-    s += _indent(
-        'return static_cast<Status>(ss_c::{}(buffer, this));\n'.format(
-            c_ss.unpack_function_name(msg)), 2)
-    s += _indent('}\n\n')
+  static std::pair<Status, {msg.name}> UnpackNew(const uint8_t *buffer) {{
+    {msg.name} msg;
+    Status status = static_cast<Status>(ss_c::{c_ss.unpack_function_name(msg)}(buffer, &msg));
+    return {{status, msg}};
+  }}
+}};\n\n'''
 
-    s += _indent('static std::pair<Status, {}> UnpackNew(const uint8_t *buffer) {{\n'.format(
-        msg.name))
-    s += _indent('{} msg;\n'.format(msg.name), 2)
-    s += _indent(
-        'Status status = static_cast<Status>(ss_c::{}(buffer, &msg));\n'.format(
-            c_ss.unpack_function_name(msg)), 2)
-    s += _indent('return {status, msg};\n', 2)
-    s += _indent('}\n')
-
-    s += '};\n\n'
+  s += f'static constexpr size_t kNumMsgTypes = {len(messages)};\n\n'
 
   s += 'enum class MsgType {\n'
   for msg in messages:
-    s += _indent('k{} = ss_c::kMsgType{},\n'.format(msg.name, msg.name))
+    s += f'  k{msg.name} = ss_c::kSsMsgType{msg.name},\n'
+  s += '  kUnknown = ss_c::kSsMsgTypeUnknown\n'
   s += '};\n\n'
 
+  s += 'static constexpr size_t kHeaderPackedSize = SS_HEADER_PACKED_SIZE;\n\n'
+
+  s += '''\
+static inline MsgType InspectHeader(const uint8_t *buffer) {
+  return static_cast<MsgType>(ss_c::SsInspectHeader(buffer));
+}\n\n'''
+
   s += 'using AnyMessage = std::variant<\n'
-  s += _indent('std::monostate,\n', 2)
+  s += '  std::monostate,\n'
+  s += ',\n'.join(['  ' + msg.name for msg in messages])
+  s += '\n>;\n\n'
+
+  s += f'''\
+static inline std::pair<Status, AnyMessage> UnpackMessage(const uint8_t *buffer, size_t len) {{
+  if (len < kHeaderPackedSize) {{
+    return {{Status::kInvalidLen, {{}}}};
+  }}
+
+  const MsgType msg_type = static_cast<MsgType>(ss_c::SsInspectHeader(buffer));\n\n'''
   for msg in messages:
-    s += _indent('{},\n'.format(msg.name), 2)
-  s += '>;\n\n'
+    s += f'''\
+  if (msg_type == MsgType::k{msg.name}) {{
+    if (len != {msg.name}::kPackedSize) {{
+      return {{Status::kInvalidLen, {{}}}};
+    }}
+    return {msg.name}::UnpackNew(buffer);
+  }}\n\n'''
 
-  s += 'std::pair<Status, AnyMessage> UnpackMessage(const uint8_t *buffer, size_t len) {\n'
-  s += _indent('MsgType msg_type = InspectHeader(buffer);\n\n')
+  s += '''\
+  return {Status::kInvalidUid, {}};
+}\n\n'''
+
+  s += '''\
+class MessageDispatcher {
+ public:
+  template<typename T>
+  void AddCallback(std::function<void(const T&)> func) {\n'''
+
+  first = True
   for msg in messages:
-    s += _indent('if (msg_type == MsgType::k{}) {{\n'.format(msg.name))
-    s += _indent('if (len != {}::kPackedSize) {{\n'.format(msg.name), 2)
-    s += _indent('return {Status::kInvalidLen, {}};\n', 3)
-    s += _indent('}\n', 2)
-    s += _indent('return {}::UnpackNew(buffer);\n'.format(msg.name), 2)
-    s += _indent('}\n\n')
+    s += f'''\
+    {'if' if first else '} else if'} constexpr (std::is_same_v<T, {msg.name}>) {{
+      {utils.camel_to_snake(msg.name)}_callbacks_.emplace_back(std::move(func));
+'''
+    first = False
 
-  s += _indent('return {Status::kInvalidUid, {}};\n')
-  s += '}\n\n'
+  s += '''\
+    } else {
+      static_assert(always_false_v<T>);
+    }
+  }\n\n'''
 
-  s += '} // namespace ss\n'
+  s += '''\
+  Status Unpack(const uint8_t *data, size_t len) {
+    const auto [status, msg] = UnpackMessage(data, len);
+    if (status != Status::kSuccess) return status;
+
+    std::visit([this] (auto&& msg) {
+      using T  = std::decay_t<decltype(msg)>;\n\n'''
+
+  first = True
+  for msg in messages:
+    s += f'''\
+      {'if' if first else '} else if'} constexpr (std::is_same_v<T, {msg.name}>) {{
+        for (const auto& func : {utils.camel_to_snake(msg.name)}_callbacks_) {{
+          func(msg);
+        }}\n'''
+    first = False
+
+  s += '''\
+      }
+    }, msg);
+
+    return status;
+  }\n\n'''
+
+  s += '''\
+ private:
+  template <typename T>
+  static constexpr bool always_false_v = false;\n\n'''
+
+  s += '\n'.join([
+      f'  std::vector<std::function<void(const {x.name}&)>> {utils.camel_to_snake(x.name)}_callbacks_;'
+      for x in messages
+  ])
+
+  s += '\n};\n\n'
+
+  s += '}  // namespace ss\n'
 
   return s
 
