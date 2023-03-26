@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "external/unity/src/unity.h"
 
@@ -12,19 +12,18 @@ static void TestBitfield(void) {
   TEST_ASSERT_EQUAL_INT(10, SS_BITFIELD4_BYTES_TEST_PACKED_SIZE);
 
   Bitfield4BytesTest bitfield_test = {
-    .bitfield = {
-      .field0 = 6,
-      .field1 = 27,
-      .field2 = 105,
-      .field3 = 1,
-    },
+      .bitfield =
+          {
+              .field0 = 6,
+              .field1 = 27,
+              .field2 = 105,
+              .field3 = 1,
+          },
   };
   Bitfield4BytesTest unpacked;
 
   uint8_t bytes[SS_BITFIELD4_BYTES_TEST_PACKED_SIZE] = {
-    0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00,
-    0x00, 0x01, 0x69, 0xde,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x69, 0xde,
   };
   uint8_t packed[SS_BITFIELD4_BYTES_TEST_PACKED_SIZE];
 
@@ -50,14 +49,12 @@ static void TestEnum(void) {
   TEST_ASSERT_EQUAL_INT(8, SS_ENUM2_BYTES_TEST_PACKED_SIZE);
 
   Enum2BytesTest enum_test = {
-    .enumeration = kNumEnum2Bytes,
+      .enumeration = kNumEnum2Bytes,
   };
   Enum2BytesTest unpacked;
 
   uint8_t bytes[SS_ENUM2_BYTES_TEST_PACKED_SIZE] = {
-    0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00,
-    0x00, 0x80,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80,
   };
   uint8_t packed[SS_ENUM2_BYTES_TEST_PACKED_SIZE];
 
@@ -74,34 +71,34 @@ static void TestEnum(void) {
 
 static void TestPrimitive(void) {
   PrimitiveTest primitive_test = {
-    .uint8 = 0x01,
-    .uint16 = 0x0201,
-    .uint32 = 0x04030201,
-    .uint64 = 0x0807060504030201,
-    .int8 = 0x01,
-    .int16 = 0x0201,
-    .int32 = 0x04030201,
-    .int64 = 0x0807060504030201,
-    .boolean = true,
-    .float_type = 3.1415926,
-    .double_type = 3.1415926,
+      .uint8 = 0x01,
+      .uint16 = 0x0201,
+      .uint32 = 0x04030201,
+      .uint64 = 0x0807060504030201,
+      .int8 = 0x01,
+      .int16 = 0x0201,
+      .int32 = 0x04030201,
+      .int64 = 0x0807060504030201,
+      .boolean = true,
+      .float_type = 3.1415926,
+      .double_type = 3.1415926,
   };
   PrimitiveTest unpacked;
 
   uint8_t bytes[SS_PRIMITIVE_TEST_PACKED_SIZE] = {
-    0x00, 0x00, 0x00, 0x00, // uid
-    0x00, 0x00, // len, 4
-    0x01, // uint8, 5
-    0x02, 0x01, // uint16, 7
-    0x04, 0x03, 0x02, 0x01, // uint32, 9
-    0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, // uint64, 13
-    0x01, // int8, 21
-    0x02, 0x01, // int16, 22
-    0x04, 0x03, 0x02, 0x01, // int32, 24
-    0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, // int64, 28
-    0x01, // bool, 36
-    0x40, 0x49, 0x0f, 0xda, // float, 37
-    0x40, 0x09, 0x21, 0xFB, 0x4D, 0x12, 0xD8, 0x4A, // double, 41
+      0x00, 0x00, 0x00, 0x00,  // uid
+      0x00, 0x00,  // len, 4
+      0x01,  // uint8, 5
+      0x02, 0x01,  // uint16, 7
+      0x04, 0x03, 0x02, 0x01,  // uint32, 9
+      0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01,  // uint64, 13
+      0x01,  // int8, 21
+      0x02, 0x01,  // int16, 22
+      0x04, 0x03, 0x02, 0x01,  // int32, 24
+      0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01,  // int64, 28
+      0x01,  // bool, 36
+      0x40, 0x49, 0x0f, 0xda,  // float, 37
+      0x40, 0x09, 0x21, 0xFB, 0x4D, 0x12, 0xD8, 0x4A,  // double, 41
   };
   uint8_t packed[SS_PRIMITIVE_TEST_PACKED_SIZE];
 
@@ -128,58 +125,44 @@ static void TestPrimitive(void) {
 
 static void TestArray(void) {
   ArrayTest array_test = {
-    .array_1d = {
-      {.field1 = 0},
-      {.field1 = 1},
-      {.field1 = 2},
-    },
-    .array_2d = {
-      {
-        {.field1 = 0},
-        {.field1 = 1},
-        {.field1 = 2},
-        {.field1 = 3},
-        {.field1 = 4},
-        {.field1 = 5},
-        {.field1 = 6},
-        {.field1 = 7},
-      },
-      {
-        {.field1 = 8},
-        {.field1 = 9},
-        {.field1 = 10},
-        {.field1 = 11},
-        {.field1 = 12},
-        {.field1 = 13},
-        {.field1 = 14},
-        {.field1 = 15},
-      },
-    },
+      .array_1d =
+          {
+              {.field1 = 0},
+              {.field1 = 1},
+              {.field1 = 2},
+          },
+      .array_2d =
+          {
+              {
+                  {.field1 = 0},
+                  {.field1 = 1},
+                  {.field1 = 2},
+                  {.field1 = 3},
+                  {.field1 = 4},
+                  {.field1 = 5},
+                  {.field1 = 6},
+                  {.field1 = 7},
+              },
+              {
+                  {.field1 = 8},
+                  {.field1 = 9},
+                  {.field1 = 10},
+                  {.field1 = 11},
+                  {.field1 = 12},
+                  {.field1 = 13},
+                  {.field1 = 14},
+                  {.field1 = 15},
+              },
+          },
   };
   ArrayTest unpacked;
 
   uint8_t bytes[SS_ARRAY_TEST_PACKED_SIZE] = {
-    0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00,
-    0x00, 0x00, 0x00,
-    0x00, 0x00, 0x01,
-    0x00, 0x00, 0x02,
-    0x00, 0x00, 0x00,
-    0x00, 0x00, 0x01,
-    0x00, 0x00, 0x02,
-    0x00, 0x00, 0x03,
-    0x00, 0x00, 0x04,
-    0x00, 0x00, 0x05,
-    0x00, 0x00, 0x06,
-    0x00, 0x00, 0x07,
-    0x00, 0x00, 0x08,
-    0x00, 0x00, 0x09,
-    0x00, 0x00, 0x0a,
-    0x00, 0x00, 0x0b,
-    0x00, 0x00, 0x0c,
-    0x00, 0x00, 0x0d,
-    0x00, 0x00, 0x0e,
-    0x00, 0x00, 0x0f,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+      0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x02, 0x00, 0x00,
+      0x03, 0x00, 0x00, 0x04, 0x00, 0x00, 0x05, 0x00, 0x00, 0x06, 0x00, 0x00, 0x07,
+      0x00, 0x00, 0x08, 0x00, 0x00, 0x09, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x0b, 0x00,
+      0x00, 0x0c, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x0f,
   };
   uint8_t packed[SS_ARRAY_TEST_PACKED_SIZE];
 
@@ -198,10 +181,8 @@ static void TestArray(void) {
 
   for (int32_t i = 0; i < 2; ++i) {
     for (int32_t j = 0; j < 8; ++j) {
-      TEST_ASSERT_EQUAL_INT(array_test.array_2d[i][j].field0,
-                            unpacked.array_2d[i][j].field0);
-      TEST_ASSERT_EQUAL_INT(array_test.array_2d[i][j].field1,
-                            unpacked.array_2d[i][j].field1);
+      TEST_ASSERT_EQUAL_INT(array_test.array_2d[i][j].field0, unpacked.array_2d[i][j].field0);
+      TEST_ASSERT_EQUAL_INT(array_test.array_2d[i][j].field1, unpacked.array_2d[i][j].field1);
     }
   }
 }

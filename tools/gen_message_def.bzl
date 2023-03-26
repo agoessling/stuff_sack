@@ -10,7 +10,10 @@ def gen_message_def(name, message_spec, **kwargs):
         ],
         cmd = ("$(execpath @stuff_sack//src:c_stuff_sack) --spec $(execpath {}) " +
                "--header $(execpath {}) --c_file $(execpath {})").format(
-                   message_spec, name + ".h", name + ".c"),
+            message_spec,
+            name + ".h",
+            name + ".c",
+        ),
         tools = ["@stuff_sack//src:c_stuff_sack"],
         visibility = ["//visibility:private"],
     )
@@ -40,7 +43,9 @@ def gen_message_def(name, message_spec, **kwargs):
         ],
         cmd = ("$(execpath @stuff_sack//src:generate_python_lib) --spec $(rootpath {}) " +
                "--lib $(rootpath {}) --output $@").format(
-                   message_spec, ":" + name + "-c-so"),
+            message_spec,
+            ":" + name + "-c-so",
+        ),
         tools = ["@stuff_sack//src:generate_python_lib"],
         visibility = ["//visibility:private"],
     )
@@ -53,7 +58,7 @@ def gen_message_def(name, message_spec, **kwargs):
         ],
         data = [
             ":" + name + "-c-so",
-            message_spec
+            message_spec,
         ],
         **kwargs
     )

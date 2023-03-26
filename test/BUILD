@@ -9,18 +9,18 @@ gen_message_def(
 cc_test(
     name = "test_c_stuff_sack",
     srcs = ["test_c_stuff_sack.c"],
+    visibility = ["//visibility:public"],
     deps = [
         ":test_message_def-c",
-        "@unity//:unity",
+        "@unity",
     ],
-    visibility = ["//visibility:public"],
 )
 
 py_test(
     name = "test_py_stuff_sack",
     srcs = ["test_py_stuff_sack.py"],
+    visibility = ["//visibility:public"],
     deps = [
         ":test_message_def-py",
     ],
-    visibility = ["//visibility:public"],
 )
