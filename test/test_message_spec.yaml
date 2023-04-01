@@ -8,8 +8,9 @@ Bitfield2Bytes:
 
 Bitfield4Bytes:
   type: Bitfield
+  description: This is a bitfield description.
   fields:
-    - field0: 3
+    - { field0: 3, _description: This is a bitfield field description. }
     - field1: 5
     - field2: 8
     - field3: 1
@@ -147,8 +148,9 @@ Enum1Bytes:
 
 Enum2Bytes:
   type: Enum
+  description: This is an enum description.
   values:
-    - Value0:
+    - { Value0:, _description: This is a enum value description }
     - Value1:
     - Value2:
     - Value3:
@@ -314,12 +316,14 @@ PrimitiveTest:
 
 ArrayElem:
   type: Struct
+  description: This is a struct description.
   fields:
-    - field0: bool
+    - { field0: bool, _description: This is a struct field description. }
     - field1: uint16
 
 ArrayTest:
   type: Message
+  description: This is a message description.
   fields:
-    - array_1d: [ArrayElem, 3]
+    - { array_1d: [ArrayElem, 3], _description: This is a message field description. }
     - array_2d: [[ArrayElem, 8], 2]

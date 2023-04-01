@@ -12,69 +12,83 @@ def header(header, level=0):
   if level < 0 or level >= len(underlines):
     raise ValueError('Level ({}) out of range (0, {})'.format(level, len(underlines)))
 
-  return '{}\n{}\n'.format(header, underlines[level] * len(header))
+  return f'{header}\n{underlines[level] * len(header)}\n'
 
 
 def c_function_doc(prototype):
-  return '.. c:function:: {}\n'.format(prototype)
+  return f'.. c:function:: {prototype}\n'
 
 
 def c_enum_doc(t):
-  s = ''
+  s = f'''\
+{header(t.name, 3)}
 
-  s += header(t.name, 3)
-  s += '\n\n'
+.. c:enum:: {t.name}
 
-  s += '.. c:enum:: {}\n\n'.format(t.name)
+  {t.description if t.description else ''}
 
-  s += '  .. c:enumerator:: kForceSigned = -1\n'
+  .. c:enumerator:: kForceSigned = -1
+'''
 
   for value in t.values:
-    s += '  .. c:enumerator:: k{}{} = {}\n'.format(t.name, value.name, value.value)
+    s += f'  .. c:enumerator:: k{t.name}{value.name} = {value.value}\n'
+    if value.description:
+      s += f'\n    {value.description}\n'
 
-  s += '  .. c:enumerator:: kNum{} = {}\n'.format(t.name, len(t.values))
+  s += f'  .. c:enumerator:: kNum{t.name} = {len(t.values)}\n'
 
   return s
 
 
 def c_bitfield_doc(b):
-  s = ''
+  s = f'''\
+{header(b.name, 3)}
 
-  s += header(b.name, 3)
-  s += '\n\n'
+.. c:struct:: {b.name}
 
-  s += '.. c:struct:: {}\n\n'.format(b.name)
+  {b.description if b.description else ''}
+
+'''
 
   for field in b.fields:
-    s += '  .. c:var:: {}\n'.format(c_stuff_sack.bitfield_field_declaration(b, field))
+    s += f'  .. c:var:: {c_stuff_sack.bitfield_field_declaration(b, field)}\n'
+    if field.description:
+      s += f'\n    {field.description}\n'
 
   return s
 
 
 def c_structure_doc(struct):
-  s = ''
+  s = f'''\
+{header(struct.name, 3)}
 
-  s += header(struct.name, 3)
-  s += '\n\n'
+.. c:struct:: {struct.name}
 
-  s += '.. c:struct:: {}\n\n'.format(struct.name)
+  {struct.description if struct.description else ''}
 
+'''
   for field in struct.fields:
-    s += '  .. c:var:: {}\n'.format(c_stuff_sack.struct_field_declaration(field))
+    s += f'  .. c:var:: {c_stuff_sack.struct_field_declaration(field)}\n'
+    if field.description:
+      s += f'\n    {field.description}\n'
 
   return s
 
 
 def c_message_doc(m):
-  s = ''
+  s = f'''\
+{header(m.name, 3)}
 
-  s += header(m.name, 3)
-  s += '\n\n'
+.. c:struct:: {m.name}
 
-  s += '.. c:struct:: {}\n\n'.format(m.name)
+  {m.description if m.description else ''}
+
+'''
 
   for field in m.fields:
-    s += '  .. c:var:: {}\n'.format(c_stuff_sack.struct_field_declaration(field))
+    s += f'  .. c:var:: {c_stuff_sack.struct_field_declaration(field)}\n'
+    if field.description:
+      s += f'\n    {field.description}\n'
 
   s += '\n'
 
@@ -93,72 +107,95 @@ def c_message_doc(m):
 
 
 def py_enum_doc(e):
-  s = ''
-  s += header(e.name, 3)
-  s += '\n\n'
+  s = f'''\
+{header(e.name, 3)}
 
-  s += '.. py:class:: {}\n\n'.format(e.name)
-  s += '  **Bases:** :py:class:`ctypes.c_int{}`\n\n'.format(e.bytes * 8)
+.. py:class:: {e.name}
 
-  s += '  **Class Attributes:**\n'
+  **Bases:** :py:class:`ctypes.c_int{e.bytes * 8}`
+
+  {e.description if e.description else ''}
+
+  **Class Attributes:**
+'''
+
   for value in e.values:
     s += '\n'
-    s += '    .. py:attribute:: {}\n'.format(value.name)
-    s += '      :value: {}\n'.format(value.value)
+    s += f'    .. py:attribute:: {value.name}\n'
+    s += f'      :value: {value.value}\n'
     s += '\n'
-    s += '      Retrieves an instance of :py:class:`{}`'.format(e.name)
-    s += ' initialized to value :py:attr:`~{}.{}`.\n'.format(e.name, value.name)
 
-  s += '\n'
-  s += '  **Instance Attributes:**\n\n'
+    if value.description:
+      s += f'\n      {value.description}\n\n'
 
-  s += '    .. py:property:: name\n'
-  s += '      :type: str\n\n'
-  s += '      String representation of :py:attr:`~ctypes._SimpleCData.value`.\n'
-  s += '      If the integer is not a valid value returns `\'InvalidEnumValue\'`.\n'
+    s += f'      Retrieves an instance of :py:class:`{e.name}`'
+    s += f' initialized to value :py:attr:`~{e.name}.{value.name}`.\n'
 
-  s += '\n'
-  s += '  **Instance Methods:**\n\n'
+  s += f'''
+  **Instance Attributes:**
 
-  s += '    .. py:method:: is_valid()\n\n'
-  s += '      Check if :py:attr:`~ctypes._SimpleCData.value` is a valid enum value.\n\n'
-  s += '      :return: a boolean representing whether integer is a valid enum value.\n'
-  s += '      :rtype: bool\n\n'
+    .. py:property:: name
+      :type: str
+
+      String representation of :py:attr:`~ctypes._SimpleCData.value`.
+      If the integer is not a valid value returns `\'InvalidEnumValue\'`.
+
+  **Instance Methods:**
+
+    .. py:method:: is_valid()
+
+      Check if :py:attr:`~ctypes._SimpleCData.value` is a valid enum value.
+
+      :return: a boolean representing whether integer is a valid enum value.
+      :rtype: bool
+
+'''
 
   return s
 
 
 def py_bitfield_doc(b):
-  s = ''
-  s += header(b.name, 3)
-  s += '\n\n'
+  s = f'''\
+{header(b.name, 3)}
 
-  s += '.. py:class:: {}\n\n'.format(b.name)
-  s += '  **Bases:** :py:class:`ctypes.Structure`\n\n'
+.. py:class:: {b.name}
 
-  s += '  **Fields:**\n'
+  **Bases:** :py:class:`ctypes.Structure`
+
+  {b.description if b.description else ''}
+
+  **Fields:**
+'''
   for field in b.fields:
     s += '\n'
-    s += '    .. py:attribute:: {}\n'.format(field.name)
-    s += '      :type: ctypes.c_uint{}\n'.format(b.bytes * 8)
+    s += f'    .. py:attribute:: {field.name}\n'
+    s += f'      :type: ctypes.c_uint{b.bytes * 8}\n'
+
+    if field.description:
+      s += f'\n      {field.description}\n'
+
     s += '\n'
-    s += '      Bits: {}\n'.format(field.bits)
+    s += f'      Bits: {field.bits}\n'
 
   return s
 
 
 def py_structure_doc(struct):
-  s = ''
-  s += header(struct.name, 3)
-  s += '\n\n'
+  s = f'''\
+{header(struct.name, 3)}
 
-  s += '.. py:class:: {}\n\n'.format(struct.name)
-  s += '  **Bases:** :py:class:`ctypes.Structure`\n\n'
+.. py:class:: {struct.name}
 
-  s += '  **Fields:**\n'
+  **Bases:** :py:class:`ctypes.Structure`
+
+  {struct.description if struct.description else ''}
+
+  **Fields:**
+'''
+
   for field in struct.fields:
     s += '\n'
-    s += '    .. py:attribute:: {}\n'.format(field.name)
+    s += f'    .. py:attribute:: {field.name}\n'
 
     type_name = py_stuff_sack.to_ctypes_name(field.root_type.name, field.root_type.name)
 
@@ -166,23 +203,30 @@ def py_structure_doc(struct):
     if array:
       array = ' ' + array
 
-    s += '      :type: {}{}\n'.format(type_name, array)
+    s += f'      :type: {type_name}{array}\n'
+
+    if field.description:
+      s += f'\n      {field.description}\n'
 
   return s
 
 
 def py_message_doc(m):
-  s = ''
-  s += header(m.name, 3)
-  s += '\n\n'
+  s = f'''\
+{header(m.name, 3)}
 
-  s += '.. py:class:: {}\n\n'.format(m.name)
-  s += '  **Bases:** :py:class:`ctypes.Structure`\n\n'
+.. py:class:: {m.name}
 
-  s += '  **Fields:**\n'
+  **Bases:** :py:class:`ctypes.Structure`
+
+  {m.description if m.description else ''}
+
+  **Fields:**
+'''
+
   for field in m.fields:
     s += '\n'
-    s += '    .. py:attribute:: {}\n'.format(field.name)
+    s += f'    .. py:attribute:: {field.name}\n'
 
     type_name = py_stuff_sack.to_ctypes_name(field.root_type.name, field.root_type.name)
 
@@ -190,37 +234,40 @@ def py_message_doc(m):
     if array:
       array = ' ' + array
 
-    s += '      :type: {}{}\n\n'.format(type_name, array)
+    s += f'      :type: {type_name}{array}\n\n'
+
+    if field.description:
+      s += f'\n      {field.description}\n'
 
   s += '  **Class Attributes:**\n\n'
   s += '    .. py:attribute:: packed_size\n'
-  s += '      :value: {}\n\n'.format(m.packed_size)
+  s += f'      :value: {m.packed_size}\n\n'
 
   s += '  **Class Methods:**\n\n'
   s += '    .. py:method:: get_buffer()\n'
   s += '      :classmethod:\n\n'
   s += '      Get buffer of correct size for message.\n\n'
-  s += '      :return: an array of length :py:attr:`~{}.packed_size`.\n'.format(m.name)
+  s += f'      :return: an array of length :py:attr:`~{m.name}.packed_size`.\n'
   s += '      :rtype: ctypes.c_uint8\n\n'
 
   s += '    .. py:method:: unpack(buf)\n'
   s += '      :classmethod:\n\n'
   s += '      Unpack array into message.\n\n'
-  s += '      :param bytes-like buf: array of :py:attr:`~{}.packed_size` '.format(m.name)
+  s += f'      :param bytes-like buf: array of :py:attr:`~{m.name}.packed_size` '
   s += 'to be unpacked.\n'
   s += '      :return: the unpacked message.\n'
-  s += '      :rtype: {}\n'.format(m.name)
+  s += f'      :rtype: {m.name}\n'
   s += '      :raises IncorrectBufferSize: unpack buffer length does not match message '
-  s += ':py:attr:`~{}.packed_size`.\n'.format(m.name)
+  s += f':py:attr:`~{m.name}.packed_size`.\n'
   s += '      :raises InvalidUid: UID in buffer header does not match message UID.\n'
-  s += '      :raises InvalidLen: length in buffer header does not match message'
-  s += ':py:attr:`~{}.packed_size`.\n\n'.format(m.name)
+  s += '      :raises InvalidLen: length in buffer header does not match message '
+  s += f':py:attr:`~{m.name}.packed_size`.\n\n'
 
   s += '  **Instance Methods:**\n\n'
 
   s += '    .. py:method:: pack()\n\n'
   s += '      Pack message into array.\n\n'
-  s += '      :return: a packed array of length :py:attr:`~{}.packed_size`.\n'.format(m.name)
+  s += f'      :return: a packed array of length :py:attr:`~{m.name}.packed_size`.\n'
   s += '      :rtype: ctypes.c_uint8\n\n'
 
   return s
