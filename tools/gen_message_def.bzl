@@ -1,6 +1,6 @@
 load("@rules_sphinx//sphinx:defs.bzl", "sphinx_html")
 
-def gen_message_def(name, message_spec, **kwargs):
+def gen_message_def(name, message_spec, c_deps = None, **kwargs):
     native.genrule(
         name = name + "-c-gen",
         srcs = [message_spec],
@@ -22,6 +22,7 @@ def gen_message_def(name, message_spec, **kwargs):
         name = name + "-c",
         srcs = [name + ".c"],
         hdrs = [name + ".h"],
+        deps = c_deps,
         **kwargs
     )
 

@@ -1,5 +1,6 @@
 import argparse
 import textwrap
+import yaml
 
 import src.stuff_sack as ss
 
@@ -407,6 +408,75 @@ def static_assert(all_types):
   return s[:-1]
 
 
+def yaml_log_header(spec, messages):
+  spec['SsMessageUidMap'] = {msg.uid: msg.name for msg in messages}
+  return f'static const char kYamlHeader[] = "{yaml.dump(spec).encode("unicode_escape").decode()}";'
+
+
+def write_log_header():
+  return '''\
+__attribute__((weak)) int SsWriteFile(void *fd, const void *data, unsigned int len);
+__attribute__((weak)) int SsReadFile(void *fd, void *data, unsigned int len);
+
+int SsWriteLogHeader(void *fd) {
+  int yaml_ret = SsWriteFile(fd, kYamlHeader, sizeof(kYamlHeader) - 1);
+  if (yaml_ret < 0) return yaml_ret;
+
+  int delim_ret = SsWriteFile(fd, kSsLogDelimiter, sizeof(kSsLogDelimiter) - 1);
+  if (delim_ret < 0) return delim_ret;
+
+  return yaml_ret + delim_ret;
+}'''
+
+
+def find_log_delimiter():
+  return '''\
+int SsFindLogDelimiter(void *fd) {
+  const int kDelimLen = sizeof(kSsLogDelimiter) - 1;
+  uint8_t buf[4 * kDelimLen];
+
+  int file_index = 0;
+  int delim_index = 0;
+  while (true) {
+    const int ret = SsReadFile(fd, buf, sizeof(buf));
+    if (ret < 0) return ret;
+
+    for (int i = 0; i < ret; ++i) {
+      if (buf[i] != kSsLogDelimiter[delim_index]) {
+        delim_index = 0;
+      }
+
+      if (buf[i] == kSsLogDelimiter[delim_index]) {
+        if (++delim_index >= kDelimLen) {
+          return file_index + 1;
+        }
+      }
+
+      file_index++;
+    }
+
+    if (ret != sizeof(buf)) return -1;
+  }
+}'''
+
+
+def log_function_name(obj):
+  return f'SsLog{obj.name}'
+
+
+def message_log_prototype(obj):
+  return f'int {log_function_name(obj)}(void *fd, {obj.name} *data)'
+
+
+def message_log(obj):
+  return f'''\
+{message_log_prototype(obj)} {{
+  uint8_t buf[{packed_size_name(obj)}];
+  {pack_function_name(obj)}(data, buf);
+  return SsWriteFile(fd, buf, sizeof(buf));
+}}'''
+
+
 def c_header(all_types):
   messages = [x for x in all_types if isinstance(x, ss.Message)]
 
@@ -448,11 +518,20 @@ def c_header(all_types):
   for msg in messages:
     s += '{};\n'.format(message_pack_prototype(msg))
     s += '{};\n'.format(message_unpack_prototype(msg))
+  s += '\n'
+
+  s += 'static const char kSsLogDelimiter[] = "SsLogFileDelimiter";\n\n'
+
+  s += 'int SsWriteLogHeader(void *fd);\n'
+  s += 'int SsFindLogDelimiter(void *fd);\n\n'
+
+  for msg in messages:
+    s += '{};\n'.format(message_log_prototype(msg))
 
   return s[:-1]
 
 
-def c_file(all_types, header):
+def c_file(spec, all_types, header):
   messages = [x for x in all_types if isinstance(x, ss.Message)]
 
   s = ''
@@ -496,9 +575,16 @@ SsMsgType SsInspectHeader(const uint8_t *buffer) {
   SsHeader header;
   SsUnpackSsHeader(buffer, &header);
   return GetSsMsgTypeFromUid(header.uid);
-}'''
+}\n\n'''
 
-  return s
+  s += '{}\n\n'.format(yaml_log_header(spec, messages))
+  s += '{}\n\n'.format(write_log_header())
+  s += '{}\n\n'.format(find_log_delimiter())
+
+  for msg in messages:
+    s += '{}\n\n'.format(message_log(msg))
+
+  return s[:-1]
 
 
 def parse_yaml(spec):
@@ -527,6 +613,9 @@ def main():
   parser.add_argument('--header_include', help='Include string to header file.')
   args = parser.parse_args()
 
+  with open(args.spec, 'r') as f:
+    spec = yaml.unsafe_load(f)
+
   all_types = ss.parse_yaml(args.spec)
 
   with open(args.header, 'w') as f:
@@ -538,7 +627,7 @@ def main():
     else:
       include = args.header
 
-    f.write(c_file(all_types, include))
+    f.write(c_file(spec, all_types, include))
 
 
 if __name__ == '__main__':

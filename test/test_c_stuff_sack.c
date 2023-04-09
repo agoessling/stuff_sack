@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "external/unity/src/unity.h"
@@ -223,6 +224,78 @@ static void TestHeaderCheck(void) {
   TEST_ASSERT_EQUAL_INT(kSsStatusInvalidUid, SsUnpackPrimitiveTest(packed, &primitive_test));
 }
 
+static void TestLogging(void) {
+  const char *tmp_dir = getenv("TEST_TMPDIR");
+  if (!tmp_dir) {
+    TEST_FAIL_MESSAGE("Could not get writable directory from TEST_TMPDIR");
+  }
+
+  const char filename[] = "test_log.ss";
+
+  char *path = malloc(strlen(tmp_dir) + strlen(filename) + 2);  // Separator plus null character.
+  sprintf(path, "%s/%s", tmp_dir, filename);
+
+  FILE *const file = fopen(path, "w+");
+  free(path);
+
+  if (!file) {
+    perror("Could not open temporary log file");
+    TEST_FAIL();
+  }
+
+  TEST_ASSERT_GREATER_THAN(0, SsWriteLogHeader(file));
+
+  PrimitiveTest primitive_test = {.int8 = 1};
+  Enum1BytesTest enum_1_bytes_test = {.enumeration = kEnum1BytesValue3};
+  SsLogPrimitiveTest(file, &primitive_test);
+  primitive_test.int8++;
+  SsLogPrimitiveTest(file, &primitive_test);
+  SsLogEnum1BytesTest(file, &enum_1_bytes_test);
+  primitive_test.int8++;
+  SsLogPrimitiveTest(file, &primitive_test);
+
+  rewind(file);
+
+  const int delim_pos = SsFindLogDelimiter(file);
+  TEST_ASSERT_GREATER_THAN(0, delim_pos);
+
+  fseek(file, delim_pos - sizeof(kSsLogDelimiter) + 1, SEEK_SET);
+
+  char buf[sizeof(kSsLogDelimiter) - 1];
+  int ret = fread(buf, 1, sizeof(buf), file);
+
+  TEST_ASSERT_EQUAL(sizeof(buf), ret);
+  TEST_ASSERT_EQUAL_CHAR_ARRAY(kSsLogDelimiter, buf, sizeof(buf));
+
+  uint8_t primitive_buf[SS_PRIMITIVE_TEST_PACKED_SIZE];
+  uint8_t enum_buf[SS_ENUM1_BYTES_TEST_PACKED_SIZE];
+
+  ret = fread(primitive_buf, 1, sizeof(primitive_buf), file);
+  TEST_ASSERT_EQUAL(sizeof(primitive_buf), ret);
+  TEST_ASSERT_EQUAL(kSsStatusSuccess, SsUnpackPrimitiveTest(primitive_buf, &primitive_test));
+  TEST_ASSERT_EQUAL(1, primitive_test.int8);
+
+  ret = fread(primitive_buf, 1, sizeof(primitive_buf), file);
+  TEST_ASSERT_EQUAL(sizeof(primitive_buf), ret);
+  TEST_ASSERT_EQUAL(kSsStatusSuccess, SsUnpackPrimitiveTest(primitive_buf, &primitive_test));
+  TEST_ASSERT_EQUAL(2, primitive_test.int8);
+
+  ret = fread(enum_buf, 1, sizeof(enum_buf), file);
+  TEST_ASSERT_EQUAL(sizeof(enum_buf), ret);
+  TEST_ASSERT_EQUAL(kSsStatusSuccess, SsUnpackEnum1BytesTest(enum_buf, &enum_1_bytes_test));
+  TEST_ASSERT_EQUAL(kEnum1BytesValue3, enum_1_bytes_test.enumeration);
+
+  ret = fread(primitive_buf, 1, sizeof(primitive_buf), file);
+  TEST_ASSERT_EQUAL(sizeof(primitive_buf), ret);
+  TEST_ASSERT_EQUAL(kSsStatusSuccess, SsUnpackPrimitiveTest(primitive_buf, &primitive_test));
+  TEST_ASSERT_EQUAL(3, primitive_test.int8);
+
+  TEST_ASSERT_EQUAL(EOF, fgetc(file));
+  TEST_ASSERT_EQUAL(1, feof(file));
+
+  fclose(file);
+}
+
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -235,6 +308,7 @@ int main(void) {
   RUN_TEST(TestArray);
   RUN_TEST(TestInspectHeader);
   RUN_TEST(TestHeaderCheck);
+  RUN_TEST(TestLogging);
 
   return UNITY_END();
 }

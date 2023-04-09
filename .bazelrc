@@ -1,0 +1,9 @@
+build -c opt
+build --copt="-Wall"
+build --copt="-Werror"
+build --copt="-std=c17"
+build --copt="-fdiagnostics-color"
+build --copt="-fmax-errors=5"
+
+test --test_output=errors
+test --copt="-DUNITY_OUTPUT_COLOR"
