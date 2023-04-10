@@ -96,12 +96,16 @@ def c_message_doc(m):
 
   s += '  Packed size of :c:struct:`{}` is {} bytes.\n\n'.format(m.name, m.packed_size)
 
-  s += c_function_doc(c_stuff_sack.message_pack_prototype(m))
-  s += '\n'
+  s += c_function_doc(c_stuff_sack.message_pack_prototype(m)) + '\n'
   s += '  Pack message (:c:var:`data`) into :c:var:`buffer`.\n\n'
-  s += c_function_doc(c_stuff_sack.message_unpack_prototype(m))
-  s += '\n'
+
+  s += c_function_doc(c_stuff_sack.message_unpack_prototype(m)) + '\n'
   s += '  Unpack :c:var:`buffer` into message (:c:var:`data`).\n\n'
+
+  s += c_function_doc(c_stuff_sack.message_log_prototype(m)) + '\n'
+  s += '  Write message (:c:var:`data`) to log described by :c:var:`fd` (transparently passed to\n'
+  s += '  :c:func:`SsWriteFile`). Returns the number of bytes written and negative values on\n'
+  s += '  error.\n\n'
 
   return s
 
@@ -294,12 +298,50 @@ def write_index_doc(directory, lib_name, rel_spec_path):
 
 def write_c_doc(directory, lib_name, enums, bitfields, structs, messages):
   with open(os.path.join(directory, '{}_c.rst'.format(lib_name)), 'w') as f:
-    f.write(header('{} C Documentation'.format(lib_name), 1))
-    f.write('\n')
+    f.write(header('{} C Documentation'.format(lib_name), 1) + '\n')
 
-    f.write(c_function_doc('SsMsgType SsInspectHeader(const uint8_t *buffer)'))
-    f.write('\n')
+    f.write(header('Helper Functions', 2) + '\n')
+
+    f.write(c_function_doc('SsMsgType SsInspectHeader(const uint8_t *buffer)') + '\n')
     f.write('  Determine message type from header in :c:var:`buffer`.\n\n')
+
+    f.write('.. c:var:: static const char kSsLogDelimiter[]\n\n')
+    f.write('  Delimiter used to separate YAML definition from binary packed data in log.\n\n')
+
+    f.write(c_function_doc('int SsWriteFile(void *fd, const void *data, unsigned int len)') + '\n')
+    f.write('  Forward declared function used by :c:func:`SsWriteLogHeader` as well as\n')
+    f.write('  :c:func:`SsLogXXX` functions. This function must be defined by the user and\n')
+    f.write('  linked into the library via the ``c_deps`` argument of the ``gen_message_def``\n')
+    f.write('  Bazel macro.\n\n')
+    f.write('  :param fd: User defined pointer referencing the file to be written. Transparently\n')
+    f.write('    passed from calling functions e.g. :c:func:`SsWriteLogHeader`\n')
+    f.write('  :param data: Pointer to binary data to be written to file.\n')
+    f.write('  :param len: Size of data to be written in bytes.\n')
+    f.write('  :returns: Number of bytes written.  Negative values indicate an error.\n\n')
+
+    f.write(c_function_doc('int SsReadFile(void *fd, void *data, unsigned int len)') + '\n')
+    f.write('  Forward declared function used by :c:func:`SsFindLogDelimiter`. This function\n')
+    f.write('  must be defined by the user and linked into the library via the ``c_deps``\n')
+    f.write('  argument of the ``gen_message_def`` Bazel macro.\n\n')
+    f.write('  :param fd: User defined pointer referencing the file to be read. Transparently\n')
+    f.write('    passed from calling functions e.g. :c:func:`SsFindLogDelimiter`\n')
+    f.write('  :param data: Pointer to buffer to be written with data read from file.\n')
+    f.write('  :param len: Size of data to be read in bytes.\n')
+    f.write('  :returns: Number of bytes read.  Negative values indicate an error.\n\n')
+
+    f.write(c_function_doc('int SsWriteLogHeader(void *fd)') + '\n')
+    f.write('  Write YAML message definition header and delimiter to file.\n\n')
+    f.write('  :param fd: User defined pointer referencing the file to be written. Transparently\n')
+    f.write('    passed to :c:func:`SsWriteFile`\n')
+    f.write('  :returns: Number of bytes written.  Negative values indicate an error.\n\n')
+
+    f.write(c_function_doc('int SsFindLogDelimiter(void *fd)') + '\n')
+    f.write('  Find file offset of binary data immediately following delimiter separating the\n')
+    f.write('  YAML message definition from the binary log data.\n\n')
+    f.write('  :param fd: User defined pointer referencing the file to be read. Transparently\n')
+    f.write('    passed to :c:func:`SsReadFile`\n')
+    f.write('  :returns: File offset in bytes.  Negative values indicate an error such as\n')
+    f.write('    no delimiter found.\n\n')
 
     f.write(header('Enums', 2))
 
