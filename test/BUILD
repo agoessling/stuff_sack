@@ -2,17 +2,7 @@ load("//tools:gen_message_def.bzl", "gen_message_def")
 
 gen_message_def(
     name = "test_message_def",
-    c_deps = [
-        ":linux_logging",
-    ],
     message_spec = "test_message_spec.yaml",
-    visibility = ["//visibility:public"],
-)
-
-cc_library(
-    name = "linux_logging",
-    srcs = ["linux_logging.c"],
-    hdrs = ["linux_logging.h"],
     visibility = ["//visibility:public"],
 )
 

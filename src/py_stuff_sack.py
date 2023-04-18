@@ -2,6 +2,7 @@ import ctypes
 
 from src import c_stuff_sack
 from src import stuff_sack
+from src.libc_wrapper import fopen, fclose
 
 
 class UnpackError(Exception):
@@ -167,7 +168,15 @@ def get_globals(library, message_spec):
       'double': ctypes.c_double,
   }
 
-  cdll = ctypes.CDLL(library)
+  ss_lib = ctypes.CDLL(library)
+
+  ss_lib.SsInspectHeader.argtypes = [ctypes.c_void_p]
+  ss_lib.SsInspectHeader.restype = ctypes.c_int
+  ss_lib.SsWriteLogHeader.argtypes = [ctypes.c_void_p]
+  ss_lib.SsWriteLogHeader.restype = ctypes.c_int
+  ss_lib.SsFindLogDelimiter.argtypes = [ctypes.c_void_p]
+  ss_lib.SsFindLogDelimiter.restype = ctypes.c_int
+
   all_types = stuff_sack.parse_yaml(message_spec)
 
   global_vars = {}
@@ -207,8 +216,15 @@ def get_globals(library, message_spec):
       if isinstance(t, stuff_sack.Message):
         base = _Message
         attrs['packed_size'] = t.packed_size
-        attrs['_pack_func'] = getattr(cdll, c_stuff_sack.pack_function_name(t))
-        attrs['_unpack_func'] = getattr(cdll, c_stuff_sack.unpack_function_name(t))
+        attrs['_pack_func'] = getattr(ss_lib, c_stuff_sack.pack_function_name(t))
+        attrs['_unpack_func'] = getattr(ss_lib, c_stuff_sack.unpack_function_name(t))
+        attrs['_log_func'] = getattr(ss_lib, c_stuff_sack.log_function_name(t))
+
+        attrs['_pack_func'].argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        attrs['_unpack_func'].argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        attrs['_unpack_func'].restype = ctypes.c_int
+        attrs['_log_func'].argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        attrs['_log_func'].restype = ctypes.c_int
 
       global_vars[t.name] = type(t.name, (base,), attrs)
       ctypes_map[t.name] = global_vars[t.name]
@@ -217,13 +233,45 @@ def get_globals(library, message_spec):
         msg_list.append(global_vars[t.name])
 
   def unpack_message(buf):
-    msg_type = cdll.SsInspectHeader(ctypes.byref(buf))
+    msg_type = ss_lib.SsInspectHeader(ctypes.byref(buf))
     if msg_type < 0 or msg_type >= len(msg_list):
       raise UnknownMessage("Unknown message UID.")
 
     return msg_list[msg_type].unpack(buf)
 
   global_vars['unpack_message'] = unpack_message
+
+  class Logger:
+    def __init__(self, filename):
+      self.filename = filename
+      self.file_p = None
+
+    def open(self):
+      self.file_p = fopen(self.filename, 'w+')
+      if ss_lib.SsWriteLogHeader(self.file_p) <= 0:
+        raise OSError('Could not write log header.')
+
+    def close(self):
+      if self.file_p is not None:
+        fclose(self.file_p)
+      self.file_p = None
+
+    def __enter__(self):
+      self.open()
+      return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+      self.close()
+      return False
+
+    def log(self, msg):
+      if self.file_p is None:
+        raise RuntimeError('Log file not open.')
+
+      if msg._log_func(self.file_p, ctypes.byref(msg)) <= 0:
+        raise RuntimeError(f'Could not write {type(msg).__name__} to log.')
+
+  global_vars['Logger'] = Logger
 
   # Add exceptions.
   global_vars['UnpackError'] = UnpackError

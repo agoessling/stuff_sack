@@ -1,6 +1,9 @@
 load("@rules_sphinx//sphinx:defs.bzl", "sphinx_html")
 
 def gen_message_def(name, message_spec, c_deps = None, **kwargs):
+    if c_deps == None:
+        c_deps = []
+
     native.genrule(
         name = name + "-c-gen",
         srcs = [message_spec],
@@ -9,7 +12,7 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
             name + ".h",
         ],
         cmd = ("$(execpath @stuff_sack//src:c_stuff_sack) --spec $(execpath {}) " +
-               "--header $(execpath {}) --c_file $(execpath {})").format(
+               "--header $(execpath {}) --c_file $(execpath {}) --includes src/logging.h").format(
             message_spec,
             name + ".h",
             name + ".c",
@@ -22,14 +25,18 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
         name = name + "-c",
         srcs = [name + ".c"],
         hdrs = [name + ".h"],
-        deps = c_deps,
+        deps = c_deps + ["@stuff_sack//src:logging"],
         **kwargs
     )
 
-    native.filegroup(
+    native.cc_binary(
         name = name + "-c-so",
-        srcs = [":" + name + "-c"],
-        output_group = "dynamic_library",
+        srcs = [
+            name + ".c",
+            name + ".h",
+        ],
+        deps = c_deps + ["@stuff_sack//src:logging"],
+        linkshared = True,
         visibility = ["//visibility:private"],
     )
 

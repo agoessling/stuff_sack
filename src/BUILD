@@ -28,12 +28,27 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":c_stuff_sack",
+        ":libc_wrapper",
         ":stuff_sack",
     ],
+)
+
+py_library(
+    name = "libc_wrapper",
+    srcs = ["libc_wrapper.py"],
+    visibility = ["//visibility:private"],
 )
 
 py_binary(
     name = "generate_python_lib",
     srcs = ["generate_python_lib.py"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "logging",
+    srcs = ["logging.c"],
+    hdrs = ["logging.h"],
+    alwayslink = True,
     visibility = ["//visibility:public"],
 )

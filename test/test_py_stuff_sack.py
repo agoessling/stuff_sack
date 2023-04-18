@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import test.test_message_def as msg_def
@@ -259,6 +260,19 @@ class UnpackTest(unittest.TestCase):
     buf[5:7] = [0x00, 0x00]
     with self.assertRaises(msg_def.InvalidLen):
       msg_def.PrimitiveTest.unpack(buf)
+
+
+class LoggingTest(unittest.TestCase):
+
+  def test_logging(self):
+    tmp_dir = os.environ['TEST_TMPDIR']
+    temp_log = os.path.join(tmp_dir, 'test.ss')
+
+    with msg_def.Logger(temp_log) as logger:
+      logger.log(msg_def.PrimitiveTest())
+
+    with open(temp_log, 'rb') as f:
+      self.assertIn(b'SsLogFileDelimiter', f.read())
 
 
 if __name__ == '__main__':

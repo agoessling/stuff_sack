@@ -415,9 +415,6 @@ def yaml_log_header(spec, messages):
 
 def write_log_header():
   return '''\
-__attribute__((weak)) int SsWriteFile(void *fd, const void *data, unsigned int len);
-__attribute__((weak)) int SsReadFile(void *fd, void *data, unsigned int len);
-
 int SsWriteLogHeader(void *fd) {
   int yaml_ret = SsWriteFile(fd, kYamlHeader, sizeof(kYamlHeader) - 1);
   if (yaml_ret < 0) return yaml_ret;
@@ -531,11 +528,14 @@ def c_header(all_types):
   return s[:-1]
 
 
-def c_file(spec, all_types, header):
+def c_file(spec, all_types, headers):
   messages = [x for x in all_types if isinstance(x, ss.Message)]
 
   s = ''
-  s += '#include "{}"\n\n'.format(header)
+
+  for header in headers:
+    s += '#include "{}"\n'.format(header)
+  s += '\n'
 
   s += '#include <assert.h>\n'
   s += '#include <stdbool.h>\n'
@@ -610,7 +610,7 @@ def main():
   parser.add_argument('--spec', required=True, help='YAML message specification.')
   parser.add_argument('--header', required=True, help='Library header file name.')
   parser.add_argument('--c_file', required=True, help='C library file name.')
-  parser.add_argument('--header_include', help='Include string to header file.')
+  parser.add_argument('--includes', nargs='+', default=[], help='Additional includes.')
   args = parser.parse_args()
 
   with open(args.spec, 'r') as f:
@@ -622,12 +622,9 @@ def main():
     f.write(c_header(all_types))
 
   with open(args.c_file, 'w') as f:
-    if args.header_include:
-      include = args.header_include
-    else:
-      include = args.header
+    includes = [args.header] + args.includes
 
-    f.write(c_file(spec, all_types, include))
+    f.write(c_file(spec, all_types, includes))
 
 
 if __name__ == '__main__':
