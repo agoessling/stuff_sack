@@ -6,6 +6,7 @@
 
 #include "external/unity/src/unity.h"
 
+#include "src/logging.h"
 #include "test/test_message_def.h"
 
 static void TestBitfield(void) {

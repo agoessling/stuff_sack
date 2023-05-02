@@ -1,9 +1,11 @@
 build -c opt
 build --copt="-Wall"
 build --copt="-Werror"
-build --copt="-std=c17"
 build --copt="-fdiagnostics-color"
 build --copt="-fmax-errors=5"
+build --conlyopt="-std=c17"
+build --cxxopt="-std=c++17"
 
 test --test_output=errors
 test --copt="-DUNITY_OUTPUT_COLOR"
+test --test_arg=--gtest_color=yes

@@ -4,6 +4,8 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
     if c_deps == None:
         c_deps = []
 
+    includes = ["src/logging_interface.h", "src/logging.h"]
+
     native.genrule(
         name = name + "-c-gen",
         srcs = [message_spec],
@@ -12,10 +14,11 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
             name + ".h",
         ],
         cmd = ("$(execpath @stuff_sack//src:c_stuff_sack) --spec $(execpath {}) " +
-               "--header $(execpath {}) --c_file $(execpath {}) --includes src/logging.h").format(
+               "--header $(execpath {}) --c_file $(execpath {}) --includes {}").format(
             message_spec,
             name + ".h",
             name + ".c",
+            " ".join(includes),
         ),
         tools = ["@stuff_sack//src:c_stuff_sack"],
         visibility = ["//visibility:private"],
@@ -25,7 +28,10 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
         name = name + "-c",
         srcs = [name + ".c"],
         hdrs = [name + ".h"],
-        deps = c_deps + ["@stuff_sack//src:logging"],
+        deps = c_deps + [
+            "@stuff_sack//src:logging_interface",
+            "@stuff_sack//src:logging",
+        ],
         **kwargs
     )
 
@@ -35,7 +41,10 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
             name + ".c",
             name + ".h",
         ],
-        deps = c_deps + ["@stuff_sack//src:logging"],
+        deps = c_deps + [
+            "@stuff_sack//src:logging_interface",
+            "@stuff_sack//src:logging",
+        ],
         linkshared = True,
         visibility = ["//visibility:private"],
     )

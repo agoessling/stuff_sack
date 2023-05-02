@@ -49,6 +49,44 @@ cc_library(
     name = "logging",
     srcs = ["logging.c"],
     hdrs = ["logging.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":logging_interface",
+    ],
+)
+
+cc_library(
+    name = "logging_interface",
+    srcs = ["logging_interface.c"],
+    hdrs = ["logging_interface.h"],
     alwayslink = True,
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "log_reader",
+    srcs = ["log_reader.cc"],
+    hdrs = ["log_reader.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":logging",
+        ":log_reader_types",
+        ":log_reader_exception",
+        "@yaml-cpp",
+    ],
+)
+
+cc_library(
+    name = "log_reader_types",
+    hdrs = ["log_reader_types.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":log_reader_exception",
+    ],
+)
+
+cc_library(
+    name = "log_reader_exception",
+    hdrs = ["log_reader_exception.h"],
     visibility = ["//visibility:public"],
 )

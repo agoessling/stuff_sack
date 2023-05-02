@@ -12,7 +12,24 @@ cc_test(
     visibility = ["//visibility:public"],
     deps = [
         ":test_message_def-c",
+        "//src:logging",
         "@unity",
+    ],
+)
+
+cc_test(
+    name = "test_log_reader",
+    srcs = ["test_log_reader.cc"],
+    visibility = ["//visibility:public"],
+    data = [
+        "test_log.ss",
+        "test_log_no_delimiter.ss",
+    ],
+    deps = [
+        ":test_message_def-c",
+        "//src:log_reader",
+        "@gtest",
+        "@gtest//:gtest_main",
     ],
 )
 

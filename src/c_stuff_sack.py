@@ -409,8 +409,17 @@ def static_assert(all_types):
 
 
 def yaml_log_header(spec, messages):
-  spec['SsMessageUidMap'] = {msg.uid: msg.name for msg in messages}
-  return f'static const char kYamlHeader[] = "{yaml.dump(spec).encode("unicode_escape").decode()}";'
+  for msg in messages:
+    fields = spec[msg.name]['fields']
+    spec[msg.name]['fields'] = [{'ss_header': 'SsHeader'}] + fields
+
+  new_spec = {}
+  new_spec['SsMessageUidMap'] = {msg.name: msg.uid for msg in messages}
+  new_spec['SsHeader'] = {'type': 'Struct', 'fields': [{'uid': 'uint32'}, {'len': 'uint16'}]}
+  new_spec.update(spec)
+
+  yaml_str = yaml.dump(new_spec, sort_keys=False).encode("unicode_escape").decode()
+  return f'static const char kYamlHeader[] = "{yaml_str}";'
 
 
 def write_log_header():
@@ -423,37 +432,6 @@ int SsWriteLogHeader(void *fd) {
   if (delim_ret < 0) return delim_ret;
 
   return yaml_ret + delim_ret;
-}'''
-
-
-def find_log_delimiter():
-  return '''\
-int SsFindLogDelimiter(void *fd) {
-  const int kDelimLen = sizeof(kSsLogDelimiter) - 1;
-  uint8_t buf[4 * kDelimLen];
-
-  int file_index = 0;
-  int delim_index = 0;
-  while (true) {
-    const int ret = SsReadFile(fd, buf, sizeof(buf));
-    if (ret < 0) return ret;
-
-    for (int i = 0; i < ret; ++i) {
-      if (buf[i] != kSsLogDelimiter[delim_index]) {
-        delim_index = 0;
-      }
-
-      if (buf[i] == kSsLogDelimiter[delim_index]) {
-        if (++delim_index >= kDelimLen) {
-          return file_index + 1;
-        }
-      }
-
-      file_index++;
-    }
-
-    if (ret != sizeof(buf)) return -1;
-  }
 }'''
 
 
@@ -517,10 +495,7 @@ def c_header(all_types):
     s += '{};\n'.format(message_unpack_prototype(msg))
   s += '\n'
 
-  s += 'static const char kSsLogDelimiter[] = "SsLogFileDelimiter";\n\n'
-
-  s += 'int SsWriteLogHeader(void *fd);\n'
-  s += 'int SsFindLogDelimiter(void *fd);\n\n'
+  s += 'int SsWriteLogHeader(void *fd);\n\n'
 
   for msg in messages:
     s += '{};\n'.format(message_log_prototype(msg))
@@ -579,7 +554,6 @@ SsMsgType SsInspectHeader(const uint8_t *buffer) {
 
   s += '{}\n\n'.format(yaml_log_header(spec, messages))
   s += '{}\n\n'.format(write_log_header())
-  s += '{}\n\n'.format(find_log_delimiter())
 
   for msg in messages:
     s += '{}\n\n'.format(message_log(msg))
