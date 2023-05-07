@@ -22,7 +22,6 @@ cc_test(
     srcs = ["test_log_reader.cc"],
     visibility = ["//visibility:public"],
     data = [
-        "test_log.ss",
         "test_log_no_delimiter.ss",
     ],
     deps = [

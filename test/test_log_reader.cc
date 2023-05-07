@@ -66,11 +66,19 @@ TEST(ParseHeader, GetMessages) {
   fclose(file);
 
   LogReader log_reader(path);
-  std::unordered_map<std::string, AnyType> msgs = log_reader.GetMessageTypes();
+  std::unordered_map<std::string, TypeBox> msgs = log_reader.GetMessageTypes();
 
   std::cout << "Messages:" << std::endl;
   for (const auto& [name, msg] : msgs) {
-    std::cout << "  " << name << ": " << std::visit(PackedSizeVisitor{}, msg) << ": "
-              << std::visit(MsgUidVisitor{}, msg) << std::endl;
+    std::cout << "  " << name << ": " << msg->PackedSize() << std::endl;
   }
+
+  std::vector<TypeBox *> read_types = {
+    &msgs["Bitfield2BytesTest"]["bitfield"]["field1"],
+    &msgs["PrimitiveTest"],
+  };
+
+  //log_reader.Load(read_types);
+  auto types = log_reader.LoadAll();
+  (void)types;
 }
