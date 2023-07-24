@@ -58,9 +58,7 @@ LogReader::LogReader(const std::string& path) {
 }
 
 static inline AnyType ParseBitfield(const std::string& name, const YAML::Node& node) {
-  BitfieldStruct s{};
-  s.name = name;
-  s.type_name = node["type"].as<std::string>();
+  BitfieldStruct s{node["type"].as<std::string>(), name};
 
   const YAML::Node& fields = node["fields"];
   for (YAML::const_iterator list_it = fields.begin(); list_it != fields.end(); ++list_it) {
@@ -81,7 +79,8 @@ static inline AnyType ParseBitfield(const std::string& name, const YAML::Node& n
 
 static inline AnyType ParseArray(const std::string& name, const YAML::Node& node,
                                  const std::unordered_map<std::string, AnyType>& all_types) {
-  Array a{{name}};
+  Array a;
+  a.SetInstName(name);
 
   const YAML::Node& type_node = node[0];
   const int length = node[1].as<int>();
@@ -89,10 +88,10 @@ static inline AnyType ParseArray(const std::string& name, const YAML::Node& node
   for (int i = 0; i < length; ++i) {
     std::string elem_name = name + "[" + std::to_string(i) + "]";
 
-    AnyType type;
     if (type_node.IsScalar()) {
       AnyType elem_type = all_types.at(type_node.as<std::string>());
-      std::visit(SetInstanceNameVisitor{elem_name}, elem_type);
+      std::visit(SetTypeNameVisitor{std::visit(GetInstNameVisitor{}, elem_type)}, elem_type);
+      std::visit(SetInstNameVisitor{elem_name}, elem_type);
       a.AddElem(std::move(elem_type));
     } else if (type_node.IsSequence()) {
       a.AddElem(ParseArray(elem_name, type_node, all_types));
@@ -101,7 +100,7 @@ static inline AnyType ParseArray(const std::string& name, const YAML::Node& node
     }
   }
 
-  a.type_name = std::visit(TypeVisitor{}, *a.elems[0]);
+  a.SetTypeName(std::visit(GetTypeNameVisitor{}, *a[0]));
 
   return a;
 }
@@ -109,7 +108,7 @@ static inline AnyType ParseArray(const std::string& name, const YAML::Node& node
 static inline AnyType ParseStruct(const std::string& name, const YAML::Node& node,
                                   const std::unordered_map<std::string, AnyType>& all_types,
                                   uint32_t msg_uid) {
-  Struct s{{name, node["type"].as<std::string>(), msg_uid}};
+  Struct s{node["type"].as<std::string>(), name, msg_uid};
 
   const YAML::Node& fields = node["fields"];
   for (YAML::const_iterator list_it = fields.begin(); list_it != fields.end(); ++list_it) {
@@ -123,7 +122,8 @@ static inline AnyType ParseStruct(const std::string& name, const YAML::Node& nod
 
       if (field_type_node.IsScalar()) {
         AnyType field_type = all_types.at(field_type_node.as<std::string>());
-        std::visit(SetInstanceNameVisitor{field_name}, field_type);
+        std::visit(SetTypeNameVisitor{std::visit(GetInstNameVisitor{}, field_type)}, field_type);
+        std::visit(SetInstNameVisitor{field_name}, field_type);
         s.AddField(std::move(field_type));
       } else if (field_type_node.IsSequence()) {
         s.AddField(ParseArray(field_name, field_type_node, all_types));
@@ -158,21 +158,13 @@ static inline AnyType ParseEnum(const std::string& name, const YAML::Node& node)
 
   AnyType type;
   if (num_values <= (1ULL << 7) - 1) {
-    Enum<int8_t> e{{name, node["type"].as<std::string>()}};
-    e.values = std::move(value_names);
-    type = std::move(e);
+    type = Enum<int8_t>{node["type"].as<std::string>(), name, std::move(value_names)};
   } else if (num_values <= (1ULL << 15) - 1) {
-    Enum<int16_t> e{{name, node["type"].as<std::string>()}};
-    e.values = std::move(value_names);
-    type = std::move(e);
+    type = Enum<int16_t>{node["type"].as<std::string>(), name, std::move(value_names)};
   } else if (num_values <= (1ULL << 31) - 1) {
-    Enum<int32_t> e{{name, node["type"].as<std::string>()}};
-    e.values = std::move(value_names);
-    type = std::move(e);
+    type = Enum<int32_t>{node["type"].as<std::string>(), name, std::move(value_names)};
   } else if (num_values <= (1ULL << 63) - 1) {
-    Enum<int64_t> e{{name, node["type"].as<std::string>()}};
-    e.values = std::move(value_names);
-    type = std::move(e);
+    type = Enum<int64_t>{node["type"].as<std::string>(), name, std::move(value_names)};
   } else {
     throw LogParseException("Too many enum values.");
   }
@@ -182,17 +174,17 @@ static inline AnyType ParseEnum(const std::string& name, const YAML::Node& node)
 
 std::unordered_map<std::string, AnyType> LogReader::GetAllTypes() {
   std::unordered_map<std::string, AnyType> all_types;
-  all_types["uint8"] = Primitive<uint8_t>{{"uint8", "Primitive"}};
-  all_types["uint16"] = Primitive<uint16_t>{{"uint16", "Primitive"}};
-  all_types["uint32"] = Primitive<uint32_t>{{"uint32", "Primitive"}};
-  all_types["uint64"] = Primitive<uint64_t>{{"uint64", "Primitive"}};
-  all_types["int8"] = Primitive<int8_t>{{"int8", "Primitive"}};
-  all_types["int16"] = Primitive<int16_t>{{"int16", "Primitive"}};
-  all_types["int32"] = Primitive<int32_t>{{"int32", "Primitive"}};
-  all_types["int64"] = Primitive<int64_t>{{"int64", "Primitive"}};
-  all_types["bool"] = Primitive<bool>{{"bool", "Primitive"}};
-  all_types["float"] = Primitive<float>{{"float", "Primitive"}};
-  all_types["double"] = Primitive<double>{{"double", "Primitive"}};
+  all_types["uint8"] = Primitive<uint8_t>{"uint8", "Primitive"};
+  all_types["uint16"] = Primitive<uint16_t>{"uint16", "Primitive"};
+  all_types["uint32"] = Primitive<uint32_t>{"uint32", "Primitive"};
+  all_types["uint64"] = Primitive<uint64_t>{"uint64", "Primitive"};
+  all_types["int8"] = Primitive<int8_t>{"int8", "Primitive"};
+  all_types["int16"] = Primitive<int16_t>{"int16", "Primitive"};
+  all_types["int32"] = Primitive<int32_t>{"int32", "Primitive"};
+  all_types["int64"] = Primitive<int64_t>{"int64", "Primitive"};
+  all_types["bool"] = Primitive<bool>{"bool", "Primitive"};
+  all_types["float"] = Primitive<float>{"float", "Primitive"};
+  all_types["double"] = Primitive<double>{"double", "Primitive"};
 
   try {
     const YAML::Node& uid_map = msg_spec_["SsMessageUidMap"];
@@ -229,7 +221,7 @@ std::unordered_map<std::string, AnyType> LogReader::GetMessageTypes() {
   std::unordered_map<std::string, AnyType> msgs;
 
   for (const auto& [name, type] : all_types_) {
-    if (std::visit(TypeVisitor{}, type) == "Message") {
+    if (std::visit(GetTypeNameVisitor{}, type) == "Message") {
       msgs[name] = type;
     }
   }

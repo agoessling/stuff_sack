@@ -71,6 +71,6 @@ TEST(ParseHeader, GetMessages) {
   std::cout << "Messages:" << std::endl;
   for (const auto& [name, msg] : msgs) {
     std::cout << "  " << name << ": " << std::visit(PackedSizeVisitor{}, msg) << ": "
-              << std::visit(MsgUidVisitor{}, msg) << std::endl;
+              << std::visit(GetMsgUidVisitor{}, msg) << std::endl;
   }
 }

@@ -98,39 +98,71 @@ using AnyType =
 
 class Element {
  public:
-  std::string name;
-  std::string type_name;
-  uint32_t msg_uid;
+  Element() = default;
+  Element(std::string type_name) : type_name_{std::move(type_name)} {}
+  Element(std::string type_name, std::string inst_name)
+      : type_name_{std::move(type_name)}, inst_name_{std::move(inst_name)} {}
+  Element(std::string type_name, std::string inst_name, uint32_t msg_uid)
+      : type_name_{std::move(type_name)}, inst_name_{std::move(inst_name)}, msg_uid_{msg_uid} {}
+
+  void SetUid(uint32_t uid) { msg_uid_ = uid; }
+  uint32_t GetUid() const { return msg_uid_; }
+
+  void SetTypeName(std::string type_name) { type_name_ = std::move(type_name); }
+  std::string GetTypeName() const { return type_name_; }
+
+  void SetInstName(std::string inst_name) { inst_name_ = std::move(inst_name); }
+  std::string GetInstName() const { return inst_name_; }
+
+ private:
+  std::string type_name_;
+  std::string inst_name_;
+  uint32_t msg_uid_;
 };
 
 template <typename T>
 class Primitive : public Element {
  public:
-  static constexpr unsigned int packed_size = sizeof(T);
+  using Element::Element;
 
-  std::vector<T> data;
+  static constexpr unsigned int PackedSize() { return sizeof(T); }
+
+ private:
+  std::vector<T> data_;
 };
 
 template <typename T>
 class BitfieldPrimitive : public Primitive<T> {
  public:
-  int bit_offset;
-  int bit_size;
+  using Primitive<T>::Primitive;
+
+  BitfieldPrimitive(std::string type_name, std::string inst_name, int bit_offset, int bit_size)
+      : Primitive<T>(type_name, inst_name), bit_offset_{bit_offset}, bit_size_{bit_size} {}
+
+  int GetBitOffset() const { return bit_offset_; }
+  int GetBitSize() const { return bit_size_; }
+
+ private:
+  int bit_offset_;
+  int bit_size_;
 };
 
 template <typename T>
-class Enum : public Element {
+class Enum : public Primitive<T> {
  public:
-  static constexpr unsigned int packed_size = sizeof(T);
+  using Primitive<T>::Primitive;
 
-  std::vector<std::string> values;
-  std::vector<T> data;
+  Enum(std::string type_name, std::string inst_name, std::vector<std::string> values)
+      : Primitive<T>(type_name, inst_name), values_{std::move(values)} {}
+
+ private:
+  std::vector<std::string> values_;
 };
 
-struct BitfieldOffsetVisitor {
+struct GetBitOffsetVisitor {
   template <typename T>
   int operator()(const BitfieldPrimitive<T>& element) {
-    return element.bit_offset;
+    return element.GetBitOffset();
   }
 
   template <typename T>
@@ -140,10 +172,10 @@ struct BitfieldOffsetVisitor {
   }
 };
 
-struct BitfieldSizeVisitor {
+struct GetBitSizeVisitor {
   template <typename T>
   int operator()(const BitfieldPrimitive<T>& element) {
-    return element.bit_size;
+    return element.GetBitSize();
   }
 
   template <typename T>
@@ -153,71 +185,82 @@ struct BitfieldSizeVisitor {
   }
 };
 
-struct NameVisitor {
+struct GetInstNameVisitor {
   template <typename T>
-  const std::string& operator()(const T& element) {
-    return element.name;
-  }
-
-  template <typename T>
-  std::string& operator()(T& element) {
-    return element.name;
+  std::string operator()(const T& element) {
+    return element.GetInstName();
   }
 };
 
-struct TypeVisitor {
+struct GetTypeNameVisitor {
   template <typename T>
-  const std::string& operator()(const T& element) {
-    return element.type_name;
-  }
-
-  template <typename T>
-  std::string& operator()(T& element) {
-    return element.type_name;
+  std::string operator()(const T& element) {
+    return element.GetTypeName();
   }
 };
 
-struct MsgUidVisitor {
-  template <typename T>
-  const uint32_t& operator()(const T& element) {
-    return element.msg_uid;
-  }
-
-  template <typename T>
-  uint32_t& operator()(T& element) {
-    return element.msg_uid;
-  }
-};
-
-struct SetInstanceNameVisitor {
-  const std::string new_name;
+struct SetMsgUidVisitor {
+  const uint32_t uid;
 
   template <typename T>
   void operator()(T& element) {
-    element.type_name = std::move(element.name);
-    element.name = new_name;
+    element.SetUid(uid);
+  }
+};
+
+struct GetMsgUidVisitor {
+  template <typename T>
+  uint32_t operator()(const T& element) {
+    return element.GetUid();
+  }
+};
+
+struct SetInstNameVisitor {
+  const std::string name;
+
+  template <typename T>
+  void operator()(T& element) {
+    element.SetInstName(name);
+  }
+};
+
+struct SetTypeNameVisitor {
+  const std::string name;
+
+  template <typename T>
+  void operator()(T& element) {
+    element.SetTypeName(name);
   }
 };
 
 struct PackedSizeVisitor {
   template <typename T>
   int operator()(const T& element) {
-    return element.packed_size;
+    return element.PackedSize();
   }
 };
 
 class Struct : public Element {
  public:
-  unsigned int packed_size = 0;
-  std::vector<Box<AnyType>> fields;
+  using Element::Element;
+
+  friend class BitfieldStruct;
+
+  unsigned int PackedSize() const { return packed_size_; }
 
   AnyType *operator[](const std::string& name);
   void AddField(AnyType&& type);
   void AddField(const AnyType& type);
+
+ private:
+  unsigned int packed_size_ = 0;
+  std::vector<Box<AnyType>> fields_;
 };
 
 class BitfieldStruct : public Struct {
  public:
+  using Struct::Struct;
+
   void AddBitfield(const std::string name, int bits);
 
  private:
@@ -231,16 +274,23 @@ class BitfieldStruct : public Struct {
 
 class Array : public Element {
  public:
-  unsigned int packed_size = 0;
-  std::vector<Box<AnyType>> elems;
+  using Element::Element;
+
+  unsigned int PackedSize() const { return packed_size_; }
 
   void AddElem(AnyType&& type);
   void AddElem(const AnyType& type);
+
+  Box<AnyType>& operator[](unsigned int i) { return elems_[i]; }
+
+ private:
+  unsigned int packed_size_ = 0;
+  std::vector<Box<AnyType>> elems_;
 };
 
 inline AnyType *Struct::operator[](const std::string& name) {
-  for (Box<AnyType>& field : fields) {
-    if (name == std::visit(NameVisitor{}, *field)) {
+  for (Box<AnyType>& field : fields_) {
+    if (name == std::visit(GetInstNameVisitor{}, *field)) {
       return field.get();
     }
   }
@@ -248,63 +298,63 @@ inline AnyType *Struct::operator[](const std::string& name) {
 }
 
 inline void Struct::AddField(AnyType&& type) {
-  packed_size += std::visit(PackedSizeVisitor{}, type);
-  fields.emplace_back(std::move(type));
-  std::visit(MsgUidVisitor{}, *fields.back()) = msg_uid;
+  packed_size_ += std::visit(PackedSizeVisitor{}, type);
+  fields_.emplace_back(std::move(type));
+  std::visit(SetMsgUidVisitor{GetUid()}, *fields_.back());
 }
 
 inline void Struct::AddField(const AnyType& type) {
-  packed_size += std::visit(PackedSizeVisitor{}, type);
-  fields.emplace_back(type);
-  std::visit(MsgUidVisitor{}, *fields.back()) = msg_uid;
+  packed_size_ += std::visit(PackedSizeVisitor{}, type);
+  fields_.emplace_back(type);
+  std::visit(SetMsgUidVisitor{GetUid()}, *fields_.back());
 }
 
 inline void BitfieldStruct::AddBitfield(const std::string name, int bits) {
   int offset = 0;
-  if (!fields.empty()) {
-    const int prev_offset = std::visit(BitfieldOffsetVisitor{}, *fields.back());
-    const int prev_size = std::visit(BitfieldSizeVisitor{}, *fields.back());
+  if (!fields_.empty()) {
+    const int prev_offset = std::visit(GetBitOffsetVisitor{}, *fields_.back());
+    const int prev_size = std::visit(GetBitSizeVisitor{}, *fields_.back());
     offset = prev_offset + prev_size;
   }
 
   const int packed_size_bits = offset + bits;
   if (packed_size_bits <= 8) {
-    packed_size = 1;
+    packed_size_ = 1;
   } else if (packed_size_bits <= 16) {
-    packed_size = 2;
+    packed_size_ = 2;
   } else if (packed_size_bits <= 32) {
-    packed_size = 4;
+    packed_size_ = 4;
   } else if (packed_size_bits <= 64) {
-    packed_size = 8;
+    packed_size_ = 8;
   } else {
     throw LogParseException("Bitfield struct too large.");
   }
 
   if (bits <= 8) {
-    fields.emplace_back(BitfieldPrimitive<uint8_t>{{{name, "uint8"}}, offset, bits});
+    fields_.emplace_back(BitfieldPrimitive<uint8_t>{"uint8", name, offset, bits});
   } else if (bits <= 16) {
-    fields.emplace_back(BitfieldPrimitive<uint16_t>{{{name, "uint16"}}, offset, bits});
+    fields_.emplace_back(BitfieldPrimitive<uint16_t>{"uint16", name, offset, bits});
   } else if (bits <= 32) {
-    fields.emplace_back(BitfieldPrimitive<uint32_t>{{{name, "uint32"}}, offset, bits});
+    fields_.emplace_back(BitfieldPrimitive<uint32_t>{"uint32", name, offset, bits});
   } else if (bits <= 64) {
-    fields.emplace_back(BitfieldPrimitive<uint64_t>{{{name, "uint64"}}, offset, bits});
+    fields_.emplace_back(BitfieldPrimitive<uint64_t>{"uint64", name, offset, bits});
   } else {
     throw LogParseException("Bitfield field too long.");
   }
 
-  std::visit(MsgUidVisitor{}, *fields.back()) = msg_uid;
+  std::visit(SetMsgUidVisitor{GetUid()}, *fields_.back());
 }
 
 inline void Array::AddElem(AnyType&& type) {
-  packed_size += std::visit(PackedSizeVisitor{}, type);
-  elems.emplace_back(std::move(type));
-  std::visit(MsgUidVisitor{}, *elems.back()) = msg_uid;
+  packed_size_ += std::visit(PackedSizeVisitor{}, type);
+  elems_.emplace_back(std::move(type));
+  std::visit(SetMsgUidVisitor{GetUid()}, *elems_.back());
 }
 
 inline void Array::AddElem(const AnyType& type) {
-  packed_size += std::visit(PackedSizeVisitor{}, type);
-  elems.emplace_back(type);
-  std::visit(MsgUidVisitor{}, *elems.back()) = msg_uid;
+  packed_size_ += std::visit(PackedSizeVisitor{}, type);
+  elems_.emplace_back(type);
+  std::visit(SetMsgUidVisitor{GetUid()}, *elems_.back());
 }
 
 };  // namespace ss
