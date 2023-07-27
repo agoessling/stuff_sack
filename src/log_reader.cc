@@ -58,7 +58,7 @@ LogReader::LogReader(const std::string& path) {
   all_types_ = GetAllTypes();
 }
 
-static inline LogData ParseBitfield(const std::string& name, const YAML::Node& node) {
+static inline Element ParseBitfield(const std::string& name, const YAML::Node& node) {
   BitfieldStruct s{name, node["type"].as<std::string>()};
 
   const YAML::Node& fields = node["fields"];
@@ -133,7 +133,7 @@ static inline LogData ParseBitfield(const std::string& name, const YAML::Node& n
 //   return s;
 // }
 //
-static inline LogData ParseEnum(const std::string& name, const YAML::Node& node) {
+static inline Element ParseEnum(const std::string& name, const YAML::Node& node) {
   const YAML::Node& values = node["values"];
 
   std::vector<std::string> value_names;
@@ -149,24 +149,24 @@ static inline LogData ParseEnum(const std::string& name, const YAML::Node& node)
     }
   }
 
-  return LogData::Enum(name, value_names);
+  return Element::Enum(name, value_names);
 }
 
-std::unordered_map<std::string, LogData> LogReader::GetAllTypes() {
-  using PrimType = LogData::PrimType;
+std::unordered_map<std::string, Element> LogReader::GetAllTypes() {
+  using PrimType = Element::PrimType;
 
-  std::unordered_map<std::string, LogData> all_types;
-  all_types.insert({"uint8", LogData::Primitive("uint8", PrimType::kUint8)});
-  all_types.insert({"uint16", LogData::Primitive("uint16", PrimType::kUint16)});
-  all_types.insert({"uint32", LogData::Primitive("uint32", PrimType::kUint32)});
-  all_types.insert({"uint64", LogData::Primitive("uint64", PrimType::kUint64)});
-  all_types.insert({"int8", LogData::Primitive("int8", PrimType::kUint8)});
-  all_types.insert({"int16", LogData::Primitive("int16", PrimType::kUint16)});
-  all_types.insert({"int32", LogData::Primitive("int32", PrimType::kUint32)});
-  all_types.insert({"int64", LogData::Primitive("int64", PrimType::kUint64)});
-  all_types.insert({"bool", LogData::Primitive("bool", PrimType::kBool)});
-  all_types.insert({"float", LogData::Primitive("float", PrimType::kFloat)});
-  all_types.insert({"double", LogData::Primitive("double", PrimType::kDouble)});
+  std::unordered_map<std::string, Element> all_types;
+  all_types.insert({"uint8", Element::Primitive("uint8", PrimType::kUint8)});
+  all_types.insert({"uint16", Element::Primitive("uint16", PrimType::kUint16)});
+  all_types.insert({"uint32", Element::Primitive("uint32", PrimType::kUint32)});
+  all_types.insert({"uint64", Element::Primitive("uint64", PrimType::kUint64)});
+  all_types.insert({"int8", Element::Primitive("int8", PrimType::kUint8)});
+  all_types.insert({"int16", Element::Primitive("int16", PrimType::kUint16)});
+  all_types.insert({"int32", Element::Primitive("int32", PrimType::kUint32)});
+  all_types.insert({"int64", Element::Primitive("int64", PrimType::kUint64)});
+  all_types.insert({"bool", Element::Primitive("bool", PrimType::kBool)});
+  all_types.insert({"float", Element::Primitive("float", PrimType::kFloat)});
+  all_types.insert({"double", Element::Primitive("double", PrimType::kDouble)});
 
   try {
     const YAML::Node& uid_map = msg_spec_["SsMessageUidMap"];

@@ -19,18 +19,18 @@ class LogReader {
   LogReader(const LogReader&) = delete;
   LogReader& operator=(const LogReader&) = delete;
 
-  std::unordered_map<std::string, LogData> GetMessageTypes();
-  void Load(const std::vector<LogData *>& msgs);
-  std::unordered_map<std::string, LogData> LoadAll();
+  std::unordered_map<std::string, Element> GetMessageTypes();
+  void Load(const std::vector<Element *>& msgs);
+  std::unordered_map<std::string, Element> LoadAll();
 
  private:
-  std::unordered_map<std::string, LogData> GetAllTypes();
+  std::unordered_map<std::string, Element> GetAllTypes();
 
   std::string path_;
   int binary_start_;
   YAML::Node msg_spec_;
   std::ifstream log_file_;
-  std::unordered_map<std::string, LogData> all_types_;
+  std::unordered_map<std::string, Element> all_types_;
 };
 
 };  // namespace ss
