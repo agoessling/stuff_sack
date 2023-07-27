@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <string>
 #include <unordered_map>
 
@@ -19,6 +20,8 @@ class LogReader {
   LogReader& operator=(const LogReader&) = delete;
 
   std::unordered_map<std::string, AnyType> GetMessageTypes();
+  void Load(const std::vector<AnyType *>& msgs);
+  std::unordered_map<std::string, AnyType> LoadAll();
 
  private:
   std::unordered_map<std::string, AnyType> GetAllTypes();
@@ -26,6 +29,7 @@ class LogReader {
   std::string path_;
   int binary_start_;
   YAML::Node msg_spec_;
+  std::ifstream log_file_;
   std::unordered_map<std::string, AnyType> all_types_;
 };
 

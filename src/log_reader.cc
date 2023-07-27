@@ -36,14 +36,14 @@ LogReader::LogReader(const std::string& path) {
   }
   const int yaml_end = binary_start_ - static_cast<int>(sizeof(kSsLogDelimiter)) + 1;
 
-  std::ifstream log_file(path, std::ios::in | std::ios::binary);
-  if (!log_file.is_open()) {
+  log_file_.open(path, std::ios::in | std::ios::binary);
+  if (!log_file_.is_open()) {
     throw std::system_error(errno, std::generic_category(), path);
   }
 
   std::vector<char> yaml_str(yaml_end + 1);
-  log_file.read(yaml_str.data(), yaml_str.size());
-  if (log_file.gcount() != static_cast<int>(yaml_str.size())) {
+  log_file_.read(yaml_str.data(), yaml_str.size());
+  if (log_file_.gcount() != static_cast<int>(yaml_str.size())) {
     throw LogParseException("Could not read YAML header from: " + path);
   }
   yaml_str.back() = 0;
@@ -108,7 +108,7 @@ static inline AnyType ParseArray(const std::string& name, const YAML::Node& node
 static inline AnyType ParseStruct(const std::string& name, const YAML::Node& node,
                                   const std::unordered_map<std::string, AnyType>& all_types,
                                   uint32_t msg_uid) {
-  Struct s{node["type"].as<std::string>(), name, msg_uid};
+  Struct s{node["type"].as<std::string>(), name};
 
   const YAML::Node& fields = node["fields"];
   for (YAML::const_iterator list_it = fields.begin(); list_it != fields.end(); ++list_it) {
@@ -174,17 +174,17 @@ static inline AnyType ParseEnum(const std::string& name, const YAML::Node& node)
 
 std::unordered_map<std::string, AnyType> LogReader::GetAllTypes() {
   std::unordered_map<std::string, AnyType> all_types;
-  all_types["uint8"] = Primitive<uint8_t>{"uint8", "Primitive"};
-  all_types["uint16"] = Primitive<uint16_t>{"uint16", "Primitive"};
-  all_types["uint32"] = Primitive<uint32_t>{"uint32", "Primitive"};
-  all_types["uint64"] = Primitive<uint64_t>{"uint64", "Primitive"};
-  all_types["int8"] = Primitive<int8_t>{"int8", "Primitive"};
-  all_types["int16"] = Primitive<int16_t>{"int16", "Primitive"};
-  all_types["int32"] = Primitive<int32_t>{"int32", "Primitive"};
-  all_types["int64"] = Primitive<int64_t>{"int64", "Primitive"};
-  all_types["bool"] = Primitive<bool>{"bool", "Primitive"};
-  all_types["float"] = Primitive<float>{"float", "Primitive"};
-  all_types["double"] = Primitive<double>{"double", "Primitive"};
+  all_types["uint8"] = Primitive<uint8_t>{"uint8", ""};
+  all_types["uint16"] = Primitive<uint16_t>{"uint16", ""};
+  all_types["uint32"] = Primitive<uint32_t>{"uint32", ""};
+  all_types["uint64"] = Primitive<uint64_t>{"uint64", ""};
+  all_types["int8"] = Primitive<int8_t>{"int8", ""};
+  all_types["int16"] = Primitive<int16_t>{"int16", ""};
+  all_types["int32"] = Primitive<int32_t>{"int32", ""};
+  all_types["int64"] = Primitive<int64_t>{"int64", ""};
+  all_types["bool"] = Primitive<bool>{"bool", ""};
+  all_types["float"] = Primitive<float>{"float", ""};
+  all_types["double"] = Primitive<double>{"double", ""};
 
   try {
     const YAML::Node& uid_map = msg_spec_["SsMessageUidMap"];
@@ -204,6 +204,7 @@ std::unordered_map<std::string, AnyType> LogReader::GetAllTypes() {
         }
 
         all_types[name] = ParseStruct(name, type_node, all_types, msg_uid);
+        std::visit([](auto&& t) { t.SetMsgOffset(0); }, all_types[name]);
       } else if (type_name == "Enum") {
         all_types[name] = ParseEnum(name, type_node);
       } else if (type_name == "Bitfield") {
@@ -226,5 +227,54 @@ std::unordered_map<std::string, AnyType> LogReader::GetMessageTypes() {
     }
   }
 
+  return msgs;
+}
+
+void LogReader::Load(const std::vector<AnyType *>& msgs) {
+  std::unordered_map<uint32_t, std::vector<AnyType *>> unpack_lookup;
+  for (AnyType *msg_ptr : msgs) {
+    unpack_lookup[std::visit(GetMsgUidVisitor{}, *msg_ptr)].push_back(msg_ptr);
+  }
+
+  log_file_.seekg(binary_start_);
+  if (!log_file_) throw LogParseException("Malformed log");
+
+  constexpr int kHeaderSize = 6;
+  std::vector<uint8_t> buf(kHeaderSize);
+
+  while (true) {
+    log_file_.read(reinterpret_cast<char *>(buf.data()), kHeaderSize);
+    if (log_file_.gcount() == 0) break;
+    if (log_file_.gcount() != kHeaderSize) throw LogParseException("Corrupted log end");
+
+    const uint32_t msg_uid = UnpackPrimitive<uint32_t>(buf.data() + 0);
+    const uint16_t msg_len = UnpackPrimitive<uint16_t>(buf.data() + 4);
+
+    auto lookup = unpack_lookup.find(msg_uid);
+    if (lookup == unpack_lookup.end()) {
+      log_file_.seekg(msg_len - kHeaderSize, std::ios_base::cur);
+      if (!log_file_.good()) throw LogParseException("Corrupted log end");
+      continue;
+    }
+
+    if (msg_len > buf.size()) buf.resize(msg_len);
+
+    log_file_.read(reinterpret_cast<char *>(&buf[kHeaderSize]), msg_len - kHeaderSize);
+    if (log_file_.gcount() != msg_len - kHeaderSize) throw LogParseException("Corrupted log end");
+
+    for (auto& type : lookup->second) {
+      std::visit([&buf](auto &&t) { t.Unpack(buf.data()); }, *type);
+    }
+  }
+}
+
+std::unordered_map<std::string, AnyType> LogReader::LoadAll() {
+  std::unordered_map<std::string, AnyType> msgs = GetMessageTypes();
+  std::vector<AnyType *> read_list;
+  for (auto& pair : msgs) {
+    read_list.push_back(&pair.second);
+  }
+
+  Load(read_list);
   return msgs;
 }

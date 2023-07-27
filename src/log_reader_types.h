@@ -49,23 +49,23 @@ static inline T UnpackPrimitive(const uint8_t *data) {
 
   if constexpr (sizeof(value) == 1) {
     uint8_t raw_value = data[0];
-    memcpy(value, raw_value, sizeof(value));
+    memcpy(&value, &raw_value, sizeof(value));
   } else if constexpr (sizeof(value) == 2) {
     uint16_t raw_value =
         (static_cast<uint16_t>(data[0]) << 8) | (static_cast<uint16_t>(data[1]) << 0);
-    memcpy(value, raw_value, sizeof(value));
+    memcpy(&value, &raw_value, sizeof(value));
   } else if constexpr (sizeof(value) == 4) {
     uint32_t raw_value =
         (static_cast<uint32_t>(data[0]) << 24) | (static_cast<uint32_t>(data[1]) << 16) |
         (static_cast<uint32_t>(data[2]) << 8) | (static_cast<uint32_t>(data[3]) << 0);
-    memcpy(value, raw_value, sizeof(value));
+    memcpy(&value, &raw_value, sizeof(value));
   } else if constexpr (sizeof(value) == 8) {
     uint64_t raw_value =
         (static_cast<uint64_t>(data[0]) << 56) | (static_cast<uint64_t>(data[1]) << 48) |
         (static_cast<uint64_t>(data[2]) << 40) | (static_cast<uint64_t>(data[3]) << 32) |
         (static_cast<uint64_t>(data[4]) << 24) | (static_cast<uint64_t>(data[5]) << 16) |
         (static_cast<uint64_t>(data[6]) << 8) | (static_cast<uint64_t>(data[7]) << 0);
-    memcpy(value, raw_value, sizeof(value));
+    memcpy(&value, &raw_value, sizeof(value));
   } else {
     static_assert(always_false_v<T>);
   }
@@ -99,14 +99,13 @@ using AnyType =
 class Element {
  public:
   Element() = default;
-  Element(std::string type_name) : type_name_{std::move(type_name)} {}
   Element(std::string type_name, std::string inst_name)
       : type_name_{std::move(type_name)}, inst_name_{std::move(inst_name)} {}
   Element(std::string type_name, std::string inst_name, uint32_t msg_uid)
       : type_name_{std::move(type_name)}, inst_name_{std::move(inst_name)}, msg_uid_{msg_uid} {}
 
-  void SetUid(uint32_t uid) { msg_uid_ = uid; }
-  uint32_t GetUid() const { return msg_uid_; }
+  void SetMsgUid(uint32_t uid) { msg_uid_ = uid; }
+  uint32_t GetMsgUid() const { return msg_uid_; }
 
   void SetTypeName(std::string type_name) { type_name_ = std::move(type_name); }
   std::string GetTypeName() const { return type_name_; }
@@ -114,10 +113,14 @@ class Element {
   void SetInstName(std::string inst_name) { inst_name_ = std::move(inst_name); }
   std::string GetInstName() const { return inst_name_; }
 
+  void SetMsgOffset(size_t offset) { msg_offset_ = offset; }
+  size_t GetMsgOffset() { return msg_offset_; }
+
  private:
   std::string type_name_;
   std::string inst_name_;
   uint32_t msg_uid_;
+  size_t msg_offset_;
 };
 
 template <typename T>
@@ -126,8 +129,9 @@ class Primitive : public Element {
   using Element::Element;
 
   static constexpr unsigned int PackedSize() { return sizeof(T); }
+  void Unpack(const uint8_t *msg) { data_.push_back(UnpackPrimitive<T>(msg + GetMsgOffset())); }
 
- private:
+ protected:
   std::vector<T> data_;
 };
 
@@ -136,13 +140,26 @@ class BitfieldPrimitive : public Primitive<T> {
  public:
   using Primitive<T>::Primitive;
 
-  BitfieldPrimitive(std::string type_name, std::string inst_name, int bit_offset, int bit_size)
-      : Primitive<T>(type_name, inst_name), bit_offset_{bit_offset}, bit_size_{bit_size} {}
+  BitfieldPrimitive(std::string type_name, std::string inst_name, unsigned int packed_size,
+                    int bit_offset, int bit_size)
+      : Primitive<T>(type_name, inst_name),
+        packed_size_{packed_size},
+        bit_offset_{bit_offset},
+        bit_size_{bit_size} {}
 
   int GetBitOffset() const { return bit_offset_; }
   int GetBitSize() const { return bit_size_; }
 
+  void Unpack(const uint8_t *msg) {
+    if (packed_size_ <= 1) {
+      const uint8_t raw_data = UnpackPrimitive<uint8_t>(msg + this->GetMsgOffset());
+      const uint8_t mask = (1 << bit_size_) - 1;
+      this->data_.push_back((raw_data >> bit_offset_) & mask);
+    }
+  }
+
  private:
+  unsigned int packed_size_;
   int bit_offset_;
   int bit_size_;
 };
@@ -204,14 +221,14 @@ struct SetMsgUidVisitor {
 
   template <typename T>
   void operator()(T& element) {
-    element.SetUid(uid);
+    element.SetMsgUid(uid);
   }
 };
 
 struct GetMsgUidVisitor {
   template <typename T>
   uint32_t operator()(const T& element) {
-    return element.GetUid();
+    return element.GetMsgUid();
   }
 };
 
@@ -240,6 +257,15 @@ struct PackedSizeVisitor {
   }
 };
 
+struct SetMsgOffsetVisitor {
+  const size_t offset;
+
+  template <typename T>
+  void operator()(T& element) {
+    element.SetMsgOffset(offset);
+  }
+};
+
 class Struct : public Element {
  public:
   using Element::Element;
@@ -251,6 +277,8 @@ class Struct : public Element {
   AnyType *operator[](const std::string& name);
   void AddField(AnyType&& type);
   void AddField(const AnyType& type);
+  void SetMsgOffset(size_t offset);
+  void Unpack(const uint8_t *msg);
 
  private:
   unsigned int packed_size_ = 0;
@@ -280,6 +308,8 @@ class Array : public Element {
 
   void AddElem(AnyType&& type);
   void AddElem(const AnyType& type);
+  void SetMsgOffset(size_t offset);
+  void Unpack(const uint8_t *msg);
 
   Box<AnyType>& operator[](unsigned int i) { return elems_[i]; }
 
@@ -300,13 +330,28 @@ inline AnyType *Struct::operator[](const std::string& name) {
 inline void Struct::AddField(AnyType&& type) {
   packed_size_ += std::visit(PackedSizeVisitor{}, type);
   fields_.emplace_back(std::move(type));
-  std::visit(SetMsgUidVisitor{GetUid()}, *fields_.back());
+  std::visit(SetMsgUidVisitor{GetMsgUid()}, *fields_.back());
 }
 
 inline void Struct::AddField(const AnyType& type) {
   packed_size_ += std::visit(PackedSizeVisitor{}, type);
   fields_.emplace_back(type);
-  std::visit(SetMsgUidVisitor{GetUid()}, *fields_.back());
+  std::visit(SetMsgUidVisitor{GetMsgUid()}, *fields_.back());
+}
+
+inline void Struct::SetMsgOffset(size_t offset) {
+  Element::SetMsgOffset(offset);
+
+  for (auto& field : fields_) {
+    std::visit([offset](auto&& f) { f.SetMsgOffset(offset); }, *field);
+    offset += std::visit([](auto&& f) { return f.PackedSize(); }, *field);
+  }
+}
+
+inline void Struct::Unpack(const uint8_t *msg) {
+  for (auto& field : fields_) {
+    std::visit([msg](auto&& f) { f.Unpack(msg); }, *field);
+  }
 }
 
 inline void BitfieldStruct::AddBitfield(const std::string name, int bits) {
@@ -331,30 +376,45 @@ inline void BitfieldStruct::AddBitfield(const std::string name, int bits) {
   }
 
   if (bits <= 8) {
-    fields_.emplace_back(BitfieldPrimitive<uint8_t>{"uint8", name, offset, bits});
+    fields_.emplace_back(BitfieldPrimitive<uint8_t>{"uint8", name, packed_size_, offset, bits});
   } else if (bits <= 16) {
-    fields_.emplace_back(BitfieldPrimitive<uint16_t>{"uint16", name, offset, bits});
+    fields_.emplace_back(BitfieldPrimitive<uint16_t>{"uint16", name, packed_size_, offset, bits});
   } else if (bits <= 32) {
-    fields_.emplace_back(BitfieldPrimitive<uint32_t>{"uint32", name, offset, bits});
+    fields_.emplace_back(BitfieldPrimitive<uint32_t>{"uint32", name, packed_size_, offset, bits});
   } else if (bits <= 64) {
-    fields_.emplace_back(BitfieldPrimitive<uint64_t>{"uint64", name, offset, bits});
+    fields_.emplace_back(BitfieldPrimitive<uint64_t>{"uint64", name, packed_size_, offset, bits});
   } else {
     throw LogParseException("Bitfield field too long.");
   }
 
-  std::visit(SetMsgUidVisitor{GetUid()}, *fields_.back());
+  std::visit(SetMsgUidVisitor{GetMsgUid()}, *fields_.back());
 }
 
 inline void Array::AddElem(AnyType&& type) {
   packed_size_ += std::visit(PackedSizeVisitor{}, type);
   elems_.emplace_back(std::move(type));
-  std::visit(SetMsgUidVisitor{GetUid()}, *elems_.back());
+  std::visit(SetMsgUidVisitor{GetMsgUid()}, *elems_.back());
 }
 
 inline void Array::AddElem(const AnyType& type) {
   packed_size_ += std::visit(PackedSizeVisitor{}, type);
   elems_.emplace_back(type);
-  std::visit(SetMsgUidVisitor{GetUid()}, *elems_.back());
+  std::visit(SetMsgUidVisitor{GetMsgUid()}, *elems_.back());
+}
+
+inline void Array::SetMsgOffset(size_t offset) {
+  Element::SetMsgOffset(offset);
+
+  for (auto& elem : elems_) {
+    std::visit([offset](auto&& e) { e.SetMsgOffset(offset); }, *elem);
+    offset += std::visit([](auto&& e) { return e.PackedSize(); }, *elem);
+  }
+}
+
+inline void Array::Unpack(const uint8_t *msg) {
+  for (auto& elem : elems_) {
+    std::visit([msg](auto&& e) { e.Unpack(msg); }, *elem);
+  }
 }
 
 };  // namespace ss

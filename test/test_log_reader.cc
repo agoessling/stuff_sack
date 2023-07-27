@@ -73,4 +73,13 @@ TEST(ParseHeader, GetMessages) {
     std::cout << "  " << name << ": " << std::visit(PackedSizeVisitor{}, msg) << ": "
               << std::visit(GetMsgUidVisitor{}, msg) << std::endl;
   }
+
+  // std::vector<AnyType *> read_types = {
+  //   &msgs["Bitfield2BytesTest"]["bitfield"]["field1"],
+  //   &msgs["PrimitiveTest"],
+  // };
+
+  //log_reader.Load(read_types);
+  auto types = log_reader.LoadAll();
+  (void)types;
 }
