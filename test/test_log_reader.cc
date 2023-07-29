@@ -79,6 +79,6 @@ TEST(ParseHeader, GetMessages) {
   };
 
   //log_reader.Load(read_types);
-  auto types = log_reader.LoadAll();
+  std::unordered_map<std::string, TypeBox> types = log_reader.LoadAll();
   (void)types;
 }

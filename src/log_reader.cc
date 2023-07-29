@@ -54,11 +54,11 @@ LogReader::LogReader(const std::string& path) {
     throw LogParseException("Could not parse YAML header (" + path + "): " + err.what());
   }
 
-  all_types_ = GetAllTypes();
+  ParseTypes();
 }
 
-static inline BitfieldStruct ParseBitfield(const std::string& name, const YAML::Node& node) {
-  BitfieldStruct s{name, node["type"].as<std::string>()};
+inline BitfieldStruct LogReader::ParseBitfield(std::string type_name, const YAML::Node& node) {
+  BitfieldStruct s{std::move(type_name)};
 
   const YAML::Node& fields = node["fields"];
   for (YAML::const_iterator list_it = fields.begin(); list_it != fields.end(); ++list_it) {
@@ -77,19 +77,19 @@ static inline BitfieldStruct ParseBitfield(const std::string& name, const YAML::
   return s;
 }
 
-static inline Array ParseArray(const std::string& name, const YAML::Node& node,
-                               const std::unordered_map<std::string, TypeBox>& all_types) {
-  Array a{name};
+inline Array LogReader::ParseArray(const std::string& inst_name, const YAML::Node& node,
+                                   const std::unordered_map<std::string, TypeBox>& all_types) {
+  Array a{inst_name};
 
   const YAML::Node& type_node = node[0];
   const int length = node[1].as<int>();
 
   for (int i = 0; i < length; ++i) {
-    std::string elem_name = name + "[" + std::to_string(i) + "]";
+    const std::string elem_name = inst_name + "[" + std::to_string(i) + "]";
 
     if (type_node.IsScalar()) {
       TypeBox elem_type = all_types.at(type_node.as<std::string>());
-      elem_type->SetInstanceName(elem_name);
+      elem_type->inst_name_ = elem_name;
       a.AddElem(*elem_type);
     } else if (type_node.IsSequence()) {
       a.AddElem(ParseArray(elem_name, type_node, all_types));
@@ -101,9 +101,9 @@ static inline Array ParseArray(const std::string& name, const YAML::Node& node,
   return a;
 }
 
-static inline Struct ParseStruct(const std::string& name, const YAML::Node& node,
-                                 const std::unordered_map<std::string, TypeBox>& all_types) {
-  Struct s{name, node["type"].as<std::string>()};
+inline Struct LogReader::ParseStruct(std::string type_name, const YAML::Node& node,
+                                     const std::unordered_map<std::string, TypeBox>& all_types) {
+  Struct s{std::move(type_name)};
 
   const YAML::Node& fields = node["fields"];
   for (YAML::const_iterator list_it = fields.begin(); list_it != fields.end(); ++list_it) {
@@ -117,7 +117,7 @@ static inline Struct ParseStruct(const std::string& name, const YAML::Node& node
 
       if (field_type_node.IsScalar()) {
         TypeBox field_type = all_types.at(field_type_node.as<std::string>());
-        field_type->SetInstanceName(field_name);
+        field_type->inst_name_ = field_name;
         s.AddField(*field_type);
       } else if (field_type_node.IsSequence()) {
         s.AddField(ParseArray(field_name, field_type_node, all_types));
@@ -132,7 +132,7 @@ static inline Struct ParseStruct(const std::string& name, const YAML::Node& node
   return s;
 }
 
-static inline TypeBox ParseEnum(const std::string& name, const YAML::Node& node) {
+inline TypeBox LogReader::ParseEnum(std::string type_name, const YAML::Node& node) {
   const YAML::Node& values = node["values"];
 
   std::vector<std::string> value_names;
@@ -151,19 +151,19 @@ static inline TypeBox ParseEnum(const std::string& name, const YAML::Node& node)
   const uint64_t num_values = values.size();
 
   if (num_values <= (1ULL << 7) - 1) {
-    Enum<int8_t> e{name, node["type"].as<std::string>()};
+    Enum<int8_t> e{std::move(type_name)};
     e.SetValues(std::move(value_names));
     return e;
   } else if (num_values <= (1ULL << 15) - 1) {
-    Enum<int16_t> e{name, node["type"].as<std::string>()};
+    Enum<int16_t> e{std::move(type_name)};
     e.SetValues(std::move(value_names));
     return e;
   } else if (num_values <= (1ULL << 31) - 1) {
-    Enum<int32_t> e{name, node["type"].as<std::string>()};
+    Enum<int32_t> e{std::move(type_name)};
     e.SetValues(std::move(value_names));
     return e;
   } else if (num_values <= (1ULL << 63) - 1) {
-    Enum<int64_t> e{name, node["type"].as<std::string>()};
+    Enum<int64_t> e{std::move(type_name)};
     e.SetValues(std::move(value_names));
     return e;
   } else {
@@ -171,19 +171,19 @@ static inline TypeBox ParseEnum(const std::string& name, const YAML::Node& node)
   }
 }
 
-std::unordered_map<std::string, TypeBox> LogReader::GetAllTypes() {
+void LogReader::ParseTypes() {
   std::unordered_map<std::string, TypeBox> all_types;
-  all_types["uint8"] = Primitive<uint8_t>{"uint8", "Primitive"};
-  all_types["uint16"] = Primitive<uint16_t>{"uint16", "Primitive"};
-  all_types["uint32"] = Primitive<uint32_t>{"uint32", "Primitive"};
-  all_types["uint64"] = Primitive<uint64_t>{"uint64", "Primitive"};
-  all_types["int8"] = Primitive<int8_t>{"int8", "Primitive"};
-  all_types["int16"] = Primitive<int16_t>{"int16", "Primitive"};
-  all_types["int32"] = Primitive<int32_t>{"int32", "Primitive"};
-  all_types["int64"] = Primitive<int64_t>{"int64", "Primitive"};
-  all_types["bool"] = Primitive<bool>{"bool", "Primitive"};
-  all_types["float"] = Primitive<float>{"float", "Primitive"};
-  all_types["double"] = Primitive<double>{"double", "Primitive"};
+  all_types["uint8"] = Primitive<uint8_t>{"uint8"};
+  all_types["uint16"] = Primitive<uint16_t>{"uint16"};
+  all_types["uint32"] = Primitive<uint32_t>{"uint32"};
+  all_types["uint64"] = Primitive<uint64_t>{"uint64"};
+  all_types["int8"] = Primitive<int8_t>{"int8"};
+  all_types["int16"] = Primitive<int16_t>{"int16"};
+  all_types["int32"] = Primitive<int32_t>{"int32"};
+  all_types["int64"] = Primitive<int64_t>{"int64"};
+  all_types["bool"] = Primitive<bool>{"bool"};
+  all_types["float"] = Primitive<float>{"float"};
+  all_types["double"] = Primitive<double>{"double"};
 
   try {
     const YAML::Node& uid_map = msg_spec_["SsMessageUidMap"];
@@ -197,11 +197,13 @@ std::unordered_map<std::string, TypeBox> LogReader::GetAllTypes() {
 
       const std::string& type_name = type_name_node.as<std::string>();
       if (type_name == "Struct" || type_name == "Message") {
+        std::cout << "Test" << std::endl;
         TypeBox type = ParseStruct(name, type_node, all_types);
         if (type_name == "Message") {
           type->SetMsgInfo(uid_map[name].as<uint32_t>(), 0);
+          msg_types_[name] = type;
         }
-        all_types[name] = std::move(type);
+        all_types[name] = type;
       } else if (type_name == "Enum") {
         all_types[name] = ParseEnum(name, type_node);
       } else if (type_name == "Bitfield") {
@@ -211,27 +213,12 @@ std::unordered_map<std::string, TypeBox> LogReader::GetAllTypes() {
   } catch (const std::exception& err) {
     throw LogParseException(err.what());
   }
-
-  return all_types;
 }
 
-std::unordered_map<std::string, TypeBox> LogReader::GetMessageTypes() {
-  std::unordered_map<std::string, TypeBox> msgs;
-
-  for (const auto& [name, type] : all_types_) {
-    if (type->type_name == "Message") {
-      msgs[name] = type;
-    }
-  }
-
-  return msgs;
-}
-
-void LogReader::Load(const std::vector<TypeBox *>& msgs) {
-  std::unordered_map<uint32_t, std::vector<TypeBox *>> unpack_lookup;
-  for (const auto& msg_ptr : msgs) {
-    TypeBox& msg = *msg_ptr;
-    unpack_lookup[msg->msg_uid].push_back(&msg);
+void LogReader::Load(const std::vector<Type *>& msgs) {
+  std::unordered_map<uint32_t, std::vector<Type *>> unpack_lookup;
+  for (Type *type : msgs) {
+    unpack_lookup[type->msg_uid_].push_back(type);
   }
 
   log_file_.seekg(binary_start_);
@@ -260,18 +247,17 @@ void LogReader::Load(const std::vector<TypeBox *>& msgs) {
     log_file_.read(reinterpret_cast<char *>(&buf[kHeaderSize]), msg_len - kHeaderSize);
     if (log_file_.gcount() != msg_len - kHeaderSize) throw LogParseException("Corrupted log end");
 
-    for (auto& type : lookup->second) {
-      (*type)->Unpack(buf.data());
+    for (Type *type : lookup->second) {
+      type->Unpack(buf.data());
     }
   }
 }
 
-
 std::unordered_map<std::string, TypeBox> LogReader::LoadAll() {
   std::unordered_map<std::string, TypeBox> msgs = GetMessageTypes();
-  std::vector<TypeBox *> read_list;
+  std::vector<Type *> read_list;
   for (auto& pair : msgs) {
-    read_list.push_back(&pair.second);
+    read_list.push_back(pair.second.get());
   }
 
   Load(read_list);
