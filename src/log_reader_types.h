@@ -24,13 +24,14 @@ static inline T UnpackPrimitive(const uint8_t *data) {
     uint8_t raw_value = data[0];
     memcpy(&value, &raw_value, sizeof(value));
   } else if constexpr (sizeof(value) == 2) {
-    uint16_t raw_value =
-        (static_cast<uint16_t>(data[0]) << 8) | (static_cast<uint16_t>(data[1]) << 0);
+    uint16_t raw_value = (static_cast<uint16_t>(data[0]) << static_cast<uint16_t>(8)) |
+                         (static_cast<uint16_t>(data[1]) << static_cast<uint16_t>(0));
     memcpy(&value, &raw_value, sizeof(value));
   } else if constexpr (sizeof(value) == 4) {
-    uint32_t raw_value =
-        (static_cast<uint32_t>(data[0]) << 24) | (static_cast<uint32_t>(data[1]) << 16) |
-        (static_cast<uint32_t>(data[2]) << 8) | (static_cast<uint32_t>(data[3]) << 0);
+    uint32_t raw_value = (static_cast<uint32_t>(data[0]) << static_cast<uint32_t>(24)) |
+                         (static_cast<uint32_t>(data[1]) << static_cast<uint32_t>(16)) |
+                         (static_cast<uint32_t>(data[2]) << static_cast<uint32_t>(8)) |
+                         (static_cast<uint32_t>(data[3]) << static_cast<uint32_t>(0));
     memcpy(&value, &raw_value, sizeof(value));
   } else if constexpr (sizeof(value) == 8) {
     uint64_t raw_value =
