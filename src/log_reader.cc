@@ -2,7 +2,9 @@
 
 #include <cerrno>
 #include <cstdio>
+#include <cstring>
 #include <fstream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -214,40 +216,87 @@ void LogReader::ParseTypes() {
   }
 }
 
+class BufferedMsgReader {
+ public:
+  struct MsgInfo {
+    uint32_t uid;
+    uint16_t len;
+    uint8_t *msg;
+  };
+
+  BufferedMsgReader(std::ifstream& log, size_t binary_start)
+      : buf_(4096), index_{0}, buf_used_{0}, log_{log} {
+    log_.seekg(binary_start);
+    if (!log_) throw LogParseException("Malformed log");
+  }
+
+  std::optional<MsgInfo> GetMsg() {
+    // If at the end of the buffer load more from file.
+    if (BufRemainingLen() < kHeaderLen) {
+      ShiftAndFill();
+
+      if (BufRemainingLen() == 0) {
+        return std::nullopt;
+      }
+
+      if (BufRemainingLen() < kHeaderLen) {
+        throw LogParseException("Corrupted log end");
+      }
+    }
+
+    MsgInfo info;
+    info.uid = UnpackPrimitive<uint32_t>(&buf_[index_] + 0);
+    info.len = UnpackPrimitive<uint16_t>(&buf_[index_] + 4);
+
+    // Resize buffer for large messages to avoid continually aligning message to buffer start.
+    if (4 * info.len > buf_.size()) {
+      buf_.resize(4 * info.len);
+    }
+
+    if (info.len > BufRemainingLen()) {
+      ShiftAndFill();
+      if (info.len > BufRemainingLen()) throw LogParseException("Corrupted log end");
+    }
+
+    info.msg = &buf_[index_];
+    index_ += info.len;
+
+    return info;
+  }
+
+ private:
+  static constexpr size_t kHeaderLen = 6;
+
+  size_t BufRemainingLen() const { return buf_used_ - index_; }
+
+  void ShiftAndFill() {
+    const size_t remaining_len = BufRemainingLen();
+    memmove(&buf_[0], &buf_[index_], remaining_len);
+    log_.read(reinterpret_cast<char *>(&buf_[remaining_len]), buf_.size() - remaining_len);
+    buf_used_ = log_.gcount() + remaining_len;
+    index_ = 0;
+  }
+
+  std::vector<uint8_t> buf_;
+  size_t index_;
+  size_t buf_used_;
+  std::ifstream& log_;
+};
+
 void LogReader::Load(const std::vector<Type *>& msgs) {
   std::unordered_map<uint32_t, std::vector<Type *>> unpack_lookup;
   for (Type *type : msgs) {
     unpack_lookup[type->msg_uid_].push_back(type);
   }
 
-  log_file_.seekg(binary_start_);
-  if (!log_file_) throw LogParseException("Malformed log");
+  BufferedMsgReader reader(log_file_, binary_start_);
 
-  constexpr int kHeaderSize = 6;
-  std::vector<uint8_t> buf(kHeaderSize);
-
-  while (true) {
-    log_file_.read(reinterpret_cast<char *>(buf.data()), kHeaderSize);
-    if (log_file_.gcount() == 0) break;
-    if (log_file_.gcount() != kHeaderSize) throw LogParseException("Corrupted log end");
-
-    const uint32_t msg_uid = UnpackPrimitive<uint32_t>(buf.data() + 0);
-    const uint16_t msg_len = UnpackPrimitive<uint16_t>(buf.data() + 4);
-
-    auto lookup = unpack_lookup.find(msg_uid);
-    if (lookup == unpack_lookup.end()) {
-      log_file_.seekg(msg_len - kHeaderSize, std::ios_base::cur);
-      if (!log_file_.good()) throw LogParseException("Corrupted log end");
-      continue;
-    }
-
-    if (msg_len > buf.size()) buf.resize(msg_len);
-
-    log_file_.read(reinterpret_cast<char *>(&buf[kHeaderSize]), msg_len - kHeaderSize);
-    if (log_file_.gcount() != msg_len - kHeaderSize) throw LogParseException("Corrupted log end");
+  while (std::optional<BufferedMsgReader::MsgInfo> info = reader.GetMsg()) {
+    auto lookup = unpack_lookup.find(info->uid);
+    if (lookup == unpack_lookup.end()) continue;
 
     for (Type *type : lookup->second) {
-      type->Unpack(buf.data());
+      type->Unpack(info->msg);
     }
   }
 }
