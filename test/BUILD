@@ -6,6 +6,15 @@ gen_message_def(
     visibility = ["//visibility:public"],
 )
 
+cc_binary(
+    name = "test_profile",
+    srcs = ["test_profile.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src:log_reader",
+    ],
+)
+
 cc_test(
     name = "test_c_stuff_sack",
     srcs = ["test_c_stuff_sack.c"],

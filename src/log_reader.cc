@@ -197,7 +197,6 @@ void LogReader::ParseTypes() {
 
       const std::string& type_name = type_name_node.as<std::string>();
       if (type_name == "Struct" || type_name == "Message") {
-        std::cout << "Test" << std::endl;
         TypeBox type = ParseStruct(name, type_node, all_types);
         if (type_name == "Message") {
           type->SetMsgInfo(uid_map[name].as<uint32_t>(), 0);

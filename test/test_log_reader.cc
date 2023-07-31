@@ -48,7 +48,7 @@ TEST(ParseHeader, GetMessages) {
   PrimitiveTest primitive_test = {.int8 = 1};
   ArrayTest array_test = {.array_2d = {{}, {{}, {.field1 = 5}}}};
 
-  for (int i = 0; i < 1000000; ++i) {
+  for (int i = 0; i < 10000000; ++i) {
     SsLogBitfield2BytesTest(file, &bitfield_2_test);
     bitfield_2_test.bitfield.field1++;
     SsLogBitfield4BytesTest(file, &bitfield_4_test);
@@ -73,9 +73,9 @@ TEST(ParseHeader, GetMessages) {
     std::cout << "  " << name << ": " << msg->PackedSize() << std::endl;
   }
 
-  std::vector<TypeBox *> read_types = {
-    &msgs["Bitfield2BytesTest"]["bitfield"]["field1"],
-    &msgs["PrimitiveTest"],
+  std::vector<Type *> read_types = {
+    msgs["Bitfield2BytesTest"]["bitfield"]["field1"].get(),
+    msgs["PrimitiveTest"].get(),
   };
 
   //log_reader.Load(read_types);
