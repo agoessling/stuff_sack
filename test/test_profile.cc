@@ -1,11 +1,16 @@
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "src/log_reader.h"
+
+using namespace ss;
 
 int CReadLog(const std::string& log, size_t chunk_size) {
   FILE *file = fopen(log.c_str(), "r");
@@ -108,9 +113,33 @@ int ExtractToVectorBuffered(const std::string& log, size_t chunk_size) {
   return 0;
 }
 
-int LoadAll(const std::string& log) {
-  using namespace ss;
+int MapLookup(const std::vector<uint32_t>& keys, const std::unordered_map<uint32_t, TypeBox>& map,
+              int iterations) {
+  for (int i = 0; i < iterations; ++i) {
+    const uint32_t key = keys[rand() % keys.size()];
+    auto lookup = map.find(key);
+    if (lookup == map.end()) continue;
+    const TypeBox& type = lookup->second;
+    (void)type;
+  }
 
+  return 0;
+}
+
+int VectorLookup(const std::vector<uint32_t>& keys, const std::vector<uint32_t>& key_lookup,
+                 const std::vector<TypeBox>& type_lookup, int iterations) {
+  for (int i = 0; i < iterations; ++i) {
+    const uint32_t key = keys[rand() % keys.size()];
+    auto lookup = std::lower_bound(key_lookup.begin(), key_lookup.end(), key);
+    if (lookup == key_lookup.end() || *lookup != key) continue;
+    const TypeBox& type = type_lookup[lookup - key_lookup.begin()];
+    (void)type;
+  }
+
+  return 0;
+}
+
+int LoadAll(const std::string& log) {
   LogReader reader(log);
   std::unordered_map<std::string, TypeBox> types = reader.LoadAll();
   return 0;
@@ -123,6 +152,24 @@ int main(int argc, char *argv[]) {
   }
 
   const std::string log = "/home/agoessling/Desktop/profile_log.ss";
+
+  std::vector<uint32_t> keys;
+  std::unordered_map<uint32_t, TypeBox> map;
+  std::vector<uint32_t> key_lookup;
+  std::vector<TypeBox> type_lookup;
+  for (int i = 0; i < 10; ++i) {
+    uint32_t key = rand();
+    keys.push_back(key);
+    if (i % 2) {
+      TypeBox type = Primitive<uint16_t>();
+
+      map.insert({key, type});
+
+      key_lookup.push_back(key);
+      type_lookup.push_back(type);
+    }
+  }
+  std::sort(key_lookup.begin(), key_lookup.end());
 
   while (const char c = *argv[1]++) {
     std::cout << c << ":" << std::endl;
@@ -148,6 +195,12 @@ int main(int argc, char *argv[]) {
         break;
       case 'E':
         ret = LoadAll(log);
+        break;
+      case 'F':
+        ret = MapLookup(keys, map, 2e7);
+        break;
+      case 'G':
+        ret = VectorLookup(keys, key_lookup, type_lookup, 2e7);
         break;
       default:
         std::cerr << "Unrecognized argument" << std::endl;
