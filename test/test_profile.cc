@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <benchmark/benchmark.h>
+
 #include "src/log_reader.h"
 
 using namespace ss;

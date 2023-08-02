@@ -15,6 +15,15 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "benchmark",
+    srcs = ["benchmark.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@benchmark",
+    ],
+)
+
 cc_test(
     name = "test_c_stuff_sack",
     srcs = ["test_c_stuff_sack.c"],

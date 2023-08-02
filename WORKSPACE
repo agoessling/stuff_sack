@@ -10,6 +10,14 @@ http_archive(
     url = "https://github.com/google/googletest/archive/refs/tags/release-1.11.0.zip",
 )
 
+# Google benchmark
+http_archive(
+    name = "benchmark",
+    sha256 = "0094b77c01e9973876f1831f76cbae43fdaf09b424e467dc4171abaa6884e455",
+    strip_prefix = "benchmark-1.8.2",
+    url = "https://github.com/google/benchmark/archive/refs/tags/v1.8.2.zip",
+)
+
 # unity
 http_archive(
     name = "unity",
