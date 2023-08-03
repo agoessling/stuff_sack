@@ -24,3 +24,15 @@ py_test(
         ":test_message_def-py",
     ],
 )
+
+cc_test(
+    name = "test_type_descriptors",
+    srcs = ["test_type_descriptors.cc"],
+    data = ["test_message_spec.yaml"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src:type_descriptors",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)

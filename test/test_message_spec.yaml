@@ -12,8 +12,7 @@ Bitfield4Bytes:
   fields:
     - { field0: 3, _description: This is a bitfield field description. }
     - field1: 5
-    - field2: 8
-    - field3: 1
+    - field2: 9
 
 Enum1Bytes:
   type: Enum
@@ -326,4 +325,5 @@ ArrayTest:
   description: This is a message description.
   fields:
     - { array_1d: [ArrayElem, 3], _description: This is a message field description. }
-    - array_2d: [[ArrayElem, 8], 2]
+    - array_2d: [[ArrayElem, 3], 2]
+    - array_3d: [[[ArrayElem, 3], 2], 1]

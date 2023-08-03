@@ -11,11 +11,10 @@ class TestBitfield(unittest.TestCase):
     msg = msg_def.Bitfield4BytesTest()
     msg.bitfield.field0 = 6
     msg.bitfield.field1 = 27
-    msg.bitfield.field2 = 105
-    msg.bitfield.field3 = 1
+    msg.bitfield.field2 = 264
 
     buf = msg_def.Bitfield4BytesTest.get_buffer()
-    buf[6:] = [0x00, 0x01, 0x69, 0xde]
+    buf[6:] = [0x00, 0x01, 0x08, 0xde]
 
     return msg, buf
 
@@ -33,7 +32,6 @@ class TestBitfield(unittest.TestCase):
     self.assertEqual(msg.bitfield.field0, unpacked.bitfield.field0)
     self.assertEqual(msg.bitfield.field1, unpacked.bitfield.field1)
     self.assertEqual(msg.bitfield.field2, unpacked.bitfield.field2)
-    self.assertEqual(msg.bitfield.field3, unpacked.bitfield.field3)
 
 
 class TestEnum(unittest.TestCase):
@@ -191,7 +189,12 @@ class TestArray(unittest.TestCase):
 
     for i, a in enumerate(msg.array_2d):
       for j, s in enumerate(a):
-        s.field1 = j + 8 * i
+        s.field1 = j + 3 * i
+
+    for i, a in enumerate(msg.array_3d):
+      for j, a in enumerate(a):
+        for k, s in enumerate(a):
+          s.field1 = k + 3 * j + 6 * i
 
     buf = msg_def.ArrayTest.get_buffer()
     buf[6:] = [
@@ -204,16 +207,12 @@ class TestArray(unittest.TestCase):
         0x00, 0x00, 0x03,
         0x00, 0x00, 0x04,
         0x00, 0x00, 0x05,
-        0x00, 0x00, 0x06,
-        0x00, 0x00, 0x07,
-        0x00, 0x00, 0x08,
-        0x00, 0x00, 0x09,
-        0x00, 0x00, 0x0a,
-        0x00, 0x00, 0x0b,
-        0x00, 0x00, 0x0c,
-        0x00, 0x00, 0x0d,
-        0x00, 0x00, 0x0e,
-        0x00, 0x00, 0x0f,
+        0x00, 0x00, 0x00,
+        0x00, 0x00, 0x01,
+        0x00, 0x00, 0x02,
+        0x00, 0x00, 0x03,
+        0x00, 0x00, 0x04,
+        0x00, 0x00, 0x05,
     ]  # yapf: disable
 
     return msg, buf
@@ -236,6 +235,13 @@ class TestArray(unittest.TestCase):
         with self.subTest(msg='2D Array.', i=i, j=j):
           self.assertEqual(s.field0, unpacked.array_2d[i][j].field0)
           self.assertEqual(s.field1, unpacked.array_2d[i][j].field1)
+
+    for i, a in enumerate(msg.array_3d):
+      for j, a in enumerate(a):
+        for k, s in enumerate(a):
+          with self.subTest(msg='3D Array.', i=i, j=j, k=k):
+            self.assertEqual(s.field0, unpacked.array_3d[i][j][k].field0)
+            self.assertEqual(s.field1, unpacked.array_3d[i][j][k].field1)
 
 
 class UnpackTest(unittest.TestCase):

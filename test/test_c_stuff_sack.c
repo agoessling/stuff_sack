@@ -17,14 +17,13 @@ static void TestBitfield(void) {
           {
               .field0 = 6,
               .field1 = 27,
-              .field2 = 105,
-              .field3 = 1,
+              .field2 = 264,
           },
   };
   Bitfield4BytesTest unpacked;
 
   uint8_t bytes[SS_BITFIELD4_BYTES_TEST_PACKED_SIZE] = {
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x69, 0xde,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0xde,
   };
   uint8_t packed[SS_BITFIELD4_BYTES_TEST_PACKED_SIZE];
 
@@ -39,7 +38,6 @@ static void TestBitfield(void) {
   TEST_ASSERT_EQUAL_INT(bitfield_test.bitfield.field0, unpacked.bitfield.field0);
   TEST_ASSERT_EQUAL_INT(bitfield_test.bitfield.field1, unpacked.bitfield.field1);
   TEST_ASSERT_EQUAL_INT(bitfield_test.bitfield.field2, unpacked.bitfield.field2);
-  TEST_ASSERT_EQUAL_INT(bitfield_test.bitfield.field3, unpacked.bitfield.field3);
 }
 
 static void TestEnum(void) {
@@ -125,45 +123,46 @@ static void TestPrimitive(void) {
 }
 
 static void TestArray(void) {
-  ArrayTest array_test = {
-      .array_1d =
-          {
-              {.field1 = 0},
-              {.field1 = 1},
-              {.field1 = 2},
-          },
-      .array_2d =
-          {
-              {
-                  {.field1 = 0},
-                  {.field1 = 1},
-                  {.field1 = 2},
-                  {.field1 = 3},
-                  {.field1 = 4},
-                  {.field1 = 5},
-                  {.field1 = 6},
-                  {.field1 = 7},
-              },
-              {
-                  {.field1 = 8},
-                  {.field1 = 9},
-                  {.field1 = 10},
-                  {.field1 = 11},
-                  {.field1 = 12},
-                  {.field1 = 13},
-                  {.field1 = 14},
-                  {.field1 = 15},
-              },
-          },
-  };
+  ArrayTest array_test = {.array_1d =
+                              {
+                                  {.field1 = 0},
+                                  {.field1 = 1},
+                                  {.field1 = 2},
+                              },
+                          .array_2d =
+                              {
+                                  {
+                                      {.field1 = 0},
+                                      {.field1 = 1},
+                                      {.field1 = 2},
+                                  },
+                                  {
+                                      {.field1 = 3},
+                                      {.field1 = 4},
+                                      {.field1 = 5},
+                                  },
+                              },
+                          .array_3d = {
+                              {
+                                  {
+                                      {.field1 = 0},
+                                      {.field1 = 1},
+                                      {.field1 = 2},
+                                  },
+                                  {
+                                      {.field1 = 3},
+                                      {.field1 = 4},
+                                      {.field1 = 5},
+                                  },
+                              },
+                          }};
   ArrayTest unpacked;
 
   uint8_t bytes[SS_ARRAY_TEST_PACKED_SIZE] = {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
       0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x02, 0x00, 0x00,
-      0x03, 0x00, 0x00, 0x04, 0x00, 0x00, 0x05, 0x00, 0x00, 0x06, 0x00, 0x00, 0x07,
-      0x00, 0x00, 0x08, 0x00, 0x00, 0x09, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x0b, 0x00,
-      0x00, 0x0c, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x0f,
+      0x03, 0x00, 0x00, 0x04, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+      0x00, 0x00, 0x02, 0x00, 0x00, 0x03, 0x00, 0x00, 0x04, 0x00, 0x00, 0x05,
   };
   uint8_t packed[SS_ARRAY_TEST_PACKED_SIZE];
 
@@ -175,15 +174,25 @@ static void TestArray(void) {
   SsStatus status = SsUnpackArrayTest(bytes, &unpacked);
   TEST_ASSERT_EQUAL_INT(kSsStatusSuccess, status);
 
-  for (int32_t i = 0; i < 2; ++i) {
+  for (int32_t i = 0; i < 3; ++i) {
     TEST_ASSERT_EQUAL_INT(array_test.array_1d[i].field0, unpacked.array_1d[i].field0);
     TEST_ASSERT_EQUAL_INT(array_test.array_1d[i].field1, unpacked.array_1d[i].field1);
   }
 
-  for (int32_t i = 0; i < 2; ++i) {
-    for (int32_t j = 0; j < 8; ++j) {
+  for (int32_t i = 0; i < 3; ++i) {
+    for (int32_t j = 0; j < 2; ++j) {
       TEST_ASSERT_EQUAL_INT(array_test.array_2d[i][j].field0, unpacked.array_2d[i][j].field0);
       TEST_ASSERT_EQUAL_INT(array_test.array_2d[i][j].field1, unpacked.array_2d[i][j].field1);
+    }
+  }
+  for (int32_t i = 0; i < 3; ++i) {
+    for (int32_t j = 0; j < 2; ++j) {
+      for (int32_t k = 0; k < 1; ++k) {
+        TEST_ASSERT_EQUAL_INT(array_test.array_3d[k][j][i].field0,
+                              unpacked.array_3d[k][j][i].field0);
+        TEST_ASSERT_EQUAL_INT(array_test.array_3d[k][j][i].field1,
+                              unpacked.array_3d[k][j][i].field1);
+      }
     }
   }
 }

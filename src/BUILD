@@ -46,9 +46,19 @@ py_binary(
 )
 
 cc_library(
+    name = "type_descriptors",
+    srcs = ["type_descriptors.cc"],
+    hdrs = ["type_descriptors.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@yaml-cpp",
+    ],
+)
+
+cc_library(
     name = "logging",
     srcs = ["logging.c"],
     hdrs = ["logging.h"],
-    alwayslink = True,
     visibility = ["//visibility:public"],
+    alwayslink = True,
 )

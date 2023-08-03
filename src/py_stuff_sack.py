@@ -242,6 +242,7 @@ def get_globals(library, message_spec):
   global_vars['unpack_message'] = unpack_message
 
   class Logger:
+
     def __init__(self, filename):
       self.filename = filename
       self.file_p = None
