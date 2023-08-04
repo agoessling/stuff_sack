@@ -40,6 +40,11 @@ class TypeDescriptor {
   int packed_size() const { return packed_size_; }
   const std::string& name() const { return name_; }
 
+  bool IsPrimitive() const { return type_ == Type::kPrimitive; }
+  bool IsEnum() const { return type_ == Type::kEnum; }
+  bool IsStruct() const { return type_ == Type::kStruct; }
+  bool IsArray() const { return type_ == Type::kArray; }
+
   virtual PrimType prim_type() const { throw std::runtime_error("Type has no prim_type."); }
 
   virtual const std::vector<std::string>& enum_values() const {
@@ -52,7 +57,11 @@ class TypeDescriptor {
   }
 
   virtual const std::vector<std::unique_ptr<FieldDescriptor>>& struct_fields() const {
-    throw std::runtime_error("Type has not struct_fields.");
+    throw std::runtime_error("Type has no struct_fields.");
+  }
+
+  virtual std::shared_ptr<TypeDescriptor> struct_get_field(std::string_view field_name) const {
+    throw std::runtime_error("Type has no field lookup.");
   }
 
  protected:
@@ -209,6 +218,13 @@ class StructDescriptor : public TypeDescriptor {
     return fields_;
   }
 
+  std::shared_ptr<TypeDescriptor> struct_get_field(std::string_view field_name) const override {
+    for (auto& field : fields_) {
+      if (field->name() == field_name) return field->type();
+    }
+    return nullptr;
+  }
+
  protected:
   StructDescriptor(std::string_view name) : TypeDescriptor(name, Type::kStruct) {}
   StructDescriptor(const StructDescriptor&) = delete;
@@ -244,13 +260,6 @@ class BitfieldDescriptor : public TypeDescriptor {
   }
 
  private:
-  struct FieldInfo {
-    std::string name;
-    std::shared_ptr<TypeDescriptor> descriptor;
-    int bit_offset;
-    int bit_size;
-  };
-
   void SetPackedSize() {
     if (cur_bit_offset_ <= 8) {
       packed_size_ = 1;
@@ -274,7 +283,6 @@ class ArrayDescriptor : public TypeDescriptor {
   friend class DescriptorBuilder;
 
   int array_size() const override { return size_; }
-
   std::shared_ptr<TypeDescriptor> array_elem_type() const override { return elem_; }
 
  protected:

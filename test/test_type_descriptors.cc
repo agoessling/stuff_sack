@@ -312,3 +312,24 @@ TEST(Parse, Array) {
   EXPECT_EQ(array_3d_type->array_size(), 1);
   EXPECT_EQ(array_3d_type->array_elem_type(), types.at("ArrayElem[3][2]"));
 }
+
+TEST(TypeDescriptor, TypeChecks) {
+  DescriptorBuilder::TypeMap types = DescriptorBuilder::FromFile(kYamlFile);
+
+  ASSERT_THAT(types, IsSupersetOf({Key("uint8"), Key("Enum1Bytes"), Key("Bitfield2Bytes"),
+                                   Key("ArrayTest")}));
+
+  EXPECT_TRUE(types.at("uint8")->IsPrimitive());
+  EXPECT_TRUE(types.at("Enum1Bytes")->IsEnum());
+  EXPECT_TRUE(types.at("Bitfield2Bytes")->IsStruct());
+  EXPECT_TRUE(types.at("ArrayTest")->IsStruct());
+  EXPECT_TRUE(types.at("ArrayTest")->struct_fields()[1]->type()->IsArray());
+}
+
+TEST(TypeDescriptor, FieldLookup) {
+  DescriptorBuilder::TypeMap types = DescriptorBuilder::FromFile(kYamlFile);
+
+  ASSERT_THAT(types, IsSupersetOf({Key("PrimitiveTest"), Key("int64")}));
+
+  EXPECT_EQ(types.at("PrimitiveTest")->struct_get_field("int64"), types.at("int64"));
+}
