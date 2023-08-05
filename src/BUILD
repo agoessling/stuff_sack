@@ -59,10 +59,19 @@ cc_library(
 )
 
 cc_library(
+    name = "crc32",
+    hdrs = ["crc32.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "uid_hash",
     srcs = ["uid_hash.cc"],
     hdrs = ["uid_hash.h"],
     visibility = ["//visibility:public"],
+    deps = [
+        ":crc32",
+    ],
 )
 
 cc_binary(
@@ -74,6 +83,9 @@ cc_binary(
     linkshared = True,
     local_defines = ["PYTHON_LIB"],
     visibility = ["//visibility:public"],
+    deps = [
+        ":crc32",
+    ],
 )
 
 py_library(

@@ -36,3 +36,14 @@ cc_test(
         "@gtest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "test_crc32",
+    srcs = ["test_crc32.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src:crc32",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)

@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace ss {
+
 #ifdef PYTHON_LIB
 extern "C" {
 #endif
@@ -19,3 +21,5 @@ uint32_t StructHash(const char *name, uint32_t *field_uids, size_t field_uids_le
 #ifdef PYTHON_LIB
 }  // extern "C"
 #endif
+
+}  // namespace ss
