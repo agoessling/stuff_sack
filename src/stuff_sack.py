@@ -1,6 +1,7 @@
 import textwrap
 import yaml
-import zlib
+
+from src import uid_hash
 
 
 def _indent(s, level=1):
@@ -25,7 +26,7 @@ def _bytes_for_bits(bits):
     if x >= raw_bytes:
       return x
 
-  raise ValueError('Value greater than 8 bytes.'.format(value))
+  raise ValueError('Value greater than 8 bytes.')
 
 
 def _yaml_check_map(yaml, required_fields, optional_fields, check_valid=True):
@@ -155,7 +156,7 @@ class Primitive(DataType):
 
   @property
   def uid(self):
-    return zlib.crc32(str((self.name, self.bytes)).encode())
+    return uid_hash.primitive_hash(self.name, self.bytes)
 
   def __str__(self):
     return str((self.name, self.bytes))
@@ -169,7 +170,7 @@ class Array:
 
   @property
   def uid(self):
-    return zlib.crc32(str((self.type.uid, self.length)).encode())
+    return uid_hash.array_hash(self.type.uid, self.length)
 
   @classmethod
   def from_yaml(cls, yaml):
@@ -228,7 +229,7 @@ class BitfieldField:
 
   @property
   def uid(self):
-    return zlib.crc32(str((self.name, self.bits)).encode())
+    return uid_hash.bitfield_field_hash(self.name, self.bits)
 
   @classmethod
   def from_yaml(cls, yaml):
@@ -258,7 +259,7 @@ class Bitfield(DataType):
 
   @property
   def uid(self):
-    return zlib.crc32(str((self.name, [x.uid for x in self.fields])).encode())
+    return uid_hash.bitfield_hash(self.name, [x.uid for x in self.fields])
 
   @property
   def packed_size(self):
@@ -312,7 +313,7 @@ class EnumValue:
 
   @property
   def uid(self):
-    return zlib.crc32(str((self.name, self.value)).encode())
+    return uid_hash.enum_value_hash(self.name, self.value)
 
   @classmethod
   def from_yaml(cls, yaml):
@@ -339,7 +340,7 @@ class Enum(DataType):
 
   @property
   def uid(self):
-    return zlib.crc32(str((self.name, [x.uid for x in self.values])).encode())
+    return uid_hash.enum_hash(self.name, [x.uid for x in self.values])
 
   @property
   def packed_size(self):
@@ -386,7 +387,7 @@ class StructField:
 
   @property
   def uid(self):
-    return zlib.crc32(str((self.name, self.type.uid)).encode())
+    return uid_hash.struct_field_hash(self.name, self.type.uid)
 
   @property
   def root_type(self):
@@ -422,7 +423,7 @@ class Struct(DataType):
 
   @property
   def uid(self):
-    return zlib.crc32(str((self.name, [x.uid for x in self.fields])).encode())
+    return uid_hash.struct_hash(self.name, [x.uid for x in self.fields])
 
   @property
   def packed_size(self):
@@ -507,5 +508,12 @@ def parse_yaml(filename):
 
   all_types = DataType.get_all_types()
   reset_types()
+
+  # Check that there are no uid collisions.
+  items = list(all_types)
+  for i in range(len(items)):
+    for j in range(i + 1, len(items)):
+      if items[i].uid == items[j].uid:
+        raise AssertionError(f'UID collision between {items[i].name} and {items[j].name}.')
 
   return all_types

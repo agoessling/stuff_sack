@@ -2,6 +2,9 @@ py_library(
     name = "stuff_sack",
     srcs = ["stuff_sack.py"],
     visibility = ["//visibility:public"],
+    deps = [
+        ":uid_hash-py",
+    ],
 )
 
 py_binary(
@@ -53,6 +56,34 @@ cc_library(
     deps = [
         "@yaml-cpp",
     ],
+)
+
+cc_library(
+    name = "uid_hash",
+    srcs = ["uid_hash.cc"],
+    hdrs = ["uid_hash.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "uid_hash-so",
+    srcs = [
+        "uid_hash.cc",
+        "uid_hash.h",
+    ],
+    linkshared = True,
+    local_defines = ["PYTHON_LIB"],
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name = "uid_hash-py",
+    srcs = ["uid_hash.py"],
+    data = [
+        ":uid_hash-so",
+    ],
+    visibility = ["//visibility:public"],
+    deps = ["@bazel_tools//tools/python/runfiles"],
 )
 
 cc_library(
