@@ -59,6 +59,15 @@ cc_library(
 )
 
 cc_library(
+    name = "dynamic_types",
+    hdrs = ["dynamic_types.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":type_descriptors",
+    ],
+)
+
+cc_library(
     name = "crc32",
     hdrs = ["crc32.h"],
     visibility = ["//visibility:public"],

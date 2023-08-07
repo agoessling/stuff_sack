@@ -47,3 +47,16 @@ cc_test(
         "@gtest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "test_dynamic_types",
+    srcs = ["test_dynamic_types.cc"],
+    data = ["test_message_spec.yaml"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src:dynamic_types",
+        "//src:type_descriptors",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
