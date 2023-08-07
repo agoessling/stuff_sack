@@ -17,6 +17,8 @@ class TypeDescriptor {
  public:
   friend class DescriptorBuilder;
 
+  using FieldList = std::vector<std::unique_ptr<const FieldDescriptor>>;
+
   enum class Type {
     kPrimitive,
     kEnum,
@@ -54,15 +56,15 @@ class TypeDescriptor {
   }
 
   virtual int array_size() const { throw std::runtime_error("Type has no array_size."); }
-  virtual std::shared_ptr<TypeDescriptor> array_elem_type() const {
+  virtual const TypeDescriptor *array_elem_type() const {
     throw std::runtime_error("Type has no array_elem_type().");
   }
 
-  virtual const std::vector<std::unique_ptr<FieldDescriptor>>& struct_fields() const {
+  virtual const FieldList& struct_fields() const {
     throw std::runtime_error("Type has no struct_fields.");
   }
 
-  virtual std::shared_ptr<TypeDescriptor> struct_get_field(std::string_view field_name) const {
+  virtual const TypeDescriptor *struct_get_field(std::string_view field_name) const {
     throw std::runtime_error("Type has no field lookup.");
   }
 
@@ -166,24 +168,24 @@ class EnumDescriptor : public PrimitiveDescriptor {
 class FieldDescriptor {
  public:
   const std::string& name() const { return name_; }
-  std::shared_ptr<TypeDescriptor> type() const { return type_; }
+  const TypeDescriptor *type() const { return type_; }
 
  protected:
-  FieldDescriptor(std::string_view name, std::shared_ptr<TypeDescriptor> type)
+  FieldDescriptor(std::string_view name, const TypeDescriptor *type)
       : name_{name}, type_{type} {}
   FieldDescriptor(const FieldDescriptor&) = delete;
   FieldDescriptor& operator=(const FieldDescriptor&) = delete;
 
  private:
   std::string name_;
-  std::shared_ptr<TypeDescriptor> type_;
+  const TypeDescriptor *type_;
 };
 
 class StructFieldDescriptor : public FieldDescriptor {
  protected:
   friend class StructDescriptor;
 
-  StructFieldDescriptor(std::string_view name, std::shared_ptr<TypeDescriptor> type, int offset)
+  StructFieldDescriptor(std::string_view name, const TypeDescriptor *type, int offset)
       : FieldDescriptor(name, type), offset_{offset} {
     (void)offset_;
   }
@@ -198,7 +200,7 @@ class BitfieldFieldDescriptor : public FieldDescriptor {
  protected:
   friend class BitfieldDescriptor;
 
-  BitfieldFieldDescriptor(std::string_view name, std::shared_ptr<TypeDescriptor> type,
+  BitfieldFieldDescriptor(std::string_view name, const TypeDescriptor *type,
                           int bit_offset, int bit_size)
       : FieldDescriptor(name, type), bit_offset_{bit_offset}, bit_size_{bit_size} {
     (void)bit_offset_;
@@ -216,11 +218,11 @@ class StructDescriptor : public TypeDescriptor {
  public:
   friend class DescriptorBuilder;
 
-  const std::vector<std::unique_ptr<FieldDescriptor>>& struct_fields() const override {
+  const FieldList& struct_fields() const override {
     return fields_;
   }
 
-  std::shared_ptr<TypeDescriptor> struct_get_field(std::string_view field_name) const override {
+  const TypeDescriptor *struct_get_field(std::string_view field_name) const override {
     for (auto& field : fields_) {
       if (field->name() == field_name) return field->type();
     }
@@ -232,20 +234,20 @@ class StructDescriptor : public TypeDescriptor {
   StructDescriptor(const StructDescriptor&) = delete;
   StructDescriptor& operator=(const StructDescriptor&) = delete;
 
-  void AddField(const std::string& name, const std::shared_ptr<TypeDescriptor>& field) {
+  void AddField(const std::string& name, const TypeDescriptor *field) {
     fields_.emplace_back(new StructFieldDescriptor(name, field, packed_size_));
     packed_size_ += field->packed_size();
   }
 
  private:
-  std::vector<std::unique_ptr<FieldDescriptor>> fields_;
+  FieldList fields_;
 };
 
 class BitfieldDescriptor : public TypeDescriptor {
  public:
   friend class DescriptorBuilder;
 
-  const std::vector<std::unique_ptr<FieldDescriptor>>& struct_fields() const override {
+  const FieldList& struct_fields() const override {
     return fields_;
   }
 
@@ -254,7 +256,7 @@ class BitfieldDescriptor : public TypeDescriptor {
   BitfieldDescriptor(const BitfieldDescriptor&) = delete;
   BitfieldDescriptor& operator=(const BitfieldDescriptor&) = delete;
 
-  void AddField(const std::string& name, const std::shared_ptr<TypeDescriptor>& field,
+  void AddField(const std::string& name, const TypeDescriptor *field,
                 int bit_size) {
     fields_.emplace_back(new BitfieldFieldDescriptor(name, field, cur_bit_offset_, bit_size));
     cur_bit_offset_ += bit_size;
@@ -276,7 +278,7 @@ class BitfieldDescriptor : public TypeDescriptor {
     }
   }
 
-  std::vector<std::unique_ptr<FieldDescriptor>> fields_;
+  FieldList fields_;
   int cur_bit_offset_ = 0;
 };
 
@@ -285,10 +287,10 @@ class ArrayDescriptor : public TypeDescriptor {
   friend class DescriptorBuilder;
 
   int array_size() const override { return size_; }
-  std::shared_ptr<TypeDescriptor> array_elem_type() const override { return elem_; }
+  const TypeDescriptor *array_elem_type() const override { return elem_; }
 
  protected:
-  ArrayDescriptor(std::shared_ptr<TypeDescriptor> elem, int size)
+  ArrayDescriptor(const TypeDescriptor *elem, int size)
       : TypeDescriptor(ArrayName(*elem, size), Type::kArray), elem_{elem}, size_{size} {
     packed_size_ = elem->packed_size() * size;
   }
@@ -301,27 +303,33 @@ class ArrayDescriptor : public TypeDescriptor {
     return elem.name() + "[" + std::to_string(size) + "]";
   }
 
-  std::shared_ptr<TypeDescriptor> elem_;
+  const TypeDescriptor *elem_;
   int size_;
 };
 
 class DescriptorBuilder {
  public:
-  using TypeMap = std::unordered_map<std::string, std::shared_ptr<TypeDescriptor>>;
+  using TypeMap = std::unordered_map<std::string, std::unique_ptr<TypeDescriptor>>;
 
-  static TypeMap FromFile(const std::string& filename);
-  static TypeMap FromString(const std::string& str);
+  static DescriptorBuilder FromFile(const std::string& filename);
+  static DescriptorBuilder FromString(const std::string& str);
+
+  DescriptorBuilder(const YAML::Node& root_node);
+
+  const TypeDescriptor *operator[](const std::string& name) const {
+    return type_map_.at(name).get();
+  }
+
+  const TypeMap& types() const { return type_map_; }
 
  private:
-  static TypeMap FromNode(const YAML::Node& root_node);
+  void ParseStruct(std::string_view name, const YAML::Node& node, bool is_msg);
+  TypeDescriptor *ParseArray(const YAML::Node& node);
+  void ParseEnum(std::string_view name, const YAML::Node& node);
+  void ParseBitfield(std::string_view name, const YAML::Node& node);
 
-  static std::shared_ptr<TypeDescriptor> ParseStruct(std::string_view name, const YAML::Node& node,
-                                                     TypeMap& type_map, bool is_msg);
-  static std::shared_ptr<TypeDescriptor> ParseArray(const YAML::Node& node, TypeMap& type_map);
-  static std::shared_ptr<TypeDescriptor> ParseEnum(std::string_view name, const YAML::Node& node);
-  static std::shared_ptr<TypeDescriptor> ParseBitfield(std::string_view name,
-                                                       const YAML::Node& node,
-                                                       const TypeMap& type_map);
+ private:
+  TypeMap type_map_;
 };
 
 };  // namespace ss

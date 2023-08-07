@@ -11,16 +11,13 @@ namespace ss {
 
 using Type = TypeDescriptor::Type;
 using PrimType = TypeDescriptor::PrimType;
-using TypeMap = DescriptorBuilder::TypeMap;
 
-std::shared_ptr<TypeDescriptor> DescriptorBuilder::ParseStruct(std::string_view name,
-                                                               const YAML::Node& node,
-                                                               TypeMap& type_map, bool is_msg) {
-  std::shared_ptr<StructDescriptor> structure(new StructDescriptor(name));
+void DescriptorBuilder::ParseStruct(std::string_view name, const YAML::Node& node, bool is_msg) {
+  std::unique_ptr<StructDescriptor> structure(new StructDescriptor(name));
 
   // Add implicit SsHeader struct to messages.
   if (is_msg) {
-    structure->AddField("ss_header", type_map.at("SsHeader"));
+    structure->AddField("ss_header", type_map_.at("SsHeader").get());
   }
 
   // Iterate over "fields" array.
@@ -36,51 +33,48 @@ std::shared_ptr<TypeDescriptor> DescriptorBuilder::ParseStruct(std::string_view 
 
       if (field_type_node.IsScalar()) {
         // Field is simple type.
-        structure->AddField(field_name, type_map.at(field_type_node.as<std::string>()));
+        structure->AddField(field_name, type_map_.at(field_type_node.as<std::string>()).get());
       } else if (field_type_node.IsSequence()) {
         // Field is array.
-        structure->AddField(field_name, ParseArray(field_type_node, type_map));
+        structure->AddField(field_name, ParseArray(field_type_node));
       } else {
         throw std::runtime_error("Unrecognized field description.");
       }
     }
   }
 
-  return structure;
+  type_map_.emplace(name, std::move(structure));
 }
 
-std::shared_ptr<TypeDescriptor> DescriptorBuilder::ParseArray(const YAML::Node& node,
-                                                              TypeMap& type_map) {
+TypeDescriptor *DescriptorBuilder::ParseArray(const YAML::Node& node) {
   const YAML::Node& type_node = node[0];  // Type is first element of sequence.
   const int size = node[1].as<int>();  // Size is second.
 
-  std::shared_ptr<TypeDescriptor> array;
+  std::unique_ptr<TypeDescriptor> array;
 
   if (type_node.IsScalar()) {
     // Type is simple type.
-    array = std::shared_ptr<ArrayDescriptor>(
-        new ArrayDescriptor(type_map.at(type_node.as<std::string>()), size));
+    array = std::unique_ptr<ArrayDescriptor>(
+        new ArrayDescriptor(type_map_.at(type_node.as<std::string>()).get(), size));
   } else if (type_node.IsSequence()) {
     // Type is nested array.
-    array = std::shared_ptr<ArrayDescriptor>(
-        new ArrayDescriptor(ParseArray(type_node, type_map), size));
-    ;
+    array = std::unique_ptr<ArrayDescriptor>(new ArrayDescriptor(ParseArray(type_node), size));
   } else {
     throw std::runtime_error("Unrecognized array description.");
   }
 
   // Array is not already in type_map.
-  if (!type_map.count(array->name())) {
-    type_map.emplace(array->name(), array);
-    return array;
+  if (!type_map_.count(array->name())) {
+    TypeDescriptor *ret = array.get();
+    type_map_.emplace(array->name(), std::move(array));
+    return ret;
   }
 
-  return type_map.at(array->name());
+  return type_map_.at(array->name()).get();
 }
 
-std::shared_ptr<TypeDescriptor> DescriptorBuilder::ParseEnum(std::string_view name,
-                                                             const YAML::Node& node) {
-  std::shared_ptr<EnumDescriptor> enumerator(new EnumDescriptor(name));
+void DescriptorBuilder::ParseEnum(std::string_view name, const YAML::Node& node) {
+  std::unique_ptr<EnumDescriptor> enumerator(new EnumDescriptor(name));
 
   // Iterate over "values" array.
   for (const auto& value_node : node["values"]) {
@@ -95,13 +89,11 @@ std::shared_ptr<TypeDescriptor> DescriptorBuilder::ParseEnum(std::string_view na
     }
   }
 
-  return enumerator;
+  type_map_.emplace(name, std::move(enumerator));
 }
 
-std::shared_ptr<TypeDescriptor> DescriptorBuilder::ParseBitfield(std::string_view name,
-                                                                 const YAML::Node& node,
-                                                                 const TypeMap& type_map) {
-  std::shared_ptr<BitfieldDescriptor> structure(new BitfieldDescriptor(name));
+void DescriptorBuilder::ParseBitfield(std::string_view name, const YAML::Node& node) {
+  std::unique_ptr<BitfieldDescriptor> structure(new BitfieldDescriptor(name));
 
   // Iterate over "fields" array.
   for (const auto& field_node : node["fields"]) {
@@ -114,15 +106,15 @@ std::shared_ptr<TypeDescriptor> DescriptorBuilder::ParseBitfield(std::string_vie
 
       const int size = field_def_pair.second.as<int>();
 
-      std::shared_ptr<TypeDescriptor> prim;
+      TypeDescriptor *prim;
       if (size <= 8) {
-        prim = type_map.at("uint8");
+        prim = type_map_.at("uint8").get();
       } else if (size <= 16) {
-        prim = type_map.at("uint16");
+        prim = type_map_.at("uint16").get();
       } else if (size <= 32) {
-        prim = type_map.at("uint32");
+        prim = type_map_.at("uint32").get();
       } else if (size <= 64) {
-        prim = type_map.at("uint64");
+        prim = type_map_.at("uint64").get();
       } else {
         throw std::runtime_error("Bitfield field too large.");
       }
@@ -131,41 +123,39 @@ std::shared_ptr<TypeDescriptor> DescriptorBuilder::ParseBitfield(std::string_vie
     }
   }
 
-  return structure;
+  type_map_.emplace(name, std::move(structure));
 }
 
-TypeMap DescriptorBuilder::FromNode(const YAML::Node& root_node) {
-  TypeMap type_map;
-
+DescriptorBuilder::DescriptorBuilder(const YAML::Node& root_node) {
   // Add base types.
-  type_map.emplace("uint8", std::shared_ptr<PrimitiveDescriptor>(
-                                new PrimitiveDescriptor("uint8", PrimType::kUint8)));
-  type_map.emplace("uint16", std::shared_ptr<PrimitiveDescriptor>(
-                                 new PrimitiveDescriptor("uint16", PrimType::kUint16)));
-  type_map.emplace("uint32", std::shared_ptr<PrimitiveDescriptor>(
-                                 new PrimitiveDescriptor("uint32", PrimType::kUint32)));
-  type_map.emplace("uint64", std::shared_ptr<PrimitiveDescriptor>(
-                                 new PrimitiveDescriptor("uint64", PrimType::kUint64)));
-  type_map.emplace("int8", std::shared_ptr<PrimitiveDescriptor>(
-                               new PrimitiveDescriptor("int8", PrimType::kInt8)));
-  type_map.emplace("int16", std::shared_ptr<PrimitiveDescriptor>(
-                                new PrimitiveDescriptor("int16", PrimType::kInt16)));
-  type_map.emplace("int32", std::shared_ptr<PrimitiveDescriptor>(
-                                new PrimitiveDescriptor("int32", PrimType::kInt32)));
-  type_map.emplace("int64", std::shared_ptr<PrimitiveDescriptor>(
-                                new PrimitiveDescriptor("int64", PrimType::kInt64)));
-  type_map.emplace("bool", std::shared_ptr<PrimitiveDescriptor>(
-                               new PrimitiveDescriptor("bool", PrimType::kBool)));
-  type_map.emplace("float", std::shared_ptr<PrimitiveDescriptor>(
-                                new PrimitiveDescriptor("float", PrimType::kFloat)));
-  type_map.emplace("double", std::shared_ptr<PrimitiveDescriptor>(
-                                 new PrimitiveDescriptor("double", PrimType::kDouble)));
+  type_map_.emplace("uint8", std::unique_ptr<PrimitiveDescriptor>(
+                                 new PrimitiveDescriptor("uint8", PrimType::kUint8)));
+  type_map_.emplace("uint16", std::unique_ptr<PrimitiveDescriptor>(
+                                  new PrimitiveDescriptor("uint16", PrimType::kUint16)));
+  type_map_.emplace("uint32", std::unique_ptr<PrimitiveDescriptor>(
+                                  new PrimitiveDescriptor("uint32", PrimType::kUint32)));
+  type_map_.emplace("uint64", std::unique_ptr<PrimitiveDescriptor>(
+                                  new PrimitiveDescriptor("uint64", PrimType::kUint64)));
+  type_map_.emplace("int8", std::unique_ptr<PrimitiveDescriptor>(
+                                new PrimitiveDescriptor("int8", PrimType::kInt8)));
+  type_map_.emplace("int16", std::unique_ptr<PrimitiveDescriptor>(
+                                 new PrimitiveDescriptor("int16", PrimType::kInt16)));
+  type_map_.emplace("int32", std::unique_ptr<PrimitiveDescriptor>(
+                                 new PrimitiveDescriptor("int32", PrimType::kInt32)));
+  type_map_.emplace("int64", std::unique_ptr<PrimitiveDescriptor>(
+                                 new PrimitiveDescriptor("int64", PrimType::kInt64)));
+  type_map_.emplace("bool", std::unique_ptr<PrimitiveDescriptor>(
+                                new PrimitiveDescriptor("bool", PrimType::kBool)));
+  type_map_.emplace("float", std::unique_ptr<PrimitiveDescriptor>(
+                                 new PrimitiveDescriptor("float", PrimType::kFloat)));
+  type_map_.emplace("double", std::unique_ptr<PrimitiveDescriptor>(
+                                  new PrimitiveDescriptor("double", PrimType::kDouble)));
 
   // Add implicit SsHeader.
-  std::shared_ptr<StructDescriptor> ss_header(new StructDescriptor("SsHeader"));
-  ss_header->AddField("uid", type_map.at("uint32"));
-  ss_header->AddField("len", type_map.at("uint16"));
-  type_map.emplace("SsHeader", ss_header);
+  std::unique_ptr<StructDescriptor> ss_header(new StructDescriptor("SsHeader"));
+  ss_header->AddField("uid", type_map_.at("uint32").get());
+  ss_header->AddField("len", type_map_.at("uint16").get());
+  type_map_.emplace("SsHeader", std::move(ss_header));
 
   // Iterate through top level type definitions.
   for (const auto& pair : root_node) {
@@ -178,29 +168,25 @@ TypeMap DescriptorBuilder::FromNode(const YAML::Node& root_node) {
 
     const std::string type_name = type_name_node.as<std::string>();
     if (type_name == "Struct") {
-      type_map.emplace(name, ParseStruct(name, type_node, type_map, false));
+      ParseStruct(name, type_node, false);
     } else if (type_name == "Message") {
-      type_map.emplace(name, ParseStruct(name, type_node, type_map, true));
+      ParseStruct(name, type_node, true);
     } else if (type_name == "Enum") {
-      type_map.emplace(name, ParseEnum(name, type_node));
+      ParseEnum(name, type_node);
     } else if (type_name == "Bitfield") {
-      type_map.emplace(name, ParseBitfield(name, type_node, type_map));
+      ParseBitfield(name, type_node);
     } else {
       throw std::runtime_error("Unknown type name.");
     }
   }
-
-  return type_map;
 }
 
-std::unordered_map<std::string, std::shared_ptr<TypeDescriptor>> DescriptorBuilder::FromFile(
-    const std::string& filename) {
-  return FromNode(YAML::LoadFile(filename));
+DescriptorBuilder DescriptorBuilder::FromFile(const std::string& filename) {
+  return DescriptorBuilder(YAML::LoadFile(filename));
 }
 
-std::unordered_map<std::string, std::shared_ptr<TypeDescriptor>> DescriptorBuilder::FromString(
-    const std::string& str) {
-  return FromNode(YAML::Load(str));
+DescriptorBuilder DescriptorBuilder::FromString(const std::string& str) {
+  return DescriptorBuilder(YAML::Load(str));
 }
 
 };  // namespace ss
