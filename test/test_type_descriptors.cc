@@ -329,7 +329,11 @@ TEST(TypeDescriptor, TypeChecks) {
 TEST(TypeDescriptor, FieldLookup) {
   DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
 
-  ASSERT_THAT(types.types(), IsSupersetOf({Key("PrimitiveTest"), Key("int64")}));
+  ASSERT_THAT(types.types(), IsSupersetOf({Key("Bitfield4Bytes"), Key("PrimitiveTest"),
+                                           Key("uint16"), Key("int64")}));
 
-  EXPECT_EQ(types["PrimitiveTest"]->struct_get_field("int64"), types["int64"]);
+  EXPECT_EQ((*types["Bitfield4Bytes"])["field2"]->name(), "field2");
+  EXPECT_EQ((*types["Bitfield4Bytes"])["field2"]->type(), types["uint16"]);
+  EXPECT_EQ((*types["PrimitiveTest"])["int64"]->name(), "int64");
+  EXPECT_EQ((*types["PrimitiveTest"])["int64"]->type(), types["int64"]);
 }

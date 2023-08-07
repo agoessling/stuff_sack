@@ -64,7 +64,7 @@ class TypeDescriptor {
     throw std::runtime_error("Type has no struct_fields.");
   }
 
-  virtual const TypeDescriptor *struct_get_field(std::string_view field_name) const {
+  virtual const FieldDescriptor *operator[](std::string_view field_name) const {
     throw std::runtime_error("Type has no field lookup.");
   }
 
@@ -222,9 +222,9 @@ class StructDescriptor : public TypeDescriptor {
     return fields_;
   }
 
-  const TypeDescriptor *struct_get_field(std::string_view field_name) const override {
+  const FieldDescriptor *operator[](std::string_view field_name) const override {
     for (auto& field : fields_) {
-      if (field->name() == field_name) return field->type();
+      if (field->name() == field_name) return field.get();
     }
     return nullptr;
   }
@@ -249,6 +249,13 @@ class BitfieldDescriptor : public TypeDescriptor {
 
   const FieldList& struct_fields() const override {
     return fields_;
+  }
+
+  const FieldDescriptor *operator[](std::string_view field_name) const override {
+    for (auto& field : fields_) {
+      if (field->name() == field_name) return field.get();
+    }
+    return nullptr;
   }
 
  protected:
