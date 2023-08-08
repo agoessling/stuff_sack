@@ -49,6 +49,12 @@ py_binary(
 )
 
 cc_library(
+    name = "packing",
+    hdrs = ["packing.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "type_descriptors",
     srcs = ["type_descriptors.cc"],
     hdrs = ["type_descriptors.h"],

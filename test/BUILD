@@ -26,6 +26,17 @@ py_test(
 )
 
 cc_test(
+    name = "test_packing",
+    srcs = ["test_packing.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src:packing",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "test_type_descriptors",
     srcs = ["test_type_descriptors.cc"],
     data = ["test_message_spec.yaml"],
