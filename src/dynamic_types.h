@@ -17,12 +17,56 @@ namespace ss {
 class DynamicArray;
 class DynamicStruct;
 
+namespace impl {
+
+template <typename T>
+class Box {
+ public:
+  template <typename ...Args>
+  static Box<T> Make(Args&&... args) {
+    return Box<T>(std::make_unique<T>(std::forward<Args>(args)...));
+  }
+
+  Box() = delete;
+
+  Box(const T& val) : ptr_(std::make_unique<T>(val)) {}
+  Box(T&& val) : ptr_(std::make_unique<T>(std::move(val))) {}
+
+  Box(const Box& other) : Box(*other.ptr_) {}
+  Box(Box&& other) : ptr_(std::move(other.ptr_)) {}
+
+  Box& operator=(const Box& other) {
+    ptr_ = std::make_unique<T>(*other.ptr_);
+    return *this;
+  }
+
+  Box& operator=(Box&& other) {
+    ptr_ = std::move(other.ptr_);
+    return *this;
+  }
+
+  T& operator*() { return *ptr_; }
+  const T& operator*() const { return *ptr_; }
+
+  T *operator->() { return ptr_.get(); }
+  const T *operator->() const { return ptr_.get(); }
+
+  T *get() { return ptr_.get(); }
+  const T *get() const { return ptr_.get(); }
+
+ private:
+  Box(std::unique_ptr<T>&& ptr) : ptr_(std::move(ptr)) {}
+
+  std::unique_ptr<T> ptr_;
+};
+
+template <typename T> struct is_dynamic : std::false_type {};
+template <> struct is_dynamic<Box<DynamicStruct>> : std::true_type {};
+template <> struct is_dynamic<Box<DynamicArray>> : std::true_type {};
+
 using AnyField =
-    std::variant<std::unique_ptr<uint8_t>, std::unique_ptr<uint16_t>, std::unique_ptr<uint32_t>,
-                 std::unique_ptr<uint64_t>, std::unique_ptr<int8_t>, std::unique_ptr<int16_t>,
-                 std::unique_ptr<int32_t>, std::unique_ptr<int64_t>, std::unique_ptr<bool>,
-                 std::unique_ptr<float>, std::unique_ptr<double>, std::unique_ptr<DynamicArray>,
-                 std::unique_ptr<DynamicStruct>>;
+    std::variant<uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, bool,
+                 float, double, Box<DynamicArray>, Box<DynamicStruct>>;
 
 static inline AnyField MakeAnyField(const TypeDescriptor *field_type_descriptor) {
   using Type = TypeDescriptor::Type;
@@ -33,48 +77,56 @@ static inline AnyField MakeAnyField(const TypeDescriptor *field_type_descriptor)
     case Type::kEnum:
       switch (field_type_descriptor->prim_type()) {
         case PrimType::kUint8:
-          return std::make_unique<uint8_t>();
+          return AnyField(std::in_place_type<uint8_t>);
         case PrimType::kUint16:
-          return std::make_unique<uint16_t>();
+          return AnyField(std::in_place_type<uint16_t>);
         case PrimType::kUint32:
-          return std::make_unique<uint32_t>();
+          return AnyField(std::in_place_type<uint32_t>);
         case PrimType::kUint64:
-          return std::make_unique<uint64_t>();
+          return AnyField(std::in_place_type<uint64_t>);
         case PrimType::kInt8:
-          return std::make_unique<int8_t>();
+          return AnyField(std::in_place_type<int8_t>);
         case PrimType::kInt16:
-          return std::make_unique<int16_t>();
+          return AnyField(std::in_place_type<int16_t>);
         case PrimType::kInt32:
-          return std::make_unique<int32_t>();
+          return AnyField(std::in_place_type<int32_t>);
         case PrimType::kInt64:
-          return std::make_unique<int64_t>();
+          return AnyField(std::in_place_type<int64_t>);
         case PrimType::kBool:
-          return std::make_unique<bool>();
+          return AnyField(std::in_place_type<bool>);
         case PrimType::kFloat:
-          return std::make_unique<float>();
+          return AnyField(std::in_place_type<float>);
         case PrimType::kDouble:
-          return std::make_unique<double>();
+          return AnyField(std::in_place_type<double>);
       }
     case Type::kArray:
-      return std::make_unique<DynamicArray>(*field_type_descriptor);
+      return Box<DynamicArray>::Make(*field_type_descriptor);
     case Type::kStruct:
-      return std::make_unique<DynamicStruct>(*field_type_descriptor);
+      return Box<DynamicStruct>::Make(*field_type_descriptor);
   }
 
   return {};
 }
 
+};  // namespace impl
+
 class DynamicStruct {
  public:
   DynamicStruct(const TypeDescriptor& descriptor) : descriptor_{descriptor} {
     for (const std::unique_ptr<const FieldDescriptor>& field : descriptor.struct_fields()) {
-      fields_.emplace(field.get(), MakeAnyField(field->type()));
+      fields_.emplace(field.get(), impl::MakeAnyField(field->type()));
     }
   }
 
   template <typename T>
   T& Get(const FieldDescriptor& field_descriptor) {
-    return *std::get<std::unique_ptr<T>>(fields_.at(&field_descriptor)).get();
+    impl::AnyField& field = fields_.at(&field_descriptor);
+
+    if constexpr (std::is_same_v<T, DynamicStruct> || std::is_same_v<T, DynamicArray>) {
+      return *std::get<impl::Box<T>>(field);
+    } else {
+      return std::get<T>(field);
+    }
   }
 
   template <typename T>
@@ -86,7 +138,14 @@ class DynamicStruct {
   T *GetIf(const FieldDescriptor& field_descriptor) {
     const auto& field_it = fields_.find(&field_descriptor);
     if (field_it == fields_.end()) return nullptr;
-    return std::get<std::unique_ptr<T>>(field_it->second).get();
+
+    impl::AnyField& field = field_it->second;
+
+    if constexpr (std::is_same_v<T, DynamicStruct> || std::is_same_v<T, DynamicArray>) {
+      return *std::get<impl::Box<T>>(field);
+    } else {
+      return &std::get<T>(field);
+    }
   }
 
   template <typename T>
@@ -98,17 +157,17 @@ class DynamicStruct {
 
   template <typename T>
   T Convert(const FieldDescriptor& field_descriptor) {
-    AnyField& field = fields_.at(&field_descriptor);
+    impl::AnyField& field = fields_.at(&field_descriptor);
 
     return std::visit(
         [](auto&& field) {
-          using U = typename std::decay_t<decltype(field)>::element_type;
+          using U = std::decay_t<decltype(field)>;
 
-          if constexpr (std::is_same_v<U, DynamicStruct> || std::is_same_v<U, DynamicArray>) {
+          if constexpr (impl::is_dynamic<U>::value) {
             throw std::bad_variant_access();
             return T{};
           } else {
-            return static_cast<T>(*field.get());
+            return static_cast<T>(field);
           }
         },
         field);
@@ -126,13 +185,13 @@ class DynamicStruct {
 
     return std::visit(
         [](auto&& field) {
-          using U = typename std::decay_t<decltype(field)>::element_type;
+          using U = std::decay_t<decltype(field)>;
 
-          if constexpr (std::is_same_v<U, DynamicStruct> || std::is_same_v<U, DynamicArray>) {
-            throw std::bad_variant_access();
-            return T{};
+          if constexpr (impl::is_dynamic<U>::value) {
+             throw std::bad_variant_access();
+            return std::optional<T>{};
           } else {
-            return static_cast<T>(*field.get());
+            return std::optional<T>{static_cast<T>(field)};
           }
         },
         field_it->second);
@@ -148,7 +207,7 @@ class DynamicStruct {
   const TypeDescriptor& descriptor() const { return descriptor_; }
 
  private:
-  std::unordered_map<const FieldDescriptor *, AnyField> fields_;
+  std::unordered_map<const FieldDescriptor *, impl::AnyField> fields_;
   const TypeDescriptor& descriptor_;
 };
 
@@ -157,28 +216,29 @@ class DynamicArray {
   DynamicArray(const TypeDescriptor& descriptor)
       : descriptor_{descriptor}, elems_(descriptor.array_size()) {
     for (size_t i = 0; i < elems_.size(); ++i) {
-      elems_[i] = MakeAnyField(descriptor.array_elem_type());
+      elems_[i] = impl::MakeAnyField(descriptor.array_elem_type());
     }
   }
 
   template <typename T>
   T& Get(size_t i) {
-    return *std::get<std::unique_ptr<T>>(elems_[i]).get();
+    return *std::get<impl::Box<T>>(elems_[i]).get();
   }
 
   template <typename T>
   T Convert(size_t i) {
-    AnyField& field = elems_[i];
+    impl::AnyField& field = elems_[i];
 
     return std::visit(
         [](auto&& field) {
-          using U = typename std::decay_t<decltype(field)>::element_type;
+          using U = std::decay_t<decltype(field)>;
 
-          if constexpr (std::is_same_v<U, DynamicStruct> || std::is_same_v<U, DynamicArray>) {
+          if constexpr (impl::is_dynamic<U>::value) {
             throw std::bad_variant_access();
+            return T{};
           }
 
-          return static_cast<T>(*field.get());
+          return static_cast<T>(field);
         },
         field);
   }
@@ -188,7 +248,7 @@ class DynamicArray {
 
  private:
   const TypeDescriptor& descriptor_;
-  std::vector<AnyField> elems_;
+  std::vector<impl::AnyField> elems_;
 };
 
 }  // namespace ss

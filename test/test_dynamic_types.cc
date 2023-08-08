@@ -101,6 +101,22 @@ TEST(DynamicStruct, GetConvertIf) {
   EXPECT_FLOAT_EQ(*structure.ConvertIf<float>("uint8"), 1.0f);
 }
 
+TEST(DynamicStruct, Copy) {
+  DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
+  ASSERT_THAT(types.types(), Contains(Key("PrimitiveTest")));
+
+  const TypeDescriptor& primitive_test = *types["PrimitiveTest"];
+
+  DynamicStruct structure(primitive_test);
+  structure.Get<uint8_t>("uint8") = 1;
+
+  DynamicStruct another_struct = structure;
+
+  EXPECT_EQ(another_struct.Get<uint8_t>("uint8"), 1);
+  another_struct.Get<uint8_t>("uint8") = 2;
+  EXPECT_EQ(structure.Get<uint8_t>("uint8"), 1);
+}
+
 TEST(DynamicArray, ElemAccess) {
   DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
   ASSERT_THAT(types.types(), Contains(Key("ArrayTest")));
