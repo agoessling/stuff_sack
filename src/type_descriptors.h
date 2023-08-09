@@ -23,6 +23,7 @@ class TypeDescriptor {
     kPrimitive,
     kEnum,
     kStruct,
+    kBitfield,
     kArray,
   };
 
@@ -47,6 +48,7 @@ class TypeDescriptor {
   bool IsPrimitive() const { return type_ == Type::kPrimitive; }
   bool IsEnum() const { return type_ == Type::kEnum; }
   bool IsStruct() const { return type_ == Type::kStruct; }
+  bool IsBitfield() const { return type_ == Type::kBitfield; }
   bool IsArray() const { return type_ == Type::kArray; }
 
   virtual PrimType prim_type() const { throw std::runtime_error("Type has no prim_type."); }
@@ -171,8 +173,7 @@ class FieldDescriptor {
   const TypeDescriptor *type() const { return type_; }
 
  protected:
-  FieldDescriptor(std::string_view name, const TypeDescriptor *type)
-      : name_{name}, type_{type} {}
+  FieldDescriptor(std::string_view name, const TypeDescriptor *type) : name_{name}, type_{type} {}
   FieldDescriptor(const FieldDescriptor&) = delete;
   FieldDescriptor& operator=(const FieldDescriptor&) = delete;
 
@@ -200,8 +201,8 @@ class BitfieldFieldDescriptor : public FieldDescriptor {
  protected:
   friend class BitfieldDescriptor;
 
-  BitfieldFieldDescriptor(std::string_view name, const TypeDescriptor *type,
-                          int bit_offset, int bit_size)
+  BitfieldFieldDescriptor(std::string_view name, const TypeDescriptor *type, int bit_offset,
+                          int bit_size)
       : FieldDescriptor(name, type), bit_offset_{bit_offset}, bit_size_{bit_size} {
     (void)bit_offset_;
     (void)bit_size_;
@@ -218,9 +219,7 @@ class StructDescriptor : public TypeDescriptor {
  public:
   friend class DescriptorBuilder;
 
-  const FieldList& struct_fields() const override {
-    return fields_;
-  }
+  const FieldList& struct_fields() const override { return fields_; }
 
   const FieldDescriptor *operator[](std::string_view field_name) const override {
     for (auto& field : fields_) {
@@ -247,9 +246,8 @@ class BitfieldDescriptor : public TypeDescriptor {
  public:
   friend class DescriptorBuilder;
 
-  const FieldList& struct_fields() const override {
-    return fields_;
-  }
+  PrimType prim_type() const override { return prim_type_; }
+  const FieldList& struct_fields() const override { return fields_; }
 
   const FieldDescriptor *operator[](std::string_view field_name) const override {
     for (auto& field : fields_) {
@@ -259,26 +257,29 @@ class BitfieldDescriptor : public TypeDescriptor {
   }
 
  protected:
-  BitfieldDescriptor(std::string_view name) : TypeDescriptor(name, Type::kStruct) {}
+  BitfieldDescriptor(std::string_view name) : TypeDescriptor(name, Type::kBitfield) {}
   BitfieldDescriptor(const BitfieldDescriptor&) = delete;
   BitfieldDescriptor& operator=(const BitfieldDescriptor&) = delete;
 
-  void AddField(const std::string& name, const TypeDescriptor *field,
-                int bit_size) {
+  void AddField(const std::string& name, const TypeDescriptor *field, int bit_size) {
     fields_.emplace_back(new BitfieldFieldDescriptor(name, field, cur_bit_offset_, bit_size));
     cur_bit_offset_ += bit_size;
-    SetPackedSize();
+    SetBitfieldSize();
   }
 
  private:
-  void SetPackedSize() {
+  void SetBitfieldSize() {
     if (cur_bit_offset_ <= 8) {
+      prim_type_ = PrimType::kUint8;
       packed_size_ = 1;
     } else if (cur_bit_offset_ <= 16) {
+      prim_type_ = PrimType::kUint16;
       packed_size_ = 2;
     } else if (cur_bit_offset_ <= 32) {
+      prim_type_ = PrimType::kUint32;
       packed_size_ = 4;
     } else if (cur_bit_offset_ <= 64) {
+      prim_type_ = PrimType::kUint64;
       packed_size_ = 8;
     } else {
       throw std::runtime_error("Bitfield too big.");
@@ -286,6 +287,7 @@ class BitfieldDescriptor : public TypeDescriptor {
   }
 
   FieldList fields_;
+  PrimType prim_type_ = PrimType::kUint8;
   int cur_bit_offset_ = 0;
 };
 

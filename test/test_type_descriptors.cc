@@ -121,7 +121,8 @@ TEST(Parse, Bitfield) {
 
     const TypeDescriptor *type = types["Bitfield2Bytes"];
     EXPECT_EQ(type->name(), "Bitfield2Bytes");
-    EXPECT_EQ(type->type(), Type::kStruct);
+    EXPECT_EQ(type->type(), Type::kBitfield);
+    EXPECT_EQ(type->prim_type(), PrimType::kUint16);
     EXPECT_EQ(type->packed_size(), 2);
 
     EXPECT_THAT(type->struct_fields(), FieldDescriptorMatcher({{"field0", types["uint8"]},
@@ -134,7 +135,8 @@ TEST(Parse, Bitfield) {
 
     const TypeDescriptor *type = types["Bitfield4Bytes"];
     EXPECT_EQ(type->name(), "Bitfield4Bytes");
-    EXPECT_EQ(type->type(), Type::kStruct);
+    EXPECT_EQ(type->type(), Type::kBitfield);
+    EXPECT_EQ(type->prim_type(), PrimType::kUint32);
     EXPECT_EQ(type->packed_size(), 4);
 
     EXPECT_THAT(type->struct_fields(), FieldDescriptorMatcher({{"field0", types["uint8"]},
@@ -321,7 +323,7 @@ TEST(TypeDescriptor, TypeChecks) {
 
   EXPECT_TRUE(types["uint8"]->IsPrimitive());
   EXPECT_TRUE(types["Enum1Bytes"]->IsEnum());
-  EXPECT_TRUE(types["Bitfield2Bytes"]->IsStruct());
+  EXPECT_TRUE(types["Bitfield2Bytes"]->IsBitfield());
   EXPECT_TRUE(types["ArrayTest"]->IsStruct());
   EXPECT_TRUE(types["ArrayTest"]->struct_fields()[1]->type()->IsArray());
 }
