@@ -3,9 +3,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "src/packing.h"
+#include "src/dynamic/packing.h"
 
-using namespace ss;
+using namespace ss::dynamic;
 using namespace testing;
 
 TEST(Pack, BigEndian) {

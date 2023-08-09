@@ -1,4 +1,4 @@
-#include "src/type_descriptors.h"
+#include "src/dynamic/type_descriptors.h"
 
 #include <memory>
 #include <stdexcept>
@@ -8,11 +8,13 @@
 #include <yaml-cpp/yaml.h>
 
 namespace ss {
+namespace dynamic {
 
 using Type = TypeDescriptor::Type;
 using PrimType = TypeDescriptor::PrimType;
 
-const TypeDescriptor& DescriptorBuilder::ParseStruct(std::string_view name, const YAML::Node& node, bool is_msg) {
+const TypeDescriptor& DescriptorBuilder::ParseStruct(std::string_view name, const YAML::Node& node,
+                                                     bool is_msg) {
   std::unique_ptr<StructDescriptor> structure(new StructDescriptor(name, is_msg));
 
   // Add implicit SsHeader struct to messages.
@@ -96,7 +98,8 @@ const TypeDescriptor& DescriptorBuilder::ParseEnum(std::string_view name, const 
   return ret;
 }
 
-const TypeDescriptor& DescriptorBuilder::ParseBitfield(std::string_view name, const YAML::Node& node) {
+const TypeDescriptor& DescriptorBuilder::ParseBitfield(std::string_view name,
+                                                       const YAML::Node& node) {
   std::unique_ptr<BitfieldDescriptor> structure(new BitfieldDescriptor(name));
 
   // Iterate over "fields" array.
@@ -196,4 +199,5 @@ DescriptorBuilder DescriptorBuilder::FromString(const std::string& str) {
   return DescriptorBuilder(YAML::Load(str));
 }
 
-};  // namespace ss
+}  // namespace dynamic
+}  // namespace ss

@@ -5,9 +5,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "src/type_descriptors.h"
+#include "src/dynamic/type_descriptors.h"
 
-using namespace ss;
+using namespace ss::dynamic;
 using namespace testing;
 
 using Type = TypeDescriptor::Type;
@@ -49,7 +49,7 @@ TEST(DescriptorBuilder, UidLookup) {
   ASSERT_THAT(types.types(), IsSupersetOf({Key("PrimitiveTest"), Key("uint8")}));
 
   EXPECT_EQ(types.LookupMsgFromUid(0), nullptr);
-  EXPECT_EQ(types.LookupMsgFromUid(1635920604), nullptr); // uint8 UID
+  EXPECT_EQ(types.LookupMsgFromUid(1635920604), nullptr);  // uint8 UID
   EXPECT_EQ(types.LookupMsgFromUid(710579723), types["PrimitiveTest"]);
 }
 

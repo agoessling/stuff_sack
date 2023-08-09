@@ -6,13 +6,13 @@
 #include <type_traits>
 
 namespace ss {
-
+namespace dynamic {
 namespace impl {
 
 template <typename>
 inline constexpr bool always_false_v = false;
 
-};  // namespace impl
+}  // namespace impl
 
 template <typename T>
 static inline T UnpackBe(const uint8_t *data) {
@@ -106,4 +106,5 @@ static inline void PackBitfield(T data, U *dest, size_t bit_offset, size_t bit_s
   *dest |= raw_data << bit_offset;
 }
 
-};  // namespace ss
+}  // namespace dynamic
+}  // namespace ss

@@ -10,9 +10,10 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "uid_hash.h"
+#include "src/uid_hash.h"
 
 namespace ss {
+namespace dynamic {
 
 class FieldDescriptor;
 
@@ -398,4 +399,5 @@ class DescriptorBuilder {
   std::unordered_map<uint32_t, const TypeDescriptor *> uid_lookup_;
 };
 
-};  // namespace ss
+}  // namespace dynamic
+}  // namespace ss

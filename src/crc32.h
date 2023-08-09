@@ -9,7 +9,7 @@
 namespace ss {
 
 // Generate CRC table using the reversed polynomial from CRC-32.
-constexpr std::array<uint32_t, 256> GenerateCrc32Table() {
+static constexpr std::array<uint32_t, 256> GenerateCrc32Table() {
   constexpr uint32_t kPoly = 0xEDB88320;
 
   std::array<uint32_t, 256> table{};

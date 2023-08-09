@@ -10,14 +10,15 @@
 #include <variant>
 #include <vector>
 
-#include "src/packing.h"
-#include "src/type_descriptors.h"
+#include "src/dynamic/packing.h"
+#include "src/dynamic/type_descriptors.h"
 
 // These dynamic types were written with expediency as the primary requirement.  They leave a lot to
 // be desired in terms of efficiency, speed, and likely ergonomics.  However they should work as
 // advertised (see how I set the bar low?) in the corner use-cases in which they are required.
 
 namespace ss {
+namespace dynamic {
 
 class DynamicArray;
 class DynamicStruct;
@@ -155,7 +156,7 @@ static inline void UnpackToAnyField(AnyField& any_field, const uint8_t *data,
   }
 }
 
-};  // namespace impl
+}  // namespace impl
 
 class DynamicStruct {
  public:
@@ -269,7 +270,7 @@ class DynamicStruct {
           switch (field_type.prim_type()) {
             case TypeDescriptor::PrimType::kUint8:
               std::get<uint8_t>(any_field) =
-                  ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
+                  dynamic::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
               break;
             default:
               throw std::runtime_error("Incorrect bitfield field prim_type.");
@@ -281,11 +282,11 @@ class DynamicStruct {
           switch (field_type.prim_type()) {
             case TypeDescriptor::PrimType::kUint8:
               std::get<uint8_t>(any_field) =
-                  ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
+                  dynamic::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
               break;
             case TypeDescriptor::PrimType::kUint16:
               std::get<uint16_t>(any_field) =
-                  ss::UnpackBitfield<uint16_t>(raw_data, bit_offset, bit_size);
+                  dynamic::UnpackBitfield<uint16_t>(raw_data, bit_offset, bit_size);
               break;
             default:
               throw std::runtime_error("Incorrect bitfield field prim_type.");
@@ -297,15 +298,15 @@ class DynamicStruct {
           switch (field_type.prim_type()) {
             case TypeDescriptor::PrimType::kUint8:
               std::get<uint8_t>(any_field) =
-                  ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
+                  dynamic::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
               break;
             case TypeDescriptor::PrimType::kUint16:
               std::get<uint16_t>(any_field) =
-                  ss::UnpackBitfield<uint16_t>(raw_data, bit_offset, bit_size);
+                  dynamic::UnpackBitfield<uint16_t>(raw_data, bit_offset, bit_size);
               break;
             case TypeDescriptor::PrimType::kUint32:
               std::get<uint32_t>(any_field) =
-                  ss::UnpackBitfield<uint32_t>(raw_data, bit_offset, bit_size);
+                  dynamic::UnpackBitfield<uint32_t>(raw_data, bit_offset, bit_size);
               break;
             default:
               throw std::runtime_error("Incorrect bitfield field prim_type.");
@@ -317,19 +318,19 @@ class DynamicStruct {
           switch (field_type.prim_type()) {
             case TypeDescriptor::PrimType::kUint8:
               std::get<uint8_t>(any_field) =
-                  ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
+                  dynamic::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
               break;
             case TypeDescriptor::PrimType::kUint16:
               std::get<uint16_t>(any_field) =
-                  ss::UnpackBitfield<uint16_t>(raw_data, bit_offset, bit_size);
+                  dynamic::UnpackBitfield<uint16_t>(raw_data, bit_offset, bit_size);
               break;
             case TypeDescriptor::PrimType::kUint32:
               std::get<uint32_t>(any_field) =
-                  ss::UnpackBitfield<uint32_t>(raw_data, bit_offset, bit_size);
+                  dynamic::UnpackBitfield<uint32_t>(raw_data, bit_offset, bit_size);
               break;
             case TypeDescriptor::PrimType::kUint64:
               std::get<uint64_t>(any_field) =
-                  ss::UnpackBitfield<uint64_t>(raw_data, bit_offset, bit_size);
+                  dynamic::UnpackBitfield<uint64_t>(raw_data, bit_offset, bit_size);
               break;
             default:
               throw std::runtime_error("Incorrect bitfield field prim_type.");
@@ -466,4 +467,5 @@ static std::pair<std::optional<DynamicStruct>, UnpackStatus> UnpackMessage(
   return std::make_pair(msg, UnpackStatus::kSuccess);
 }
 
+}  // namespace dynamic
 }  // namespace ss

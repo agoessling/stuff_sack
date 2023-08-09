@@ -3,10 +3,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "src/dynamic_types.h"
-#include "src/type_descriptors.h"
+#include "src/dynamic/dynamic_types.h"
+#include "src/dynamic/type_descriptors.h"
 
-using namespace ss;
+using namespace ss::dynamic;
 using namespace testing;
 
 using PrimType = TypeDescriptor::PrimType;
