@@ -9,15 +9,23 @@ def main():
   args = parser.parse_args()
 
   library_str = \
-'''from src import py_stuff_sack
+f'''
+import os
+
+from src import py_stuff_sack
+
+# The location of the relative location of the runfiles depends on whether the library is run as a
+# tool or standalone.  We manually prepend the runfiles path to handle both cases.
+workspace = os.path.basename(os.getcwd())
 
 globals().update(py_stuff_sack.get_globals(
-    '{}',
-    '{}'
-))'''
+    os.path.join(os.environ['RUNFILES_DIR'], workspace, '{args.lib}'),
+    os.path.join(os.environ['RUNFILES_DIR'], workspace, '{args.spec}')
+))
+'''
 
   with open(args.output, 'w') as f:
-    f.write(library_str.format(args.lib, args.spec))
+    f.write(library_str)
 
 
 if __name__ == '__main__':
