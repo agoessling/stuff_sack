@@ -17,7 +17,7 @@ void DescriptorBuilder::ParseStruct(std::string_view name, const YAML::Node& nod
 
   // Add implicit SsHeader struct to messages.
   if (is_msg) {
-    structure->AddField("ss_header", type_map_.at("SsHeader").get());
+    structure->AddField("ss_header", *type_map_.at("SsHeader").get());
   }
 
   // Iterate over "fields" array.
@@ -33,7 +33,7 @@ void DescriptorBuilder::ParseStruct(std::string_view name, const YAML::Node& nod
 
       if (field_type_node.IsScalar()) {
         // Field is simple type.
-        structure->AddField(field_name, type_map_.at(field_type_node.as<std::string>()).get());
+        structure->AddField(field_name, *type_map_.at(field_type_node.as<std::string>()).get());
       } else if (field_type_node.IsSequence()) {
         // Field is array.
         structure->AddField(field_name, ParseArray(field_type_node));
@@ -46,7 +46,7 @@ void DescriptorBuilder::ParseStruct(std::string_view name, const YAML::Node& nod
   type_map_.emplace(name, std::move(structure));
 }
 
-TypeDescriptor *DescriptorBuilder::ParseArray(const YAML::Node& node) {
+const TypeDescriptor& DescriptorBuilder::ParseArray(const YAML::Node& node) {
   const YAML::Node& type_node = node[0];  // Type is first element of sequence.
   const int size = node[1].as<int>();  // Size is second.
 
@@ -55,7 +55,7 @@ TypeDescriptor *DescriptorBuilder::ParseArray(const YAML::Node& node) {
   if (type_node.IsScalar()) {
     // Type is simple type.
     array = std::unique_ptr<ArrayDescriptor>(
-        new ArrayDescriptor(type_map_.at(type_node.as<std::string>()).get(), size));
+        new ArrayDescriptor(*type_map_.at(type_node.as<std::string>()).get(), size));
   } else if (type_node.IsSequence()) {
     // Type is nested array.
     array = std::unique_ptr<ArrayDescriptor>(new ArrayDescriptor(ParseArray(type_node), size));
@@ -67,10 +67,10 @@ TypeDescriptor *DescriptorBuilder::ParseArray(const YAML::Node& node) {
   if (!type_map_.count(array->name())) {
     TypeDescriptor *ret = array.get();
     type_map_.emplace(array->name(), std::move(array));
-    return ret;
+    return *ret;
   }
 
-  return type_map_.at(array->name()).get();
+  return *type_map_.at(array->name()).get();
 }
 
 void DescriptorBuilder::ParseEnum(std::string_view name, const YAML::Node& node) {
@@ -106,7 +106,7 @@ void DescriptorBuilder::ParseBitfield(std::string_view name, const YAML::Node& n
 
       const int size = field_def_pair.second.as<int>();
 
-      TypeDescriptor *prim;
+      const TypeDescriptor *prim;
       if (size <= 8) {
         prim = type_map_.at("uint8").get();
       } else if (size <= 16) {
@@ -119,7 +119,7 @@ void DescriptorBuilder::ParseBitfield(std::string_view name, const YAML::Node& n
         throw std::runtime_error("Bitfield field too large.");
       }
 
-      structure->AddField(field_name, prim, size);
+      structure->AddField(field_name, *prim, size);
     }
   }
 
@@ -153,8 +153,8 @@ DescriptorBuilder::DescriptorBuilder(const YAML::Node& root_node) {
 
   // Add implicit SsHeader.
   std::unique_ptr<StructDescriptor> ss_header(new StructDescriptor("SsHeader"));
-  ss_header->AddField("uid", type_map_.at("uint32").get());
-  ss_header->AddField("len", type_map_.at("uint16").get());
+  ss_header->AddField("uid", *type_map_.at("uint32").get());
+  ss_header->AddField("len", *type_map_.at("uint16").get());
   type_map_.emplace("SsHeader", std::move(ss_header));
 
   // Iterate through top level type definitions.

@@ -75,14 +75,14 @@ struct is_dynamic<Box<DynamicArray>> : std::true_type {};
 using AnyField = std::variant<uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t,
                               int64_t, bool, float, double, Box<DynamicArray>, Box<DynamicStruct>>;
 
-static inline AnyField MakeAnyField(const TypeDescriptor *field_type_descriptor) {
+static inline AnyField MakeAnyField(const TypeDescriptor& field_type_descriptor) {
   using Type = TypeDescriptor::Type;
   using PrimType = TypeDescriptor::PrimType;
 
-  switch (field_type_descriptor->type()) {
+  switch (field_type_descriptor.type()) {
     case Type::kPrimitive:
     case Type::kEnum:
-      switch (field_type_descriptor->prim_type()) {
+      switch (field_type_descriptor.prim_type()) {
         case PrimType::kUint8:
           return AnyField(std::in_place_type<uint8_t>);
         case PrimType::kUint16:
@@ -107,10 +107,10 @@ static inline AnyField MakeAnyField(const TypeDescriptor *field_type_descriptor)
           return AnyField(std::in_place_type<double>);
       }
     case Type::kArray:
-      return Box<DynamicArray>::Make(*field_type_descriptor);
+      return Box<DynamicArray>::Make(field_type_descriptor);
     case Type::kStruct:
     case Type::kBitfield:
-      return Box<DynamicStruct>::Make(*field_type_descriptor);
+      return Box<DynamicStruct>::Make(field_type_descriptor);
   }
 
   return {};
@@ -258,7 +258,7 @@ class DynamicStruct {
  private:
   void UnpackBitfield(const uint8_t *data) {
     for (const std::unique_ptr<const FieldDescriptor>& field : descriptor_.struct_fields()) {
-      const TypeDescriptor *field_type = field->type();
+      const TypeDescriptor& field_type = field->type();
       impl::AnyField& any_field = fields_.at(field.get());
       const int bit_offset = field->bit_offset();
       const int bit_size = field->bit_size();
@@ -266,7 +266,7 @@ class DynamicStruct {
       switch (descriptor_.prim_type()) {
         case TypeDescriptor::PrimType::kUint8: {
           const uint8_t raw_data = UnpackBe<uint8_t>(data);
-          switch (field_type->prim_type()) {
+          switch (field_type.prim_type()) {
             case TypeDescriptor::PrimType::kUint8:
               std::get<uint8_t>(any_field) =
                   ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
@@ -278,7 +278,7 @@ class DynamicStruct {
         }
         case TypeDescriptor::PrimType::kUint16: {
           const uint16_t raw_data = UnpackBe<uint16_t>(data);
-          switch (field_type->prim_type()) {
+          switch (field_type.prim_type()) {
             case TypeDescriptor::PrimType::kUint8:
               std::get<uint8_t>(any_field) =
                   ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
@@ -294,7 +294,7 @@ class DynamicStruct {
         }
         case TypeDescriptor::PrimType::kUint32: {
           const uint32_t raw_data = UnpackBe<uint32_t>(data);
-          switch (field_type->prim_type()) {
+          switch (field_type.prim_type()) {
             case TypeDescriptor::PrimType::kUint8:
               std::get<uint8_t>(any_field) =
                   ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
@@ -314,7 +314,7 @@ class DynamicStruct {
         }
         case TypeDescriptor::PrimType::kUint64: {
           const uint64_t raw_data = UnpackBe<uint64_t>(data);
-          switch (field_type->prim_type()) {
+          switch (field_type.prim_type()) {
             case TypeDescriptor::PrimType::kUint8:
               std::get<uint8_t>(any_field) =
                   ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
@@ -356,13 +356,13 @@ class DynamicArray {
   }
 
   void Unpack(const uint8_t *data) {
-    const TypeDescriptor *elem_type = descriptor_.array_elem_type();
+    const TypeDescriptor& elem_type = descriptor_.array_elem_type();
 
     for (impl::AnyField& any_field : elems_) {
-      switch (elem_type->type()) {
+      switch (elem_type.type()) {
         case TypeDescriptor::Type::kPrimitive:
         case TypeDescriptor::Type::kEnum:
-          impl::UnpackToAnyField(any_field, data, elem_type->prim_type());
+          impl::UnpackToAnyField(any_field, data, elem_type.prim_type());
           break;
         case TypeDescriptor::Type::kArray:
           std::get<impl::Box<DynamicArray>>(any_field)->Unpack(data);
@@ -373,7 +373,7 @@ class DynamicArray {
           break;
       }
 
-      data += elem_type->packed_size();
+      data += elem_type.packed_size();
     }
   }
 
@@ -415,13 +415,13 @@ inline void DynamicStruct::Unpack(const uint8_t *data) {
   }
 
   for (const std::unique_ptr<const FieldDescriptor>& field : descriptor_.struct_fields()) {
-    const TypeDescriptor *field_type = field->type();
+    const TypeDescriptor& field_type = field->type();
     impl::AnyField& any_field = fields_.at(field.get());
 
-    switch (field_type->type()) {
+    switch (field_type.type()) {
       case TypeDescriptor::Type::kPrimitive:
       case TypeDescriptor::Type::kEnum:
-        impl::UnpackToAnyField(any_field, data, field_type->prim_type());
+        impl::UnpackToAnyField(any_field, data, field_type.prim_type());
         break;
       case TypeDescriptor::Type::kArray:
         std::get<impl::Box<DynamicArray>>(any_field)->Unpack(data);
@@ -432,7 +432,7 @@ inline void DynamicStruct::Unpack(const uint8_t *data) {
         break;
     }
 
-    data += field_type->packed_size();
+    data += field_type.packed_size();
   }
 }
 

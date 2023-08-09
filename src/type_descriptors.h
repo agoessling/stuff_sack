@@ -62,7 +62,7 @@ class TypeDescriptor {
   }
 
   virtual int array_size() const { throw std::runtime_error("Type has no array_size."); }
-  virtual const TypeDescriptor *array_elem_type() const {
+  virtual const TypeDescriptor& array_elem_type() const {
     throw std::runtime_error("Type has no array_elem_type().");
   }
 
@@ -178,7 +178,7 @@ class EnumDescriptor : public PrimitiveDescriptor {
 class FieldDescriptor {
  public:
   const std::string& name() const { return name_; }
-  const TypeDescriptor *type() const { return type_; }
+  const TypeDescriptor& type() const { return type_; }
   uint32_t uid() const { return uid_; }
 
   virtual int offset() const { throw std::runtime_error("Field does not have offset."); }
@@ -186,14 +186,14 @@ class FieldDescriptor {
   virtual int bit_size() const { throw std::runtime_error("Field does not have bit_size."); }
 
  protected:
-  FieldDescriptor(const std::string& name, const TypeDescriptor *type, uint32_t uid)
+  FieldDescriptor(const std::string& name, const TypeDescriptor& type, uint32_t uid)
       : name_{name}, type_{type}, uid_{uid} {}
   FieldDescriptor(const FieldDescriptor&) = delete;
   FieldDescriptor& operator=(const FieldDescriptor&) = delete;
 
  private:
   std::string name_;
-  const TypeDescriptor *type_;
+  const TypeDescriptor& type_;
   uint32_t uid_;
 };
 
@@ -204,8 +204,8 @@ class StructFieldDescriptor : public FieldDescriptor {
  protected:
   friend class StructDescriptor;
 
-  StructFieldDescriptor(const std::string& name, const TypeDescriptor *type, int offset)
-      : FieldDescriptor(name, type, StructFieldHash(name.c_str(), type->uid())), offset_{offset} {}
+  StructFieldDescriptor(const std::string& name, const TypeDescriptor& type, int offset)
+      : FieldDescriptor(name, type, StructFieldHash(name.c_str(), type.uid())), offset_{offset} {}
   StructFieldDescriptor(const StructFieldDescriptor&) = delete;
   StructFieldDescriptor& operator=(const StructFieldDescriptor&) = delete;
 
@@ -221,7 +221,7 @@ class BitfieldFieldDescriptor : public FieldDescriptor {
  protected:
   friend class BitfieldDescriptor;
 
-  BitfieldFieldDescriptor(const std::string& name, const TypeDescriptor *type, int bit_offset,
+  BitfieldFieldDescriptor(const std::string& name, const TypeDescriptor& type, int bit_offset,
                           int bit_size)
       : FieldDescriptor(name, type, BitfieldFieldHash(name.c_str(), bit_size)),
         bit_offset_{bit_offset},
@@ -255,9 +255,9 @@ class StructDescriptor : public TypeDescriptor {
   StructDescriptor(const StructDescriptor&) = delete;
   StructDescriptor& operator=(const StructDescriptor&) = delete;
 
-  void AddField(const std::string& name, const TypeDescriptor *field) {
+  void AddField(const std::string& name, const TypeDescriptor& field) {
     fields_.emplace_back(new StructFieldDescriptor(name, field, packed_size_));
-    packed_size_ += field->packed_size();
+    packed_size_ += field.packed_size();
     SetUid();
   }
 
@@ -292,7 +292,7 @@ class BitfieldDescriptor : public TypeDescriptor {
   BitfieldDescriptor(const BitfieldDescriptor&) = delete;
   BitfieldDescriptor& operator=(const BitfieldDescriptor&) = delete;
 
-  void AddField(const std::string& name, const TypeDescriptor *field, int bit_size) {
+  void AddField(const std::string& name, const TypeDescriptor& field, int bit_size) {
     fields_.emplace_back(new BitfieldFieldDescriptor(name, field, cur_bit_offset_, bit_size));
     cur_bit_offset_ += bit_size;
     SetBitfieldSize();
@@ -336,13 +336,13 @@ class ArrayDescriptor : public TypeDescriptor {
   friend class DescriptorBuilder;
 
   int array_size() const override { return size_; }
-  const TypeDescriptor *array_elem_type() const override { return elem_; }
+  const TypeDescriptor& array_elem_type() const override { return elem_; }
 
  protected:
-  ArrayDescriptor(const TypeDescriptor *elem, int size)
-      : TypeDescriptor(ArrayName(*elem, size), Type::kArray), elem_{elem}, size_{size} {
-    packed_size_ = elem->packed_size() * size;
-    uid_ = ArrayHash(elem->uid(), size);
+  ArrayDescriptor(const TypeDescriptor& elem, int size)
+      : TypeDescriptor(ArrayName(elem, size), Type::kArray), elem_{elem}, size_{size} {
+    packed_size_ = elem.packed_size() * size;
+    uid_ = ArrayHash(elem.uid(), size);
   }
 
   ArrayDescriptor(const ArrayDescriptor&) = delete;
@@ -353,7 +353,7 @@ class ArrayDescriptor : public TypeDescriptor {
     return elem.name() + "[" + std::to_string(size) + "]";
   }
 
-  const TypeDescriptor *elem_;
+  const TypeDescriptor& elem_;
   int size_;
 };
 
@@ -367,14 +367,16 @@ class DescriptorBuilder {
   DescriptorBuilder(const YAML::Node& root_node);
 
   const TypeDescriptor *operator[](const std::string& name) const {
-    return type_map_.at(name).get();
+    const auto& type_it = type_map_.find(name);
+    if (type_it == type_map_.end()) return nullptr;
+    return type_it->second.get();
   }
 
   const TypeMap& types() const { return type_map_; }
 
  private:
   void ParseStruct(std::string_view name, const YAML::Node& node, bool is_msg);
-  TypeDescriptor *ParseArray(const YAML::Node& node);
+  const TypeDescriptor& ParseArray(const YAML::Node& node);
   void ParseEnum(std::string_view name, const YAML::Node& node);
   void ParseBitfield(std::string_view name, const YAML::Node& node);
 
