@@ -60,6 +60,7 @@ cc_library(
     hdrs = ["type_descriptors.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":uid_hash",
         "@yaml-cpp",
     ],
 )

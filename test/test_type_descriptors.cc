@@ -1,4 +1,5 @@
 #include <fstream>
+#include <sstream>
 #include <string>
 
 #include <gmock/gmock.h>
@@ -47,56 +48,67 @@ TEST(Parse, BasicTypes) {
   EXPECT_EQ(types["uint8"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["uint8"]->packed_size(), 1);
   EXPECT_EQ(types["uint8"]->prim_type(), PrimType::kUint8);
+  EXPECT_EQ(types["uint8"]->uid(), 1635920604);
 
   EXPECT_EQ(types["uint16"]->name(), "uint16");
   EXPECT_EQ(types["uint16"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["uint16"]->packed_size(), 2);
   EXPECT_EQ(types["uint16"]->prim_type(), PrimType::kUint16);
+  EXPECT_EQ(types["uint16"]->uid(), 4255558950);
 
   EXPECT_EQ(types["uint32"]->name(), "uint32");
   EXPECT_EQ(types["uint32"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["uint32"]->packed_size(), 4);
   EXPECT_EQ(types["uint32"]->prim_type(), PrimType::kUint32);
+  EXPECT_EQ(types["uint32"]->uid(), 3781676068);
 
   EXPECT_EQ(types["uint64"]->name(), "uint64");
   EXPECT_EQ(types["uint64"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["uint64"]->packed_size(), 8);
   EXPECT_EQ(types["uint64"]->prim_type(), PrimType::kUint64);
+  EXPECT_EQ(types["uint64"]->uid(), 89804963);
 
   EXPECT_EQ(types["int8"]->name(), "int8");
   EXPECT_EQ(types["int8"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["int8"]->packed_size(), 1);
   EXPECT_EQ(types["int8"]->prim_type(), PrimType::kInt8);
+  EXPECT_EQ(types["int8"]->uid(), 2105324863);
 
   EXPECT_EQ(types["int16"]->name(), "int16");
   EXPECT_EQ(types["int16"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["int16"]->packed_size(), 2);
   EXPECT_EQ(types["int16"]->prim_type(), PrimType::kInt16);
+  EXPECT_EQ(types["int16"]->uid(), 3300515963);
 
   EXPECT_EQ(types["int32"]->name(), "int32");
   EXPECT_EQ(types["int32"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["int32"]->packed_size(), 4);
   EXPECT_EQ(types["int32"]->prim_type(), PrimType::kInt32);
+  EXPECT_EQ(types["int32"]->uid(), 3631776121);
 
   EXPECT_EQ(types["int64"]->name(), "int64");
   EXPECT_EQ(types["int64"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["int64"]->packed_size(), 8);
   EXPECT_EQ(types["int64"]->prim_type(), PrimType::kInt64);
+  EXPECT_EQ(types["int64"]->uid(), 1011162622);
 
   EXPECT_EQ(types["bool"]->name(), "bool");
   EXPECT_EQ(types["bool"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["bool"]->packed_size(), 1);
   EXPECT_EQ(types["bool"]->prim_type(), PrimType::kBool);
+  EXPECT_EQ(types["bool"]->uid(), 3883404294);
 
   EXPECT_EQ(types["float"]->name(), "float");
   EXPECT_EQ(types["float"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["float"]->packed_size(), 4);
   EXPECT_EQ(types["float"]->prim_type(), PrimType::kFloat);
+  EXPECT_EQ(types["float"]->uid(), 58387438);
 
   EXPECT_EQ(types["double"]->name(), "double");
   EXPECT_EQ(types["double"]->type(), Type::kPrimitive);
   EXPECT_EQ(types["double"]->packed_size(), 8);
   EXPECT_EQ(types["double"]->prim_type(), PrimType::kDouble);
+  EXPECT_EQ(types["double"]->uid(), 3385497865);
 }
 
 TEST(Parse, SsHeader) {
@@ -108,6 +120,7 @@ TEST(Parse, SsHeader) {
   EXPECT_EQ(type->name(), "SsHeader");
   EXPECT_EQ(type->type(), Type::kStruct);
   EXPECT_EQ(type->packed_size(), 6);
+  EXPECT_EQ(type->uid(), 1168420962);
 
   EXPECT_THAT(type->struct_fields(),
               FieldDescriptorMatcher({{"uid", types["uint32"]}, {"len", types["uint16"]}}));
@@ -124,6 +137,7 @@ TEST(Parse, Bitfield) {
     EXPECT_EQ(type->type(), Type::kBitfield);
     EXPECT_EQ(type->prim_type(), PrimType::kUint16);
     EXPECT_EQ(type->packed_size(), 2);
+    EXPECT_EQ(type->uid(), 925532077);
 
     EXPECT_THAT(type->struct_fields(), FieldDescriptorMatcher({{"field0", types["uint8"]},
                                                                {"field1", types["uint8"]},
@@ -138,6 +152,7 @@ TEST(Parse, Bitfield) {
     EXPECT_EQ(type->type(), Type::kBitfield);
     EXPECT_EQ(type->prim_type(), PrimType::kUint32);
     EXPECT_EQ(type->packed_size(), 4);
+    EXPECT_EQ(type->uid(), 3277138255);
 
     EXPECT_THAT(type->struct_fields(), FieldDescriptorMatcher({{"field0", types["uint8"]},
                                                                {"field1", types["uint8"]},
@@ -155,6 +170,7 @@ TEST(Parse, Enum) {
     EXPECT_EQ(type->name(), "Enum1Bytes");
     EXPECT_EQ(type->type(), Type::kEnum);
     EXPECT_EQ(type->packed_size(), 1);
+    EXPECT_EQ(type->uid(), 2738687264);
 
     std::vector<Matcher<std::string>> value_matcher;
     for (int i = 0; i < 127; ++i) {
@@ -171,6 +187,7 @@ TEST(Parse, Enum) {
     EXPECT_EQ(type->name(), "Enum2Bytes");
     EXPECT_EQ(type->type(), Type::kEnum);
     EXPECT_EQ(type->packed_size(), 2);
+    EXPECT_EQ(type->uid(), 62480479);
 
     std::vector<Matcher<std::string>> value_matcher;
     for (int i = 0; i < 128; ++i) {
@@ -191,6 +208,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type->name(), "Bitfield2BytesTest");
     EXPECT_EQ(type->type(), Type::kStruct);
     EXPECT_EQ(type->packed_size(), 8);
+    EXPECT_EQ(type->uid(), 790209514);
 
     EXPECT_THAT(type->struct_fields(),
                 FieldDescriptorMatcher(
@@ -204,6 +222,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type->name(), "Bitfield4BytesTest");
     EXPECT_EQ(type->type(), Type::kStruct);
     EXPECT_EQ(type->packed_size(), 10);
+    EXPECT_EQ(type->uid(), 2987876557);
 
     EXPECT_THAT(type->struct_fields(),
                 FieldDescriptorMatcher(
@@ -217,6 +236,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type->name(), "Enum1BytesTest");
     EXPECT_EQ(type->type(), Type::kStruct);
     EXPECT_EQ(type->packed_size(), 7);
+    EXPECT_EQ(type->uid(), 3088844579);
 
     EXPECT_THAT(type->struct_fields(),
                 FieldDescriptorMatcher(
@@ -230,6 +250,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type->name(), "Enum2BytesTest");
     EXPECT_EQ(type->type(), Type::kStruct);
     EXPECT_EQ(type->packed_size(), 8);
+    EXPECT_EQ(type->uid(), 3412096780);
 
     EXPECT_THAT(type->struct_fields(),
                 FieldDescriptorMatcher(
@@ -243,6 +264,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type->name(), "PrimitiveTest");
     EXPECT_EQ(type->type(), Type::kStruct);
     EXPECT_EQ(type->packed_size(), 49);
+    EXPECT_EQ(type->uid(), 710579723);
 
     EXPECT_THAT(type->struct_fields(), FieldDescriptorMatcher({{"ss_header", types["SsHeader"]},
                                                                {"uint8", types["uint8"]},
@@ -265,6 +287,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type->name(), "ArrayElem");
     EXPECT_EQ(type->type(), Type::kStruct);
     EXPECT_EQ(type->packed_size(), 3);
+    EXPECT_EQ(type->uid(), 2009546574);
 
     EXPECT_THAT(type->struct_fields(),
                 FieldDescriptorMatcher({{"field0", types["bool"]}, {"field1", types["uint16"]}}));
@@ -280,6 +303,7 @@ TEST(Parse, Array) {
   EXPECT_EQ(type->name(), "ArrayTest");
   EXPECT_EQ(type->type(), Type::kStruct);
   EXPECT_EQ(type->packed_size(), 51);
+  EXPECT_EQ(type->uid(), 1603316679);
 
   const TypeDescriptor::FieldList& fields = type->struct_fields();
   ASSERT_EQ(fields.size(), 4);
@@ -288,6 +312,7 @@ TEST(Parse, Array) {
   EXPECT_EQ(fields[0]->type(), types["SsHeader"]);
 
   EXPECT_EQ(fields[1]->name(), "array_1d");
+  EXPECT_EQ(fields[1]->uid(), 839597695);
   const TypeDescriptor *array_1d_type = fields[1]->type();
   EXPECT_EQ(array_1d_type, types["ArrayElem[3]"]);
   EXPECT_EQ(array_1d_type->name(), "ArrayElem[3]");
@@ -297,6 +322,7 @@ TEST(Parse, Array) {
   EXPECT_EQ(array_1d_type->array_elem_type(), types["ArrayElem"]);
 
   EXPECT_EQ(fields[2]->name(), "array_2d");
+  EXPECT_EQ(fields[2]->uid(), 3943356787);
   const TypeDescriptor *array_2d_type = fields[2]->type();
   EXPECT_EQ(array_2d_type, types["ArrayElem[3][2]"]);
   EXPECT_EQ(array_2d_type->name(), "ArrayElem[3][2]");
@@ -306,6 +332,7 @@ TEST(Parse, Array) {
   EXPECT_EQ(array_2d_type->array_elem_type(), types["ArrayElem[3]"]);
 
   EXPECT_EQ(fields[3]->name(), "array_3d");
+  EXPECT_EQ(fields[3]->uid(), 1864919824);
   const TypeDescriptor *array_3d_type = fields[3]->type();
   EXPECT_EQ(array_3d_type, types["ArrayElem[3][2][1]"]);
   EXPECT_EQ(array_3d_type->name(), "ArrayElem[3][2][1]");

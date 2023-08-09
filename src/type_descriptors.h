@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -8,6 +9,8 @@
 #include <vector>
 
 #include <yaml-cpp/yaml.h>
+
+#include "uid_hash.h"
 
 namespace ss {
 
@@ -44,6 +47,7 @@ class TypeDescriptor {
   Type type() const { return type_; }
   int packed_size() const { return packed_size_; }
   const std::string& name() const { return name_; }
+  uint32_t uid() const { return uid_; }
 
   bool IsPrimitive() const { return type_ == Type::kPrimitive; }
   bool IsEnum() const { return type_ == Type::kEnum; }
@@ -76,6 +80,7 @@ class TypeDescriptor {
   TypeDescriptor& operator=(const TypeDescriptor&) = delete;
 
   int packed_size_ = 0;
+  uint32_t uid_ = 0;
 
  private:
   std::string name_;
@@ -109,6 +114,8 @@ class PrimitiveDescriptor : public TypeDescriptor {
   }
 
  private:
+  void SetUid() { uid_ = PrimitiveHash(name().c_str(), packed_size_); }
+
   void SetPackedSize() {
     switch (prim_type_) {
       case PrimType::kUint8:
@@ -131,6 +138,7 @@ class PrimitiveDescriptor : public TypeDescriptor {
         packed_size_ = 8;
         break;
     }
+    SetUid();
   }
 
   PrimType prim_type_;
@@ -171,18 +179,22 @@ class FieldDescriptor {
  public:
   const std::string& name() const { return name_; }
   const TypeDescriptor *type() const { return type_; }
+  uint32_t uid() const { return uid_; }
+
   virtual int offset() const { throw std::runtime_error("Field does not have offset."); }
   virtual int bit_offset() const { throw std::runtime_error("Field does not have bit_offset."); }
   virtual int bit_size() const { throw std::runtime_error("Field does not have bit_size."); }
 
  protected:
-  FieldDescriptor(std::string_view name, const TypeDescriptor *type) : name_{name}, type_{type} {}
+  FieldDescriptor(const std::string& name, const TypeDescriptor *type, uint32_t uid)
+      : name_{name}, type_{type}, uid_{uid} {}
   FieldDescriptor(const FieldDescriptor&) = delete;
   FieldDescriptor& operator=(const FieldDescriptor&) = delete;
 
  private:
   std::string name_;
   const TypeDescriptor *type_;
+  uint32_t uid_;
 };
 
 class StructFieldDescriptor : public FieldDescriptor {
@@ -192,8 +204,8 @@ class StructFieldDescriptor : public FieldDescriptor {
  protected:
   friend class StructDescriptor;
 
-  StructFieldDescriptor(std::string_view name, const TypeDescriptor *type, int offset)
-      : FieldDescriptor(name, type), offset_{offset} {}
+  StructFieldDescriptor(const std::string& name, const TypeDescriptor *type, int offset)
+      : FieldDescriptor(name, type, StructFieldHash(name.c_str(), type->uid())), offset_{offset} {}
   StructFieldDescriptor(const StructFieldDescriptor&) = delete;
   StructFieldDescriptor& operator=(const StructFieldDescriptor&) = delete;
 
@@ -209,9 +221,11 @@ class BitfieldFieldDescriptor : public FieldDescriptor {
  protected:
   friend class BitfieldDescriptor;
 
-  BitfieldFieldDescriptor(std::string_view name, const TypeDescriptor *type, int bit_offset,
+  BitfieldFieldDescriptor(const std::string& name, const TypeDescriptor *type, int bit_offset,
                           int bit_size)
-      : FieldDescriptor(name, type), bit_offset_{bit_offset}, bit_size_{bit_size} {
+      : FieldDescriptor(name, type, BitfieldFieldHash(name.c_str(), bit_size)),
+        bit_offset_{bit_offset},
+        bit_size_{bit_size} {
     (void)bit_offset_;
     (void)bit_size_;
   }
@@ -244,9 +258,18 @@ class StructDescriptor : public TypeDescriptor {
   void AddField(const std::string& name, const TypeDescriptor *field) {
     fields_.emplace_back(new StructFieldDescriptor(name, field, packed_size_));
     packed_size_ += field->packed_size();
+    SetUid();
   }
 
  private:
+  void SetUid() {
+    std::vector<uint32_t> field_uids(fields_.size());
+    for (size_t i = 0; i < fields_.size(); ++i) {
+      field_uids[i] = fields_[i]->uid();
+    }
+    uid_ = StructHash(name().c_str(), field_uids.data(), field_uids.size());
+  }
+
   FieldList fields_;
 };
 
@@ -273,9 +296,18 @@ class BitfieldDescriptor : public TypeDescriptor {
     fields_.emplace_back(new BitfieldFieldDescriptor(name, field, cur_bit_offset_, bit_size));
     cur_bit_offset_ += bit_size;
     SetBitfieldSize();
+    SetUid();
   }
 
  private:
+  void SetUid() {
+    std::vector<uint32_t> field_uids(fields_.size());
+    for (size_t i = 0; i < fields_.size(); ++i) {
+      field_uids[i] = fields_[i]->uid();
+    }
+    uid_ = BitfieldHash(name().c_str(), field_uids.data(), field_uids.size());
+  }
+
   void SetBitfieldSize() {
     if (cur_bit_offset_ <= 8) {
       prim_type_ = PrimType::kUint8;
@@ -310,6 +342,7 @@ class ArrayDescriptor : public TypeDescriptor {
   ArrayDescriptor(const TypeDescriptor *elem, int size)
       : TypeDescriptor(ArrayName(*elem, size), Type::kArray), elem_{elem}, size_{size} {
     packed_size_ = elem->packed_size() * size;
+    uid_ = ArrayHash(elem->uid(), size);
   }
 
   ArrayDescriptor(const ArrayDescriptor&) = delete;
