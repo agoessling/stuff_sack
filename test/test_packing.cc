@@ -112,3 +112,27 @@ TEST(Unpack, BigEndian) {
     EXPECT_THAT(UnpackBe<double>(buf), double{3.14159});
   }
 }
+
+TEST(Pack, BitfieldField) {
+  const uint8_t field0 = 13;
+  const int8_t field1 = -2;
+  const uint16_t field2 = 3;
+  const int16_t field3 = -15;
+
+  uint32_t packed = 0xFFFFFFFF;
+  PackBitfield(field0, &packed, 3, 5);
+  PackBitfield(field1, &packed, 8, 7);
+  PackBitfield(field2, &packed, 22, 5);
+  PackBitfield(field3, &packed, 27, 5);
+
+  EXPECT_EQ(packed, 0x88FFFE6F);
+}
+
+TEST(Unpack, BitfieldField) {
+  const uint32_t packed = 0x88FFFE6F;
+
+  EXPECT_EQ(UnpackBitfield<uint8_t>(packed, 3, 5), 13);
+  EXPECT_EQ(UnpackBitfield<int8_t>(packed, 8, 7), -2);
+  EXPECT_EQ(UnpackBitfield<uint16_t>(packed, 22, 5), 3);
+  EXPECT_EQ(UnpackBitfield<int16_t>(packed, 27, 5), -15);
+}

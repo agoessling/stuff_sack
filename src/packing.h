@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 namespace ss {
 
@@ -74,6 +76,33 @@ static inline void PackBe(T data, uint8_t *buf) {
   } else {
     static_assert(impl::always_false_v<T>);
   }
+}
+
+template <typename T, typename U>
+static inline T UnpackBitfield(U data, size_t bit_offset, size_t bit_size) {
+  static_assert(std::is_unsigned_v<U>);
+  static_assert(sizeof(T) <= sizeof(U));
+
+  const U mask = (U{1} << bit_size) - 1;
+  T value = (data >> bit_offset) & mask;
+
+  if constexpr (std::is_signed_v<T>) {
+    value = static_cast<T>((value << (8 * sizeof(T) - bit_size))) >> (8 * sizeof(T) - bit_size);
+  }
+
+  return value;
+}
+
+template <typename T, typename U>
+static inline void PackBitfield(T data, U *dest, size_t bit_offset, size_t bit_size) {
+  static_assert(std::is_unsigned_v<U>);
+  static_assert(sizeof(T) <= sizeof(U));
+
+  const std::make_unsigned_t<T> mask = (std::make_unsigned_t<T>{1} << bit_size) - 1;
+  const std::make_unsigned_t<T> raw_data = data & mask;
+
+  *dest &= ~(mask << bit_offset);
+  *dest |= raw_data << bit_offset;
 }
 
 };  // namespace ss
