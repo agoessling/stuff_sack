@@ -43,6 +43,16 @@ TEST(DescriptorBuilder, FieldLookup) {
   EXPECT_FALSE(types["uint9"]);
 }
 
+TEST(DescriptorBuilder, UidLookup) {
+  DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
+
+  ASSERT_THAT(types.types(), IsSupersetOf({Key("PrimitiveTest"), Key("uint8")}));
+
+  EXPECT_EQ(types.LookupMsgFromUid(0), nullptr);
+  EXPECT_EQ(types.LookupMsgFromUid(1635920604), nullptr); // uint8 UID
+  EXPECT_EQ(types.LookupMsgFromUid(710579723), types["PrimitiveTest"]);
+}
+
 TEST(Parse, BasicTypes) {
   DescriptorBuilder types = DescriptorBuilder::FromString("");
 
@@ -128,6 +138,7 @@ TEST(Parse, SsHeader) {
   EXPECT_EQ(type.type(), Type::kStruct);
   EXPECT_EQ(type.packed_size(), 6);
   EXPECT_EQ(type.uid(), 1168420962);
+  EXPECT_FALSE(type.struct_is_message());
 
   EXPECT_THAT(type.struct_fields(),
               FieldDescriptorMatcher({{"uid", types["uint32"]}, {"len", types["uint16"]}}));
@@ -216,6 +227,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type.type(), Type::kStruct);
     EXPECT_EQ(type.packed_size(), 8);
     EXPECT_EQ(type.uid(), 790209514);
+    EXPECT_TRUE(type.struct_is_message());
 
     EXPECT_THAT(type.struct_fields(),
                 FieldDescriptorMatcher(
@@ -230,6 +242,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type.type(), Type::kStruct);
     EXPECT_EQ(type.packed_size(), 10);
     EXPECT_EQ(type.uid(), 2987876557);
+    EXPECT_TRUE(type.struct_is_message());
 
     EXPECT_THAT(type.struct_fields(),
                 FieldDescriptorMatcher(
@@ -244,6 +257,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type.type(), Type::kStruct);
     EXPECT_EQ(type.packed_size(), 7);
     EXPECT_EQ(type.uid(), 3088844579);
+    EXPECT_TRUE(type.struct_is_message());
 
     EXPECT_THAT(type.struct_fields(),
                 FieldDescriptorMatcher(
@@ -258,6 +272,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type.type(), Type::kStruct);
     EXPECT_EQ(type.packed_size(), 8);
     EXPECT_EQ(type.uid(), 3412096780);
+    EXPECT_TRUE(type.struct_is_message());
 
     EXPECT_THAT(type.struct_fields(),
                 FieldDescriptorMatcher(
@@ -272,6 +287,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type.type(), Type::kStruct);
     EXPECT_EQ(type.packed_size(), 49);
     EXPECT_EQ(type.uid(), 710579723);
+    EXPECT_TRUE(type.struct_is_message());
 
     EXPECT_THAT(type.struct_fields(), FieldDescriptorMatcher({{"ss_header", types["SsHeader"]},
                                                               {"uint8", types["uint8"]},
@@ -295,6 +311,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type.type(), Type::kStruct);
     EXPECT_EQ(type.packed_size(), 3);
     EXPECT_EQ(type.uid(), 2009546574);
+    EXPECT_FALSE(type.struct_is_message());
 
     EXPECT_THAT(type.struct_fields(),
                 FieldDescriptorMatcher({{"field0", types["bool"]}, {"field1", types["uint16"]}}));
@@ -311,6 +328,7 @@ TEST(Parse, Array) {
   EXPECT_EQ(type.type(), Type::kStruct);
   EXPECT_EQ(type.packed_size(), 51);
   EXPECT_EQ(type.uid(), 1603316679);
+  EXPECT_TRUE(type.struct_is_message());
 
   const TypeDescriptor::FieldList& fields = type.struct_fields();
   ASSERT_EQ(fields.size(), 4);

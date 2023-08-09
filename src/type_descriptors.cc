@@ -12,8 +12,8 @@ namespace ss {
 using Type = TypeDescriptor::Type;
 using PrimType = TypeDescriptor::PrimType;
 
-void DescriptorBuilder::ParseStruct(std::string_view name, const YAML::Node& node, bool is_msg) {
-  std::unique_ptr<StructDescriptor> structure(new StructDescriptor(name));
+const TypeDescriptor& DescriptorBuilder::ParseStruct(std::string_view name, const YAML::Node& node, bool is_msg) {
+  std::unique_ptr<StructDescriptor> structure(new StructDescriptor(name, is_msg));
 
   // Add implicit SsHeader struct to messages.
   if (is_msg) {
@@ -43,7 +43,9 @@ void DescriptorBuilder::ParseStruct(std::string_view name, const YAML::Node& nod
     }
   }
 
+  const TypeDescriptor& ret = *structure.get();
   type_map_.emplace(name, std::move(structure));
+  return ret;
 }
 
 const TypeDescriptor& DescriptorBuilder::ParseArray(const YAML::Node& node) {
@@ -73,7 +75,7 @@ const TypeDescriptor& DescriptorBuilder::ParseArray(const YAML::Node& node) {
   return *type_map_.at(array->name()).get();
 }
 
-void DescriptorBuilder::ParseEnum(std::string_view name, const YAML::Node& node) {
+const TypeDescriptor& DescriptorBuilder::ParseEnum(std::string_view name, const YAML::Node& node) {
   std::unique_ptr<EnumDescriptor> enumerator(new EnumDescriptor(name));
 
   // Iterate over "values" array.
@@ -89,10 +91,12 @@ void DescriptorBuilder::ParseEnum(std::string_view name, const YAML::Node& node)
     }
   }
 
+  const TypeDescriptor& ret = *enumerator.get();
   type_map_.emplace(name, std::move(enumerator));
+  return ret;
 }
 
-void DescriptorBuilder::ParseBitfield(std::string_view name, const YAML::Node& node) {
+const TypeDescriptor& DescriptorBuilder::ParseBitfield(std::string_view name, const YAML::Node& node) {
   std::unique_ptr<BitfieldDescriptor> structure(new BitfieldDescriptor(name));
 
   // Iterate over "fields" array.
@@ -123,7 +127,9 @@ void DescriptorBuilder::ParseBitfield(std::string_view name, const YAML::Node& n
     }
   }
 
+  const TypeDescriptor& ret = *structure.get();
   type_map_.emplace(name, std::move(structure));
+  return ret;
 }
 
 DescriptorBuilder::DescriptorBuilder(const YAML::Node& root_node) {
@@ -152,7 +158,7 @@ DescriptorBuilder::DescriptorBuilder(const YAML::Node& root_node) {
                                   new PrimitiveDescriptor("double", PrimType::kDouble)));
 
   // Add implicit SsHeader.
-  std::unique_ptr<StructDescriptor> ss_header(new StructDescriptor("SsHeader"));
+  std::unique_ptr<StructDescriptor> ss_header(new StructDescriptor("SsHeader", false));
   ss_header->AddField("uid", *type_map_.at("uint32").get());
   ss_header->AddField("len", *type_map_.at("uint16").get());
   type_map_.emplace("SsHeader", std::move(ss_header));
@@ -168,13 +174,14 @@ DescriptorBuilder::DescriptorBuilder(const YAML::Node& root_node) {
 
     const std::string type_name = type_name_node.as<std::string>();
     if (type_name == "Struct") {
-      ParseStruct(name, type_node, false);
+      (void)ParseStruct(name, type_node, false);
     } else if (type_name == "Message") {
-      ParseStruct(name, type_node, true);
+      const TypeDescriptor& msg = ParseStruct(name, type_node, true);
+      uid_lookup_.emplace(msg.uid(), &msg);
     } else if (type_name == "Enum") {
-      ParseEnum(name, type_node);
+      (void)ParseEnum(name, type_node);
     } else if (type_name == "Bitfield") {
-      ParseBitfield(name, type_node);
+      (void)ParseBitfield(name, type_node);
     } else {
       throw std::runtime_error("Unknown type name.");
     }

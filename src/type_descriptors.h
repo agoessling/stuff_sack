@@ -56,18 +56,22 @@ class TypeDescriptor {
   bool IsArray() const { return type_ == Type::kArray; }
 
   virtual PrimType prim_type() const { throw std::runtime_error("Type has no prim_type."); }
+  virtual int array_size() const { throw std::runtime_error("Type has no array_size."); }
 
   virtual const std::vector<std::string>& enum_values() const {
     throw std::runtime_error("Type has no enum_values.");
   }
 
-  virtual int array_size() const { throw std::runtime_error("Type has no array_size."); }
   virtual const TypeDescriptor& array_elem_type() const {
     throw std::runtime_error("Type has no array_elem_type().");
   }
 
   virtual const FieldList& struct_fields() const {
     throw std::runtime_error("Type has no struct_fields.");
+  }
+
+  virtual bool struct_is_message() const {
+    throw std::runtime_error("Type has no struct_is_message.");
   }
 
   virtual const FieldDescriptor *operator[](std::string_view field_name) const {
@@ -242,6 +246,7 @@ class StructDescriptor : public TypeDescriptor {
   friend class DescriptorBuilder;
 
   const FieldList& struct_fields() const override { return fields_; }
+  bool struct_is_message() const override { return is_message_; }
 
   const FieldDescriptor *operator[](std::string_view field_name) const override {
     for (auto& field : fields_) {
@@ -251,7 +256,8 @@ class StructDescriptor : public TypeDescriptor {
   }
 
  protected:
-  StructDescriptor(std::string_view name) : TypeDescriptor(name, Type::kStruct) {}
+  StructDescriptor(std::string_view name, bool is_message)
+      : TypeDescriptor(name, Type::kStruct), is_message_{is_message} {}
   StructDescriptor(const StructDescriptor&) = delete;
   StructDescriptor& operator=(const StructDescriptor&) = delete;
 
@@ -271,6 +277,7 @@ class StructDescriptor : public TypeDescriptor {
   }
 
   FieldList fields_;
+  bool is_message_;
 };
 
 class BitfieldDescriptor : public TypeDescriptor {
@@ -359,7 +366,7 @@ class ArrayDescriptor : public TypeDescriptor {
 
 class DescriptorBuilder {
  public:
-  using TypeMap = std::unordered_map<std::string, std::unique_ptr<TypeDescriptor>>;
+  using TypeMap = std::unordered_map<std::string, std::unique_ptr<const TypeDescriptor>>;
 
   static DescriptorBuilder FromFile(const std::string& filename);
   static DescriptorBuilder FromString(const std::string& str);
@@ -374,14 +381,21 @@ class DescriptorBuilder {
 
   const TypeMap& types() const { return type_map_; }
 
+  const TypeDescriptor *LookupMsgFromUid(uint32_t msg_uid) const {
+    const auto& type_it = uid_lookup_.find(msg_uid);
+    if (type_it == uid_lookup_.end()) return nullptr;
+    return type_it->second;
+  }
+
  private:
-  void ParseStruct(std::string_view name, const YAML::Node& node, bool is_msg);
+  const TypeDescriptor& ParseStruct(std::string_view name, const YAML::Node& node, bool is_msg);
   const TypeDescriptor& ParseArray(const YAML::Node& node);
-  void ParseEnum(std::string_view name, const YAML::Node& node);
-  void ParseBitfield(std::string_view name, const YAML::Node& node);
+  const TypeDescriptor& ParseEnum(std::string_view name, const YAML::Node& node);
+  const TypeDescriptor& ParseBitfield(std::string_view name, const YAML::Node& node);
 
  private:
   TypeMap type_map_;
+  std::unordered_map<uint32_t, const TypeDescriptor *> uid_lookup_;
 };
 
 };  // namespace ss
