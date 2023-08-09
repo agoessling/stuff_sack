@@ -436,4 +436,34 @@ inline void DynamicStruct::Unpack(const uint8_t *data) {
   }
 }
 
+enum class UnpackStatus {
+  kSuccess,
+  kInvalidLen,
+  kInvalidUid,
+};
+
+static std::pair<std::optional<DynamicStruct>, UnpackStatus> UnpackMessage(
+    const uint8_t *data, size_t len, const DescriptorBuilder& types) {
+  if (len < 6) return std::make_pair(std::nullopt, UnpackStatus::kInvalidLen);
+
+  DynamicStruct ss_header(*types["SsHeader"]);
+  ss_header.Unpack(data);
+
+  const uint16_t msg_len = ss_header.Get<uint16_t>("len");
+  if (msg_len != len) return std::make_pair(std::nullopt, UnpackStatus::kInvalidLen);
+
+  const uint32_t msg_uid = ss_header.Get<uint32_t>("uid");
+
+  const TypeDescriptor *msg_type = types.LookupMsgFromUid(msg_uid);
+  if (!msg_type) return std::make_pair(std::nullopt, UnpackStatus::kInvalidUid);
+
+  if (msg_len != msg_type->packed_size()) {
+    return std::make_pair(std::nullopt, UnpackStatus::kInvalidLen);
+  }
+
+  DynamicStruct msg(*msg_type);
+  msg.Unpack(data);
+  return std::make_pair(msg, UnpackStatus::kSuccess);
+}
+
 }  // namespace ss

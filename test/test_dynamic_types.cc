@@ -320,3 +320,49 @@ TEST(DynamicStruct, UnpackArray) {
                 .Get<uint16_t>("field1"),
             5);
 }
+
+TEST(UnpackMessage, LenError) {
+  const DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
+  {
+    const uint8_t bytes[5] = {};
+    auto [msg, status] = UnpackMessage(bytes, sizeof(bytes), types);
+    EXPECT_EQ(status, UnpackStatus::kInvalidLen);
+    EXPECT_EQ(msg, std::nullopt);
+  }
+  {
+    const uint8_t bytes[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x07};
+    auto [msg, status] = UnpackMessage(bytes, sizeof(bytes), types);
+    EXPECT_EQ(status, UnpackStatus::kInvalidLen);
+    EXPECT_EQ(msg, std::nullopt);
+  }
+  {
+    const uint8_t bytes[10] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x07};
+    auto [msg, status] = UnpackMessage(bytes, sizeof(bytes), types);
+    EXPECT_EQ(status, UnpackStatus::kInvalidLen);
+    EXPECT_EQ(msg, std::nullopt);
+  }
+  {
+    const uint8_t bytes[7] = {0x2A, 0x5A, 0x96, 0x0B, 0x00, 0x07};
+    auto [msg, status] = UnpackMessage(bytes, sizeof(bytes), types);
+    EXPECT_EQ(status, UnpackStatus::kInvalidLen);
+    EXPECT_EQ(msg, std::nullopt);
+  }
+}
+
+TEST(UnpackMessage, UidError) {
+  const DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
+  {
+    const uint8_t bytes[7] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x07};
+    auto [msg, status] = UnpackMessage(bytes, sizeof(bytes), types);
+    EXPECT_EQ(status, UnpackStatus::kInvalidUid);
+    EXPECT_EQ(msg, std::nullopt);
+  }
+  {
+    const uint8_t bytes[49] = {0x2A, 0x5A, 0x96, 0x0B, 0x00, 0x31, 0xAA};
+    auto [msg, status] = UnpackMessage(bytes, sizeof(bytes), types);
+    EXPECT_EQ(status, UnpackStatus::kSuccess);
+    ASSERT_TRUE(msg);
+    EXPECT_THAT(msg->descriptor(), Address(types["PrimitiveTest"]));
+    EXPECT_EQ(msg->Get<uint8_t>("uint8"), 0xAA);
+  }
+}
