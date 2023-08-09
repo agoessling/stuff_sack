@@ -151,3 +151,172 @@ TEST(DynamicArray, ElemAccess) {
                 "field1"),
             0);
 }
+
+TEST(DynamicStruct, UnpackBitfield) {
+  DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
+  ASSERT_THAT(types.types(), Contains(Key("Bitfield4BytesTest")));
+
+  const TypeDescriptor& bitfield = *types["Bitfield4BytesTest"];
+  DynamicStruct structure(bitfield);
+
+  const uint8_t bytes[] = {
+      0x04, 0x03, 0x02, 0x01, 0x02, 0x01, 0x00, 0x01, 0x08, 0xde,
+  };
+
+  structure.Unpack(bytes);
+  EXPECT_EQ(structure.Get<DynamicStruct>("ss_header").Get<uint32_t>("uid"), 0x04030201);
+  EXPECT_EQ(structure.Get<DynamicStruct>("ss_header").Get<uint16_t>("len"), 0x0201);
+  EXPECT_EQ(structure.Get<DynamicStruct>("bitfield").Get<uint8_t>("field0"), 6);
+  EXPECT_EQ(structure.Get<DynamicStruct>("bitfield").Get<uint8_t>("field1"), 27);
+  EXPECT_EQ(structure.Get<DynamicStruct>("bitfield").Get<uint16_t>("field2"), 264);
+}
+
+TEST(DynamicStruct, UnpackEnum) {
+  DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
+  ASSERT_THAT(types.types(), Contains(Key("Enum2BytesTest")));
+
+  const TypeDescriptor& enumeration = *types["Enum2BytesTest"];
+  DynamicStruct structure(enumeration);
+
+  const uint8_t bytes[] = {
+      0x04, 0x03, 0x02, 0x01, 0x02, 0x01, 0x00, 0x80,
+  };
+
+  structure.Unpack(bytes);
+  EXPECT_EQ(structure.Get<DynamicStruct>("ss_header").Get<uint32_t>("uid"), 0x04030201);
+  EXPECT_EQ(structure.Get<DynamicStruct>("ss_header").Get<uint16_t>("len"), 0x0201);
+  EXPECT_EQ(structure.Get<int16_t>("enumeration"), 128);
+}
+
+TEST(DynamicStruct, UnpackPrimitive) {
+  DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
+  ASSERT_THAT(types.types(), Contains(Key("PrimitiveTest")));
+
+  const TypeDescriptor& primitive_test = *types["PrimitiveTest"];
+  DynamicStruct structure(primitive_test);
+
+  const uint8_t bytes[] = {
+      0x04, 0x03, 0x02, 0x01,  // uid
+      0x02, 0x01,  // len, 4
+      0x01,  // uint8, 5
+      0x02, 0x01,  // uint16, 7
+      0x04, 0x03, 0x02, 0x01,  // uint32, 9
+      0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01,  // uint64, 13
+      0x01,  // int8, 21
+      0x02, 0x01,  // int16, 22
+      0x04, 0x03, 0x02, 0x01,  // int32, 24
+      0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01,  // int64, 28
+      0x01,  // bool, 36
+      0x40, 0x49, 0x0f, 0xda,  // float, 37
+      0x40, 0x09, 0x21, 0xFB, 0x4D, 0x12, 0xD8, 0x4A,  // double, 41
+  };
+
+  structure.Unpack(bytes);
+  EXPECT_EQ(structure.Get<DynamicStruct>("ss_header").Get<uint32_t>("uid"), 0x04030201);
+  EXPECT_EQ(structure.Get<DynamicStruct>("ss_header").Get<uint16_t>("len"), 0x0201);
+  EXPECT_EQ(structure.Get<uint8_t>("uint8"), 0x01);
+  EXPECT_EQ(structure.Get<uint16_t>("uint16"), 0x0201);
+  EXPECT_EQ(structure.Get<uint32_t>("uint32"), 0x04030201);
+  EXPECT_EQ(structure.Get<uint64_t>("uint64"), 0x0807060504030201);
+  EXPECT_EQ(structure.Get<int8_t>("int8"), 0x01);
+  EXPECT_EQ(structure.Get<int16_t>("int16"), 0x0201);
+  EXPECT_EQ(structure.Get<int32_t>("int32"), 0x04030201);
+  EXPECT_EQ(structure.Get<int64_t>("int64"), 0x0807060504030201);
+  EXPECT_EQ(structure.Get<bool>("boolean"), true);
+  EXPECT_FLOAT_EQ(structure.Get<float>("float_type"), 3.1415926f);
+  EXPECT_DOUBLE_EQ(structure.Get<double>("double_type"), 3.1415926);
+}
+
+TEST(DynamicStruct, UnpackArray) {
+  DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
+  ASSERT_THAT(types.types(), Contains(Key("ArrayTest")));
+
+  const TypeDescriptor& array = *types["ArrayTest"];
+  DynamicStruct structure(array);
+
+  const uint8_t bytes[] = {
+      0x04, 0x03, 0x02, 0x01, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+      0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x02, 0x00, 0x00,
+      0x03, 0x00, 0x00, 0x04, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+      0x00, 0x00, 0x02, 0x00, 0x00, 0x03, 0x00, 0x00, 0x04, 0x00, 0x00, 0x05,
+  };
+
+  structure.Unpack(bytes);
+  EXPECT_EQ(structure.Get<DynamicStruct>("ss_header").Get<uint32_t>("uid"), 0x04030201);
+  EXPECT_EQ(structure.Get<DynamicStruct>("ss_header").Get<uint16_t>("len"), 0x0201);
+
+  EXPECT_EQ(structure.Get<DynamicArray>("array_1d").Get<DynamicStruct>(0).Get<uint16_t>("field1"),
+            0);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_1d").Get<DynamicStruct>(1).Get<uint16_t>("field1"),
+            1);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_1d").Get<DynamicStruct>(2).Get<uint16_t>("field1"),
+            2);
+
+  EXPECT_EQ(structure.Get<DynamicArray>("array_2d")
+                .Get<DynamicArray>(0)
+                .Get<DynamicStruct>(0)
+                .Get<uint16_t>("field1"),
+            0);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_2d")
+                .Get<DynamicArray>(0)
+                .Get<DynamicStruct>(1)
+                .Get<uint16_t>("field1"),
+            1);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_2d")
+                .Get<DynamicArray>(0)
+                .Get<DynamicStruct>(2)
+                .Get<uint16_t>("field1"),
+            2);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_2d")
+                .Get<DynamicArray>(1)
+                .Get<DynamicStruct>(0)
+                .Get<uint16_t>("field1"),
+            3);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_2d")
+                .Get<DynamicArray>(1)
+                .Get<DynamicStruct>(1)
+                .Get<uint16_t>("field1"),
+            4);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_2d")
+                .Get<DynamicArray>(1)
+                .Get<DynamicStruct>(2)
+                .Get<uint16_t>("field1"),
+            5);
+
+  EXPECT_EQ(structure.Get<DynamicArray>("array_3d")
+                .Get<DynamicArray>(0)
+                .Get<DynamicArray>(0)
+                .Get<DynamicStruct>(0)
+                .Get<uint16_t>("field1"),
+            0);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_3d")
+                .Get<DynamicArray>(0)
+                .Get<DynamicArray>(0)
+                .Get<DynamicStruct>(1)
+                .Get<uint16_t>("field1"),
+            1);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_3d")
+                .Get<DynamicArray>(0)
+                .Get<DynamicArray>(0)
+                .Get<DynamicStruct>(2)
+                .Get<uint16_t>("field1"),
+            2);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_3d")
+                .Get<DynamicArray>(0)
+                .Get<DynamicArray>(1)
+                .Get<DynamicStruct>(0)
+                .Get<uint16_t>("field1"),
+            3);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_3d")
+                .Get<DynamicArray>(0)
+                .Get<DynamicArray>(1)
+                .Get<DynamicStruct>(1)
+                .Get<uint16_t>("field1"),
+            4);
+  EXPECT_EQ(structure.Get<DynamicArray>("array_3d")
+                .Get<DynamicArray>(0)
+                .Get<DynamicArray>(1)
+                .Get<DynamicStruct>(2)
+                .Get<uint16_t>("field1"),
+            5);
+}

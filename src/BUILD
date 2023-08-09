@@ -69,6 +69,7 @@ cc_library(
     hdrs = ["dynamic_types.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":packing",
         ":type_descriptors",
     ],
 )

@@ -10,7 +10,12 @@
 #include <variant>
 #include <vector>
 
+#include "src/packing.h"
 #include "src/type_descriptors.h"
+
+// These dynamic types were written with expediency as the primary requirement.  They leave a lot to
+// be desired in terms of efficiency, speed, and likely ergonomics.  However they should work as
+// advertised (see how I set the bar low?) in the corner use-cases in which they are required.
 
 namespace ss {
 
@@ -22,8 +27,8 @@ namespace impl {
 template <typename T>
 class Box {
  public:
-  template <typename ...Args>
-  static Box<T> Make(Args&&... args) {
+  template <typename... Args>
+  static Box<T> Make(Args&&...args) {
     return Box<T>(std::make_unique<T>(std::forward<Args>(args)...));
   }
 
@@ -60,13 +65,15 @@ class Box {
   std::unique_ptr<T> ptr_;
 };
 
-template <typename T> struct is_dynamic : std::false_type {};
-template <> struct is_dynamic<Box<DynamicStruct>> : std::true_type {};
-template <> struct is_dynamic<Box<DynamicArray>> : std::true_type {};
+template <typename T>
+struct is_dynamic : std::false_type {};
+template <>
+struct is_dynamic<Box<DynamicStruct>> : std::true_type {};
+template <>
+struct is_dynamic<Box<DynamicArray>> : std::true_type {};
 
-using AnyField =
-    std::variant<uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, bool,
-                 float, double, Box<DynamicArray>, Box<DynamicStruct>>;
+using AnyField = std::variant<uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t,
+                              int64_t, bool, float, double, Box<DynamicArray>, Box<DynamicStruct>>;
 
 static inline AnyField MakeAnyField(const TypeDescriptor *field_type_descriptor) {
   using Type = TypeDescriptor::Type;
@@ -102,10 +109,50 @@ static inline AnyField MakeAnyField(const TypeDescriptor *field_type_descriptor)
     case Type::kArray:
       return Box<DynamicArray>::Make(*field_type_descriptor);
     case Type::kStruct:
+    case Type::kBitfield:
       return Box<DynamicStruct>::Make(*field_type_descriptor);
   }
 
   return {};
+}
+
+static inline void UnpackToAnyField(AnyField& any_field, const uint8_t *data,
+                                    TypeDescriptor::PrimType prim_type) {
+  switch (prim_type) {
+    case TypeDescriptor::PrimType::kUint8:
+      std::get<uint8_t>(any_field) = UnpackBe<uint8_t>(data);
+      break;
+    case TypeDescriptor::PrimType::kUint16:
+      std::get<uint16_t>(any_field) = UnpackBe<uint16_t>(data);
+      break;
+    case TypeDescriptor::PrimType::kUint32:
+      std::get<uint32_t>(any_field) = UnpackBe<uint32_t>(data);
+      break;
+    case TypeDescriptor::PrimType::kUint64:
+      std::get<uint64_t>(any_field) = UnpackBe<uint64_t>(data);
+      break;
+    case TypeDescriptor::PrimType::kInt8:
+      std::get<int8_t>(any_field) = UnpackBe<int8_t>(data);
+      break;
+    case TypeDescriptor::PrimType::kInt16:
+      std::get<int16_t>(any_field) = UnpackBe<int16_t>(data);
+      break;
+    case TypeDescriptor::PrimType::kInt32:
+      std::get<int32_t>(any_field) = UnpackBe<int32_t>(data);
+      break;
+    case TypeDescriptor::PrimType::kInt64:
+      std::get<int64_t>(any_field) = UnpackBe<int64_t>(data);
+      break;
+    case TypeDescriptor::PrimType::kBool:
+      std::get<bool>(any_field) = UnpackBe<bool>(data);
+      break;
+    case TypeDescriptor::PrimType::kFloat:
+      std::get<float>(any_field) = UnpackBe<float>(data);
+      break;
+    case TypeDescriptor::PrimType::kDouble:
+      std::get<double>(any_field) = UnpackBe<double>(data);
+      break;
+  }
 }
 
 };  // namespace impl
@@ -117,6 +164,8 @@ class DynamicStruct {
       fields_.emplace(field.get(), impl::MakeAnyField(field->type()));
     }
   }
+
+  void Unpack(const uint8_t *data);
 
   template <typename T>
   T& Get(const FieldDescriptor& field_descriptor) {
@@ -188,7 +237,7 @@ class DynamicStruct {
           using U = std::decay_t<decltype(field)>;
 
           if constexpr (impl::is_dynamic<U>::value) {
-             throw std::bad_variant_access();
+            throw std::bad_variant_access();
             return std::optional<T>{};
           } else {
             return std::optional<T>{static_cast<T>(field)};
@@ -207,6 +256,92 @@ class DynamicStruct {
   const TypeDescriptor& descriptor() const { return descriptor_; }
 
  private:
+  void UnpackBitfield(const uint8_t *data) {
+    for (const std::unique_ptr<const FieldDescriptor>& field : descriptor_.struct_fields()) {
+      const TypeDescriptor *field_type = field->type();
+      impl::AnyField& any_field = fields_.at(field.get());
+      const int bit_offset = field->bit_offset();
+      const int bit_size = field->bit_size();
+
+      switch (descriptor_.prim_type()) {
+        case TypeDescriptor::PrimType::kUint8: {
+          const uint8_t raw_data = UnpackBe<uint8_t>(data);
+          switch (field_type->prim_type()) {
+            case TypeDescriptor::PrimType::kUint8:
+              std::get<uint8_t>(any_field) =
+                  ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
+              break;
+            default:
+              throw std::runtime_error("Incorrect bitfield field prim_type.");
+          }
+          break;
+        }
+        case TypeDescriptor::PrimType::kUint16: {
+          const uint16_t raw_data = UnpackBe<uint16_t>(data);
+          switch (field_type->prim_type()) {
+            case TypeDescriptor::PrimType::kUint8:
+              std::get<uint8_t>(any_field) =
+                  ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
+              break;
+            case TypeDescriptor::PrimType::kUint16:
+              std::get<uint16_t>(any_field) =
+                  ss::UnpackBitfield<uint16_t>(raw_data, bit_offset, bit_size);
+              break;
+            default:
+              throw std::runtime_error("Incorrect bitfield field prim_type.");
+          }
+          break;
+        }
+        case TypeDescriptor::PrimType::kUint32: {
+          const uint32_t raw_data = UnpackBe<uint32_t>(data);
+          switch (field_type->prim_type()) {
+            case TypeDescriptor::PrimType::kUint8:
+              std::get<uint8_t>(any_field) =
+                  ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
+              break;
+            case TypeDescriptor::PrimType::kUint16:
+              std::get<uint16_t>(any_field) =
+                  ss::UnpackBitfield<uint16_t>(raw_data, bit_offset, bit_size);
+              break;
+            case TypeDescriptor::PrimType::kUint32:
+              std::get<uint32_t>(any_field) =
+                  ss::UnpackBitfield<uint32_t>(raw_data, bit_offset, bit_size);
+              break;
+            default:
+              throw std::runtime_error("Incorrect bitfield field prim_type.");
+          }
+          break;
+        }
+        case TypeDescriptor::PrimType::kUint64: {
+          const uint64_t raw_data = UnpackBe<uint64_t>(data);
+          switch (field_type->prim_type()) {
+            case TypeDescriptor::PrimType::kUint8:
+              std::get<uint8_t>(any_field) =
+                  ss::UnpackBitfield<uint8_t>(raw_data, bit_offset, bit_size);
+              break;
+            case TypeDescriptor::PrimType::kUint16:
+              std::get<uint16_t>(any_field) =
+                  ss::UnpackBitfield<uint16_t>(raw_data, bit_offset, bit_size);
+              break;
+            case TypeDescriptor::PrimType::kUint32:
+              std::get<uint32_t>(any_field) =
+                  ss::UnpackBitfield<uint32_t>(raw_data, bit_offset, bit_size);
+              break;
+            case TypeDescriptor::PrimType::kUint64:
+              std::get<uint64_t>(any_field) =
+                  ss::UnpackBitfield<uint64_t>(raw_data, bit_offset, bit_size);
+              break;
+            default:
+              throw std::runtime_error("Incorrect bitfield field prim_type.");
+          }
+          break;
+        }
+        default:
+          throw std::runtime_error("Incorrect bitfield prim_type.");
+      }
+    }
+  }
+
   std::unordered_map<const FieldDescriptor *, impl::AnyField> fields_;
   const TypeDescriptor& descriptor_;
 };
@@ -217,6 +352,28 @@ class DynamicArray {
       : descriptor_{descriptor}, elems_(descriptor.array_size()) {
     for (size_t i = 0; i < elems_.size(); ++i) {
       elems_[i] = impl::MakeAnyField(descriptor.array_elem_type());
+    }
+  }
+
+  void Unpack(const uint8_t *data) {
+    const TypeDescriptor *elem_type = descriptor_.array_elem_type();
+
+    for (impl::AnyField& any_field : elems_) {
+      switch (elem_type->type()) {
+        case TypeDescriptor::Type::kPrimitive:
+        case TypeDescriptor::Type::kEnum:
+          impl::UnpackToAnyField(any_field, data, elem_type->prim_type());
+          break;
+        case TypeDescriptor::Type::kArray:
+          std::get<impl::Box<DynamicArray>>(any_field)->Unpack(data);
+          break;
+        case TypeDescriptor::Type::kStruct:
+        case TypeDescriptor::Type::kBitfield:
+          std::get<impl::Box<DynamicStruct>>(any_field)->Unpack(data);
+          break;
+      }
+
+      data += elem_type->packed_size();
     }
   }
 
@@ -250,5 +407,33 @@ class DynamicArray {
   const TypeDescriptor& descriptor_;
   std::vector<impl::AnyField> elems_;
 };
+
+inline void DynamicStruct::Unpack(const uint8_t *data) {
+  if (descriptor_.type() == TypeDescriptor::Type::kBitfield) {
+    UnpackBitfield(data);
+    return;
+  }
+
+  for (const std::unique_ptr<const FieldDescriptor>& field : descriptor_.struct_fields()) {
+    const TypeDescriptor *field_type = field->type();
+    impl::AnyField& any_field = fields_.at(field.get());
+
+    switch (field_type->type()) {
+      case TypeDescriptor::Type::kPrimitive:
+      case TypeDescriptor::Type::kEnum:
+        impl::UnpackToAnyField(any_field, data, field_type->prim_type());
+        break;
+      case TypeDescriptor::Type::kArray:
+        std::get<impl::Box<DynamicArray>>(any_field)->Unpack(data);
+        break;
+      case TypeDescriptor::Type::kStruct:
+      case TypeDescriptor::Type::kBitfield:
+        std::get<impl::Box<DynamicStruct>>(any_field)->Unpack(data);
+        break;
+    }
+
+    data += field_type->packed_size();
+  }
+}
 
 }  // namespace ss
