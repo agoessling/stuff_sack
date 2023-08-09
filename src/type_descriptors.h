@@ -171,6 +171,9 @@ class FieldDescriptor {
  public:
   const std::string& name() const { return name_; }
   const TypeDescriptor *type() const { return type_; }
+  virtual int offset() const { throw std::runtime_error("Field does not have offset."); }
+  virtual int bit_offset() const { throw std::runtime_error("Field does not have bit_offset."); }
+  virtual int bit_size() const { throw std::runtime_error("Field does not have bit_size."); }
 
  protected:
   FieldDescriptor(std::string_view name, const TypeDescriptor *type) : name_{name}, type_{type} {}
@@ -183,13 +186,14 @@ class FieldDescriptor {
 };
 
 class StructFieldDescriptor : public FieldDescriptor {
+ public:
+  int offset() const override { return offset_; }
+
  protected:
   friend class StructDescriptor;
 
   StructFieldDescriptor(std::string_view name, const TypeDescriptor *type, int offset)
-      : FieldDescriptor(name, type), offset_{offset} {
-    (void)offset_;
-  }
+      : FieldDescriptor(name, type), offset_{offset} {}
   StructFieldDescriptor(const StructFieldDescriptor&) = delete;
   StructFieldDescriptor& operator=(const StructFieldDescriptor&) = delete;
 
@@ -198,6 +202,10 @@ class StructFieldDescriptor : public FieldDescriptor {
 };
 
 class BitfieldFieldDescriptor : public FieldDescriptor {
+ public:
+  int bit_offset() const override { return bit_offset_; }
+  int bit_size() const override { return bit_size_; }
+
  protected:
   friend class BitfieldDescriptor;
 

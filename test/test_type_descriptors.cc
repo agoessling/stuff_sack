@@ -339,3 +339,36 @@ TEST(TypeDescriptor, FieldLookup) {
   EXPECT_EQ((*types["PrimitiveTest"])["int64"]->name(), "int64");
   EXPECT_EQ((*types["PrimitiveTest"])["int64"]->type(), types["int64"]);
 }
+
+TEST(TypeDescriptor, FieldOffset) {
+  DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
+
+  ASSERT_THAT(types.types(),
+              IsSupersetOf({Key("PrimitiveTest"), Key("Bitfield2Bytes"), Key("Bitfield4Bytes")}));
+
+  EXPECT_EQ((*types["PrimitiveTest"])["uint8"]->offset(), 6);
+  EXPECT_EQ((*types["PrimitiveTest"])["uint16"]->offset(), 7);
+  EXPECT_EQ((*types["PrimitiveTest"])["uint32"]->offset(), 9);
+  EXPECT_EQ((*types["PrimitiveTest"])["uint64"]->offset(), 13);
+  EXPECT_EQ((*types["PrimitiveTest"])["int8"]->offset(), 21);
+  EXPECT_EQ((*types["PrimitiveTest"])["int16"]->offset(), 22);
+  EXPECT_EQ((*types["PrimitiveTest"])["int32"]->offset(), 24);
+  EXPECT_EQ((*types["PrimitiveTest"])["int64"]->offset(), 28);
+  EXPECT_EQ((*types["PrimitiveTest"])["boolean"]->offset(), 36);
+  EXPECT_EQ((*types["PrimitiveTest"])["float_type"]->offset(), 37);
+  EXPECT_EQ((*types["PrimitiveTest"])["double_type"]->offset(), 41);
+
+  EXPECT_EQ((*types["Bitfield2Bytes"])["field0"]->bit_offset(), 0);
+  EXPECT_EQ((*types["Bitfield2Bytes"])["field0"]->bit_size(), 3);
+  EXPECT_EQ((*types["Bitfield2Bytes"])["field1"]->bit_offset(), 3);
+  EXPECT_EQ((*types["Bitfield2Bytes"])["field1"]->bit_size(), 5);
+  EXPECT_EQ((*types["Bitfield2Bytes"])["field2"]->bit_offset(), 8);
+  EXPECT_EQ((*types["Bitfield2Bytes"])["field2"]->bit_size(), 8);
+
+  EXPECT_EQ((*types["Bitfield4Bytes"])["field0"]->bit_offset(), 0);
+  EXPECT_EQ((*types["Bitfield4Bytes"])["field0"]->bit_size(), 3);
+  EXPECT_EQ((*types["Bitfield4Bytes"])["field1"]->bit_offset(), 3);
+  EXPECT_EQ((*types["Bitfield4Bytes"])["field1"]->bit_size(), 5);
+  EXPECT_EQ((*types["Bitfield4Bytes"])["field2"]->bit_offset(), 8);
+  EXPECT_EQ((*types["Bitfield4Bytes"])["field2"]->bit_size(), 9);
+}
