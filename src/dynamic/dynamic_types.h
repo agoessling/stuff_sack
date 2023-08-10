@@ -180,8 +180,18 @@ class DynamicStruct {
   }
 
   template <typename T>
+  const T& Get(const FieldDescriptor& field_descriptor) const {
+    return const_cast<DynamicStruct *>(this)->Get<T>(field_descriptor);
+  }
+
+  template <typename T>
   T& Get(std::string_view field_name) {
     return Get<T>(*descriptor_[field_name]);
+  }
+
+  template <typename T>
+  const T& Get(std::string_view field_name) const {
+    return const_cast<DynamicStruct *>(this)->Get<T>(field_name);
   }
 
   template <typename T>
@@ -199,6 +209,11 @@ class DynamicStruct {
   }
 
   template <typename T>
+  const T *GetIf(const FieldDescriptor& field_descriptor) const {
+    return const_cast<DynamicStruct *>(this)->GetIf<T>(field_descriptor);
+  }
+
+  template <typename T>
   T *GetIf(std::string_view field_name) {
     const FieldDescriptor *field = descriptor_[field_name];
     if (!field) return nullptr;
@@ -206,8 +221,13 @@ class DynamicStruct {
   }
 
   template <typename T>
-  T Convert(const FieldDescriptor& field_descriptor) {
-    impl::AnyField& field = fields_.at(&field_descriptor);
+  const T *GetIf(std::string_view field_name) const {
+    return const_cast<DynamicStruct *>(this)->GetIf<T>(field_name);
+  }
+
+  template <typename T>
+  T Convert(const FieldDescriptor& field_descriptor) const {
+    const impl::AnyField& field = fields_.at(&field_descriptor);
 
     return std::visit(
         [](auto&& field) {
@@ -224,12 +244,12 @@ class DynamicStruct {
   }
 
   template <typename T>
-  T Convert(std::string_view field_name) {
+  T Convert(std::string_view field_name) const {
     return Convert<T>(*descriptor_[field_name]);
   }
 
   template <typename T>
-  std::optional<T> ConvertIf(const FieldDescriptor& field_descriptor) {
+  std::optional<T> ConvertIf(const FieldDescriptor& field_descriptor) const {
     const auto& field_it = fields_.find(&field_descriptor);
     if (field_it == fields_.end()) return std::nullopt;
 
@@ -248,7 +268,7 @@ class DynamicStruct {
   }
 
   template <typename T>
-  std::optional<T> ConvertIf(std::string_view field_name) {
+  std::optional<T> ConvertIf(std::string_view field_name) const {
     const FieldDescriptor *field = descriptor_[field_name];
     if (!field) return std::nullopt;
     return ConvertIf<T>(*field);
@@ -384,8 +404,13 @@ class DynamicArray {
   }
 
   template <typename T>
-  T Convert(size_t i) {
-    impl::AnyField& field = elems_[i];
+  const T& Get(size_t i) const {
+    return const_cast<DynamicArray *>(this)->Get<T>(i);
+  }
+
+  template <typename T>
+  T Convert(size_t i) const {
+    const impl::AnyField& field = elems_[i];
 
     return std::visit(
         [](auto&& field) {

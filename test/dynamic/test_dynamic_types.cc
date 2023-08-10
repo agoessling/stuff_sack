@@ -1,4 +1,8 @@
+#include <cstddef>
+#include <cstdint>
+#include <fstream>
 #include <optional>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -364,5 +368,145 @@ TEST(UnpackMessage, UidError) {
     ASSERT_TRUE(msg);
     EXPECT_THAT(msg->descriptor(), Address(types["PrimitiveTest"]));
     EXPECT_EQ(msg->Get<uint8_t>("uint8"), 0xAA);
+  }
+}
+
+TEST(DynamicMessages, EndToEnd) {
+  const DescriptorBuilder types = DescriptorBuilder::FromFile(kYamlFile);
+
+  const std::string data_filename = "test/test_data.bin";
+  std::fstream file{data_filename, std::ios_base::in | std::ios_base::binary};
+  ASSERT_TRUE(file);
+
+  std::vector<char> buf(1024);
+
+  {
+    file.read(buf.data(), types["Bitfield4BytesTest"]->packed_size());
+    ASSERT_TRUE(file);
+
+    const auto [msg, status] =
+        UnpackMessage(reinterpret_cast<uint8_t *>(buf.data()), file.gcount(), types);
+    ASSERT_EQ(status, UnpackStatus::kSuccess);
+    ASSERT_TRUE(msg);
+
+    EXPECT_EQ(msg->Get<DynamicStruct>("bitfield").Get<uint8_t>("field0"), 6);
+    EXPECT_EQ(msg->Get<DynamicStruct>("bitfield").Get<uint8_t>("field1"), 27);
+    EXPECT_EQ(msg->Get<DynamicStruct>("bitfield").Get<uint16_t>("field2"), 264);
+  }
+  {
+    file.read(buf.data(), types["Enum2BytesTest"]->packed_size());
+    ASSERT_TRUE(file);
+
+    const auto [msg, status] =
+        UnpackMessage(reinterpret_cast<uint8_t *>(buf.data()), file.gcount(), types);
+    ASSERT_EQ(status, UnpackStatus::kSuccess);
+    ASSERT_TRUE(msg);
+
+    EXPECT_EQ(msg->Get<int16_t>("enumeration"), 128);
+  }
+  {
+    file.read(buf.data(), types["PrimitiveTest"]->packed_size());
+    ASSERT_TRUE(file);
+
+    const auto [msg, status] =
+        UnpackMessage(reinterpret_cast<uint8_t *>(buf.data()), file.gcount(), types);
+    ASSERT_EQ(status, UnpackStatus::kSuccess);
+    ASSERT_TRUE(msg);
+
+    EXPECT_EQ(msg->Get<uint8_t>("uint8"), 0x01);
+    EXPECT_EQ(msg->Get<uint16_t>("uint16"), 0x0201);
+    EXPECT_EQ(msg->Get<uint32_t>("uint32"), 0x04030201);
+    EXPECT_EQ(msg->Get<uint64_t>("uint64"), 0x0807060504030201);
+    EXPECT_EQ(msg->Get<int8_t>("int8"), 0x01);
+    EXPECT_EQ(msg->Get<int16_t>("int16"), 0x0201);
+    EXPECT_EQ(msg->Get<int32_t>("int32"), 0x04030201);
+    EXPECT_EQ(msg->Get<int64_t>("int64"), 0x0807060504030201);
+    EXPECT_EQ(msg->Get<bool>("boolean"), true);
+    EXPECT_FLOAT_EQ(msg->Get<float>("float_type"), 3.1415926f);
+    EXPECT_DOUBLE_EQ(msg->Get<double>("double_type"), 3.1415926);
+  }
+  {
+    file.read(buf.data(), types["ArrayTest"]->packed_size());
+    ASSERT_TRUE(file);
+
+    const auto [msg, status] =
+        UnpackMessage(reinterpret_cast<uint8_t *>(buf.data()), file.gcount(), types);
+    ASSERT_EQ(status, UnpackStatus::kSuccess);
+    ASSERT_TRUE(msg);
+
+    EXPECT_EQ(msg->Get<DynamicArray>("array_1d").Get<DynamicStruct>(0).Get<uint16_t>("field1"),
+              0);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_1d").Get<DynamicStruct>(1).Get<uint16_t>("field1"),
+              1);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_1d").Get<DynamicStruct>(2).Get<uint16_t>("field1"),
+              2);
+
+    EXPECT_EQ(msg->Get<DynamicArray>("array_2d")
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicStruct>(0)
+                  .Get<uint16_t>("field1"),
+              0);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_2d")
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicStruct>(1)
+                  .Get<uint16_t>("field1"),
+              1);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_2d")
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicStruct>(2)
+                  .Get<uint16_t>("field1"),
+              2);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_2d")
+                  .Get<DynamicArray>(1)
+                  .Get<DynamicStruct>(0)
+                  .Get<uint16_t>("field1"),
+              3);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_2d")
+                  .Get<DynamicArray>(1)
+                  .Get<DynamicStruct>(1)
+                  .Get<uint16_t>("field1"),
+              4);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_2d")
+                  .Get<DynamicArray>(1)
+                  .Get<DynamicStruct>(2)
+                  .Get<uint16_t>("field1"),
+              5);
+
+    EXPECT_EQ(msg->Get<DynamicArray>("array_3d")
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicStruct>(0)
+                  .Get<uint16_t>("field1"),
+              0);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_3d")
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicStruct>(1)
+                  .Get<uint16_t>("field1"),
+              1);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_3d")
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicStruct>(2)
+                  .Get<uint16_t>("field1"),
+              2);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_3d")
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicArray>(1)
+                  .Get<DynamicStruct>(0)
+                  .Get<uint16_t>("field1"),
+              3);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_3d")
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicArray>(1)
+                  .Get<DynamicStruct>(1)
+                  .Get<uint16_t>("field1"),
+              4);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_3d")
+                  .Get<DynamicArray>(0)
+                  .Get<DynamicArray>(1)
+                  .Get<DynamicStruct>(2)
+                  .Get<uint16_t>("field1"),
+              5);
   }
 }

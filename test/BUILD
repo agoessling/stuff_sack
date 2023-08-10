@@ -30,6 +30,23 @@ py_test(
     ],
 )
 
+py_binary(
+    name = "gen_test_data",
+    srcs = ["gen_test_data.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":test_message_def-py",
+    ],
+)
+
+genrule(
+    name = "test_data",
+    outs = ["test_data.bin"],
+    cmd = "$(execpath :gen_test_data) $@",
+    visibility = ["//visibility:public"],
+    tools = [":gen_test_data"],
+)
+
 cc_test(
     name = "test_crc32",
     srcs = ["test_crc32.cc"],

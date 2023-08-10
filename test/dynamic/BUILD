@@ -13,7 +13,10 @@ cc_test(
 cc_test(
     name = "test_dynamic_types",
     srcs = ["test_dynamic_types.cc"],
-    data = ["//test:test_message_spec.yaml"],
+    data = [
+        "//test:test_data.bin",
+        "//test:test_message_spec.yaml",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "//src/dynamic:dynamic_types",
