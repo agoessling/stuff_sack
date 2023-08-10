@@ -102,6 +102,7 @@ class PrimitiveDescriptor : public TypeDescriptor {
   PrimitiveDescriptor(std::string_view name, PrimType prim_type)
       : TypeDescriptor(name, Type::kPrimitive) {
     SetPrimType(prim_type);
+    SetUid();
   };
 
   // Used by subclasses (e.g. Enum).
@@ -143,7 +144,6 @@ class PrimitiveDescriptor : public TypeDescriptor {
         packed_size_ = 8;
         break;
     }
-    SetUid();
   }
 
   PrimType prim_type_;
@@ -174,9 +174,18 @@ class EnumDescriptor : public PrimitiveDescriptor {
     } else {
       throw std::runtime_error("Too many enum values.");
     }
+    SetUid();
   }
 
  private:
+  void SetUid() {
+    std::vector<uint32_t> value_hashes(values_.size());
+    for (size_t i = 0; i < value_hashes.size(); ++i) {
+      value_hashes[i] = EnumValueHash(values_[i].c_str(), i);
+    }
+    uid_ = EnumHash(name().c_str(), value_hashes.data(), value_hashes.size());
+  }
+
   std::vector<std::string> values_;
 };
 

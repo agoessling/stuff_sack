@@ -188,7 +188,7 @@ TEST(Parse, Enum) {
     EXPECT_EQ(type.name(), "Enum1Bytes");
     EXPECT_EQ(type.type(), Type::kEnum);
     EXPECT_EQ(type.packed_size(), 1);
-    EXPECT_EQ(type.uid(), 2738687264);
+    EXPECT_EQ(type.uid(), 999282143);
 
     std::vector<Matcher<std::string>> value_matcher;
     for (int i = 0; i < 127; ++i) {
@@ -205,7 +205,7 @@ TEST(Parse, Enum) {
     EXPECT_EQ(type.name(), "Enum2Bytes");
     EXPECT_EQ(type.type(), Type::kEnum);
     EXPECT_EQ(type.packed_size(), 2);
-    EXPECT_EQ(type.uid(), 62480479);
+    EXPECT_EQ(type.uid(), 2878277179);
 
     std::vector<Matcher<std::string>> value_matcher;
     for (int i = 0; i < 128; ++i) {
@@ -256,7 +256,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type.name(), "Enum1BytesTest");
     EXPECT_EQ(type.type(), Type::kStruct);
     EXPECT_EQ(type.packed_size(), 7);
-    EXPECT_EQ(type.uid(), 3088844579);
+    EXPECT_EQ(type.uid(), 2520137668);
     EXPECT_TRUE(type.struct_is_message());
 
     EXPECT_THAT(type.struct_fields(),
@@ -271,7 +271,7 @@ TEST(Parse, Struct) {
     EXPECT_EQ(type.name(), "Enum2BytesTest");
     EXPECT_EQ(type.type(), Type::kStruct);
     EXPECT_EQ(type.packed_size(), 8);
-    EXPECT_EQ(type.uid(), 3412096780);
+    EXPECT_EQ(type.uid(), 3146686928);
     EXPECT_TRUE(type.struct_is_message());
 
     EXPECT_THAT(type.struct_fields(),
