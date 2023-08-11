@@ -419,9 +419,9 @@ class DynamicArray {
           if constexpr (impl::is_dynamic<U>::value) {
             throw std::bad_variant_access();
             return T{};
+          } else {
+            return static_cast<T>(field);
           }
-
-          return static_cast<T>(field);
         },
         field);
   }
