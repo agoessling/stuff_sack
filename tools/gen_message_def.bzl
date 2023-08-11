@@ -49,8 +49,8 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
         outs = [
             name + ".py",
         ],
-        cmd = ("$(execpath @stuff_sack//src:generate_python_lib) --spec $(rootpath {}) " +
-               "--lib $(rootpath {}) --output $@").format(
+        cmd = ("$(execpath @stuff_sack//src:generate_python_lib) --spec $(rlocationpath {}) " +
+               "--lib $(rlocationpath {}) --output $@").format(
             message_spec,
             ":" + name + "-c-so",
         ),
@@ -63,6 +63,7 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
         srcs = [name + ".py"],
         deps = [
             "@stuff_sack//src:py_stuff_sack",
+            "@bazel_tools//tools/python/runfiles",
         ],
         data = [
             ":" + name + "-c-so",
