@@ -43,8 +43,8 @@ genrule(
     name = "test_data",
     outs = ["test_data.bin"],
     cmd = "$(execpath :gen_test_data) $@",
-    visibility = ["//visibility:public"],
     tools = [":gen_test_data"],
+    visibility = ["//visibility:public"],
 )
 
 py_binary(

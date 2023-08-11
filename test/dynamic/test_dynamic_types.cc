@@ -434,12 +434,9 @@ TEST(DynamicMessages, EndToEnd) {
     ASSERT_EQ(status, UnpackStatus::kSuccess);
     ASSERT_TRUE(msg);
 
-    EXPECT_EQ(msg->Get<DynamicArray>("array_1d").Get<DynamicStruct>(0).Get<uint16_t>("field1"),
-              0);
-    EXPECT_EQ(msg->Get<DynamicArray>("array_1d").Get<DynamicStruct>(1).Get<uint16_t>("field1"),
-              1);
-    EXPECT_EQ(msg->Get<DynamicArray>("array_1d").Get<DynamicStruct>(2).Get<uint16_t>("field1"),
-              2);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_1d").Get<DynamicStruct>(0).Get<uint16_t>("field1"), 0);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_1d").Get<DynamicStruct>(1).Get<uint16_t>("field1"), 1);
+    EXPECT_EQ(msg->Get<DynamicArray>("array_1d").Get<DynamicStruct>(2).Get<uint16_t>("field1"), 2);
 
     EXPECT_EQ(msg->Get<DynamicArray>("array_2d")
                   .Get<DynamicArray>(0)
