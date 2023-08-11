@@ -47,6 +47,15 @@ genrule(
     tools = [":gen_test_data"],
 )
 
+py_binary(
+    name = "udp_sender",
+    srcs = ["udp_sender.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":test_message_def-py",
+    ],
+)
+
 cc_test(
     name = "test_crc32",
     srcs = ["test_crc32.cc"],
