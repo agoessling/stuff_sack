@@ -1,11 +1,7 @@
-import textwrap
 import yaml
 
 from src import uid_hash
-
-
-def _indent(s, level=1):
-  return textwrap.indent(s, '  ' * level)
+from src import utils
 
 
 def _bytes_for_value(value, signed):
@@ -298,7 +294,7 @@ class Bitfield(DataType):
     s += 'Fields:'
 
     for field in self.fields:
-      s += _indent('\n{}'.format(field))
+      s += utils.indent('\n{}'.format(field))
 
     return s
 
@@ -373,7 +369,7 @@ class Enum(DataType):
     s += 'Values:'
 
     for value in self.values:
-      s += _indent('\n{}'.format(value))
+      s += utils.indent('\n{}'.format(value))
 
     return s
 
@@ -457,7 +453,7 @@ class Struct(DataType):
     s += 'Fields:'
 
     for field in self.fields:
-      s += _indent('\n{}'.format(field))
+      s += utils.indent('\n{}'.format(field))
 
     return s
 

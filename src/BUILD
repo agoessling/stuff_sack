@@ -1,9 +1,16 @@
 py_library(
+    name = "utils",
+    srcs = ["utils.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_library(
     name = "stuff_sack",
     srcs = ["stuff_sack.py"],
     visibility = ["//visibility:public"],
     deps = [
         ":uid_hash-py",
+        ":utils",
     ],
 )
 
@@ -22,7 +29,10 @@ py_binary(
     name = "c_stuff_sack",
     srcs = ["c_stuff_sack.py"],
     visibility = ["//visibility:public"],
-    deps = [":stuff_sack"],
+    deps = [
+        ":stuff_sack",
+        ":utils",
+    ],
 )
 
 py_library(

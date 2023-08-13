@@ -3,19 +3,7 @@ import textwrap
 import yaml
 
 import src.stuff_sack as ss
-
-
-def _camel_to_snake(s):
-  return ''.join(['_' + c.lower() if c.isupper() else c for c in s]).lstrip('_')
-
-
-def _snake_to_camel(s):
-  return ''.join(
-      ['{:s}{:s}'.format(x[0].upper(), x[1:]) if len(x) > 1 else x for x in s.split('_')])
-
-
-def _indent(s, level=1):
-  return textwrap.indent(s, '  ' * level)
+from src import utils
 
 
 def c_type_name(type_object):
@@ -51,11 +39,11 @@ def c_field_name(field):
 
 
 def pack_function_name(obj):
-  return 'SsPack{}'.format(_snake_to_camel(obj.name))
+  return 'SsPack{}'.format(utils.snake_to_camel(obj.name))
 
 
 def unpack_function_name(obj):
-  return 'SsUnpack{}'.format(_snake_to_camel(obj.name))
+  return 'SsUnpack{}'.format(utils.snake_to_camel(obj.name))
 
 
 def declaration(type_object):
@@ -87,7 +75,7 @@ def bitfield_declaration(bitfield):
   s += 'typedef struct {\n'
 
   for field in bitfield.fields:
-    s += _indent('{};\n'.format(bitfield_field_declaration(bitfield, field)))
+    s += utils.indent('{};\n'.format(bitfield_field_declaration(bitfield, field)))
 
   s += '}} {};'.format(bitfield.name)
 
@@ -97,12 +85,12 @@ def bitfield_declaration(bitfield):
 def enum_declaration(enum):
   s = ''
   s += 'typedef enum {\n'
-  s += _indent('k{}ForceSigned = -1,\n'.format(enum.name))
+  s += utils.indent('k{}ForceSigned = -1,\n'.format(enum.name))
 
   for value in enum.values:
-    s += _indent('k{}{} = {},\n'.format(enum.name, value.name, value.value))
+    s += utils.indent('k{}{} = {},\n'.format(enum.name, value.name, value.value))
 
-  s += _indent('kNum{} = {},\n'.format(enum.name, len(enum.values)))
+  s += utils.indent('kNum{} = {},\n'.format(enum.name, len(enum.values)))
   s += '}} {};'.format(enum.name)
 
   return s
@@ -117,7 +105,7 @@ def struct_declaration(struct):
   s += 'typedef struct {\n'
 
   for field in struct.fields:
-    s += _indent('{};\n'.format(struct_field_declaration(field)))
+    s += utils.indent('{};\n'.format(struct_field_declaration(field)))
 
   s += '}} {};'.format(struct.name)
 
@@ -173,10 +161,11 @@ def primitive_pack(obj):
   s = ''
   s += 'static inline void {}(const {} *data, uint8_t *buffer) {{\n'.format(
       pack_function_name(obj), c_type_name(obj))
-  s += _indent('uint{}_t raw_data = (uint{}_t)*data;\n'.format(bits, bits))
+  s += utils.indent('uint{}_t raw_data = (uint{}_t)*data;\n'.format(bits, bits))
 
   for i in range(obj.bytes):
-    s += _indent('buffer[{}] = (uint8_t)(raw_data >> {});\n'.format(i, (obj.bytes - i - 1) * 8))
+    s += utils.indent('buffer[{}] = (uint8_t)(raw_data >> {});\n'.format(
+        i, (obj.bytes - i - 1) * 8))
 
   s += '}'
 
@@ -188,15 +177,15 @@ def primitive_union_pack(obj):
   s = ''
   s += 'static inline void {}(const {} *data, uint8_t *buffer) {{\n'.format(
       pack_function_name(obj), c_type_name(obj))
-  s += _indent('union {\n')
-  s += _indent('{} data;\n'.format(c_type_name(obj)), 2)
-  s += _indent('uint{}_t raw_data;\n'.format(bits), 2)
-  s += _indent('} data_union;\n\n')
+  s += utils.indent('union {\n')
+  s += utils.indent('{} data;\n'.format(c_type_name(obj)), 2)
+  s += utils.indent('uint{}_t raw_data;\n'.format(bits), 2)
+  s += utils.indent('} data_union;\n\n')
 
-  s += _indent('data_union.data = *data;\n')
+  s += utils.indent('data_union.data = *data;\n')
 
   for i in range(obj.bytes):
-    s += _indent('buffer[{}] = (uint8_t)(data_union.raw_data >> {});\n'.format(
+    s += utils.indent('buffer[{}] = (uint8_t)(data_union.raw_data >> {});\n'.format(
         i, (obj.bytes - i - 1) * 8))
 
   s += '}'
@@ -215,10 +204,10 @@ def array_pack(name, obj, offset, index_str='', iter_var='i'):
   s += 'for(int32_t {0} = 0; {0} < {1}; ++{0}) {{\n'.format(iter_var, obj.length)
 
   if isinstance(obj.type, ss.Array):
-    s += _indent(array_pack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
+    s += utils.indent(array_pack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
   else:
-    s += _indent('{}(&data->{}{}, buffer + {});\n'.format(pack_function_name(obj.root_type), name,
-                                                          index_str, offset_str))
+    s += utils.indent('{}(&data->{}{}, buffer + {});\n'.format(pack_function_name(obj.root_type),
+                                                               name, index_str, offset_str))
 
   s += '}\n'
 
@@ -238,10 +227,10 @@ def message_pack(obj):
   s = ''
   s += '{} {{\n'.format(message_pack_prototype(obj))
 
-  s += _indent('data->ss_header.uid = {:#010x};\n'.format(obj.uid))
-  s += _indent('data->ss_header.len = {};\n\n'.format(obj.packed_size))
+  s += utils.indent('data->ss_header.uid = {:#010x};\n'.format(obj.uid))
+  s += utils.indent('data->ss_header.len = {};\n\n'.format(obj.packed_size))
 
-  s += _indent('{}\n'.format(struct_pack_body(obj)))
+  s += utils.indent('{}\n'.format(struct_pack_body(obj)))
 
   s += '}'
 
@@ -252,20 +241,20 @@ def message_unpack(obj):
   s = ''
   s += '{} {{\n'.format(message_unpack_prototype(obj))
 
-  s += _indent('{}(buffer + 0, &data->ss_header);\n\n'.format(
+  s += utils.indent('{}(buffer + 0, &data->ss_header);\n\n'.format(
       unpack_function_name(obj.fields[0].type)))
 
-  s += _indent('if (data->ss_header.uid != {:#010x}) {{\n'.format(obj.uid))
-  s += _indent('return kSsStatusInvalidUid;\n', 2)
-  s += _indent('}\n\n')
+  s += utils.indent('if (data->ss_header.uid != {:#010x}) {{\n'.format(obj.uid))
+  s += utils.indent('return kSsStatusInvalidUid;\n', 2)
+  s += utils.indent('}\n\n')
 
-  s += _indent('if (data->ss_header.len != {}) {{\n'.format(obj.packed_size))
-  s += _indent('return kSsStatusInvalidLen;\n', 2)
-  s += _indent('}\n\n')
+  s += utils.indent('if (data->ss_header.len != {}) {{\n'.format(obj.packed_size))
+  s += utils.indent('return kSsStatusInvalidLen;\n', 2)
+  s += utils.indent('}\n\n')
 
-  s += _indent('{}\n\n'.format(struct_unpack_body(obj, skip_header=True)))
+  s += utils.indent('{}\n\n'.format(struct_unpack_body(obj, skip_header=True)))
 
-  s += _indent('return kSsStatusSuccess;\n')
+  s += utils.indent('return kSsStatusSuccess;\n')
   s += '}'
 
   return s
@@ -276,7 +265,7 @@ def struct_pack(obj):
   s += 'static inline void {}(const {} *data, uint8_t *buffer) {{\n'.format(
       pack_function_name(obj), c_type_name(obj))
 
-  s += _indent(struct_pack_body(obj))
+  s += utils.indent(struct_pack_body(obj))
 
   s += '}'
 
@@ -304,13 +293,13 @@ def primitive_unpack(obj):
   s = ''
   s += 'static inline void {}(const uint8_t *buffer, {} *data) {{\n'.format(
       unpack_function_name(obj), c_type_name(obj))
-  s += _indent('uint{}_t raw_data = 0;\n'.format(bits))
+  s += utils.indent('uint{}_t raw_data = 0;\n'.format(bits))
 
   for i in range(obj.bytes):
-    s += _indent('raw_data |= (uint{}_t)buffer[{}] << {};\n'.format(bits, i,
-                                                                    (obj.bytes - i - 1) * 8))
+    s += utils.indent('raw_data |= (uint{}_t)buffer[{}] << {};\n'.format(
+        bits, i, (obj.bytes - i - 1) * 8))
 
-  s += _indent('*data = ({})raw_data;\n'.format(c_type_name(obj)))
+  s += utils.indent('*data = ({})raw_data;\n'.format(c_type_name(obj)))
   s += '}'
 
   return s
@@ -322,18 +311,18 @@ def primitive_union_unpack(obj):
   s += 'static inline void {}(const uint8_t *buffer, {} *data) {{\n'.format(
       unpack_function_name(obj), c_type_name(obj))
 
-  s += _indent('union {\n')
-  s += _indent('{} data;\n'.format(c_type_name(obj)), 2)
-  s += _indent('uint{}_t raw_data;\n'.format(bits), 2)
-  s += _indent('} data_union;\n\n')
+  s += utils.indent('union {\n')
+  s += utils.indent('{} data;\n'.format(c_type_name(obj)), 2)
+  s += utils.indent('uint{}_t raw_data;\n'.format(bits), 2)
+  s += utils.indent('} data_union;\n\n')
 
-  s += _indent('data_union.raw_data = 0;\n')
+  s += utils.indent('data_union.raw_data = 0;\n')
 
   for i in range(obj.bytes):
-    s += _indent('data_union.raw_data |= (uint{}_t)buffer[{}] << {};\n'.format(
+    s += utils.indent('data_union.raw_data |= (uint{}_t)buffer[{}] << {};\n'.format(
         bits, i, (obj.bytes - i - 1) * 8))
 
-  s += _indent('\n*data = data_union.data;\n')
+  s += utils.indent('\n*data = data_union.data;\n')
   s += '}'
 
   return s
@@ -350,10 +339,10 @@ def array_unpack(name, obj, offset, index_str='', iter_var='i'):
   s += 'for(int32_t {0} = 0; {0} < {1}; ++{0}) {{\n'.format(iter_var, obj.length)
 
   if isinstance(obj.type, ss.Array):
-    s += _indent(array_unpack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
+    s += utils.indent(array_unpack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
   else:
-    s += _indent('{}(buffer + {}, &data->{}{});\n'.format(unpack_function_name(obj.root_type),
-                                                          offset_str, name, index_str))
+    s += utils.indent('{}(buffer + {}, &data->{}{});\n'.format(unpack_function_name(obj.root_type),
+                                                               offset_str, name, index_str))
 
   s += '}\n'
 
@@ -365,7 +354,7 @@ def struct_unpack(obj):
   s += 'static inline void {}(const uint8_t *buffer, {} *data) {{\n'.format(
       unpack_function_name(obj), c_type_name(obj))
 
-  s += _indent('{}\n'.format(struct_unpack_body(obj)))
+  s += utils.indent('{}\n'.format(struct_unpack_body(obj)))
 
   s += '}'
 
@@ -391,7 +380,7 @@ def struct_unpack_body(obj, skip_header=False):
 
 
 def packed_size_name(message):
-  return 'SS_{}_PACKED_SIZE'.format(_camel_to_snake(message.name).upper())
+  return 'SS_{}_PACKED_SIZE'.format(utils.camel_to_snake(message.name).upper())
 
 
 def static_assert(all_types):
@@ -483,13 +472,13 @@ def c_header(all_types):
   s += '#include <stdint.h>\n\n'
 
   s += 'typedef enum {\n'
-  s += _indent('kSsMsgTypeForceSigned = -1,\n')
+  s += utils.indent('kSsMsgTypeForceSigned = -1,\n')
 
   for i, msg in enumerate(messages):
-    s += _indent('kSsMsgType{} = {},\n'.format(msg.name, i))
+    s += utils.indent('kSsMsgType{} = {},\n'.format(msg.name, i))
 
-  s += _indent('kSsMsgTypeUnknown = {},\n'.format(len(messages)))
-  s += _indent('kNumSsMsgType = {},\n'.format(len(messages) + 1))
+  s += utils.indent('kSsMsgTypeUnknown = {},\n'.format(len(messages)))
+  s += utils.indent('kNumSsMsgType = {},\n'.format(len(messages) + 1))
   s += '} SsMsgType;\n\n'
 
   s += \
@@ -550,14 +539,14 @@ def c_file(spec, all_types, headers):
   s += 'static const uint32_t kMessageUids[{}] = {{\n'.format(len(messages))
 
   for msg in messages:
-    s += _indent('{:#010x},\n'.format(msg.uid))
+    s += utils.indent('{:#010x},\n'.format(msg.uid))
 
   s += '};\n\n'
 
   s += 'static const SsMsgType kSsMsgTypes[{}] = {{\n'.format(len(messages))
 
   for msg in messages:
-    s += _indent('kSsMsgType{},\n'.format(msg.name))
+    s += utils.indent('kSsMsgType{},\n'.format(msg.name))
 
   s += '};\n\n'
 
