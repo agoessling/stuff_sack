@@ -1,8 +1,24 @@
 load("@rules_sphinx//sphinx:defs.bzl", "sphinx_html")
 
-def gen_message_def(name, message_spec, c_deps = None, **kwargs):
+def gen_message_def(
+        name,
+        message_spec,
+        c_deps = None,
+        cc_deps = None,
+        c_includes = None,
+        cc_includes = None,
+        **kwargs):
     if c_deps == None:
         c_deps = []
+
+    if cc_deps == None:
+        cc_deps = []
+
+    if c_includes == None:
+        c_includes = []
+
+    if cc_includes == None:
+        cc_includes = []
 
     native.genrule(
         name = name + "-c-gen",
@@ -12,10 +28,11 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
             name + ".h",
         ],
         cmd = ("$(execpath @stuff_sack//src:c_stuff_sack) --spec $(execpath {}) " +
-               "--header $(execpath {}) --c_file $(execpath {}) --includes src/logging.h").format(
+               "--header $(execpath {}) --c_file $(execpath {}) --includes src/logging.h {}").format(
             message_spec,
             name + ".h",
             name + ".c",
+            " ".join(c_includes),
         ),
         tools = ["@stuff_sack//src:c_stuff_sack"],
         visibility = ["//visibility:private"],
@@ -68,10 +85,11 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
             name + ".hpp",
         ],
         cmd = ("$(execpath @stuff_sack//src:cc_stuff_sack) --spec $(execpath {}) " +
-               "--source $(execpath {}) --header $(execpath {})").format(
+               "--source $(execpath {}) --header $(execpath {}) --includes {}").format(
             message_spec,
             name + ".cc",
             name + ".hpp",
+            " ".join(cc_includes),
         ),
         tools = ["@stuff_sack//src:cc_stuff_sack"],
         visibility = ["//visibility:private"],
@@ -81,6 +99,7 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
         name = name + "-cc",
         srcs = [name + ".cc"],
         hdrs = [name + ".hpp"],
+        deps = cc_deps,
         **kwargs
     )
 

@@ -6,6 +6,7 @@
 
 #include "external/unity/src/unity.h"
 
+#include "test/external_c_vector3f.h"
 #include "test/test_message_def.h"
 
 static void TestBitfield(void) {
@@ -118,8 +119,8 @@ static void TestPrimitive(void) {
   TEST_ASSERT_EQUAL_HEX32(primitive_test.int32, unpacked.int32);
   TEST_ASSERT_EQUAL_HEX64(primitive_test.int64, unpacked.int64);
   TEST_ASSERT_EQUAL_INT(primitive_test.boolean, unpacked.boolean);
-  TEST_ASSERT_EQUAL_HEX32(primitive_test.float_type, unpacked.float_type);
-  TEST_ASSERT_EQUAL_HEX64(primitive_test.double_type, unpacked.double_type);
+  TEST_ASSERT_EQUAL_FLOAT(primitive_test.float_type, unpacked.float_type);
+  TEST_ASSERT_EQUAL_DOUBLE(primitive_test.double_type, unpacked.double_type);
 }
 
 static void TestArray(void) {
@@ -195,6 +196,35 @@ static void TestArray(void) {
       }
     }
   }
+}
+
+static void TestAliasing(void) {
+  AliasTest alias_test = {
+      .position = {1.2f, 2.3f, 3.4f},
+      .velocity = {4.5f, 5.6f, 6.7f},
+  };
+  AliasTest unpacked;
+
+  uint8_t bytes[SS_ALIAS_TEST_PACKED_SIZE] = {
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x99, 0x99, 0x9a, 0x40, 0x13, 0x33, 0x33, 0x40,
+      0x59, 0x99, 0x9a, 0x40, 0x90, 0x00, 0x00, 0x40, 0xb3, 0x33, 0x33, 0x40, 0xd6, 0x66, 0x66,
+  };
+  uint8_t packed[SS_ALIAS_TEST_PACKED_SIZE];
+
+  SsPackAliasTest(&alias_test, packed);
+
+  TEST_ASSERT_EQUAL_HEX8_ARRAY(&bytes[6], &packed[6], SS_ALIAS_TEST_PACKED_SIZE - 6);
+
+  memcpy(bytes, packed, 6);
+  SsStatus status = SsUnpackAliasTest(bytes, &unpacked);
+  TEST_ASSERT_EQUAL_INT(kSsStatusSuccess, status);
+
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.position.x, unpacked.position.x);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.position.y, unpacked.position.y);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.position.z, unpacked.position.z);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.velocity.x, unpacked.velocity.x);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.velocity.y, unpacked.velocity.y);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.velocity.z, unpacked.velocity.z);
 }
 
 static void TestInspectHeader(void) {
@@ -315,6 +345,7 @@ int main(void) {
   RUN_TEST(TestEnum);
   RUN_TEST(TestPrimitive);
   RUN_TEST(TestArray);
+  RUN_TEST(TestAliasing);
   RUN_TEST(TestInspectHeader);
   RUN_TEST(TestHeaderCheck);
   RUN_TEST(TestLogging);

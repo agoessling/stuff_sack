@@ -7,8 +7,12 @@ exports_files(
 
 gen_message_def(
     name = "test_message_def",
+    c_deps = [":external_c_vector3f"],
+    c_includes = ["test/external_c_vector3f.h"],
+    cc_deps = [":external_cc_vector3f"],
+    cc_includes = ["test/external_cc_vector3f.h"],
     message_spec = "test_message_spec.yaml",
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:private"],
 )
 
 cc_test(
@@ -16,6 +20,7 @@ cc_test(
     srcs = ["test_c_stuff_sack.c"],
     visibility = ["//visibility:public"],
     deps = [
+        ":external_c_vector3f",
         ":test_message_def-c",
         "@unity",
     ],
@@ -44,7 +49,7 @@ py_test(
 py_binary(
     name = "gen_test_data",
     srcs = ["gen_test_data.py"],
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:private"],
     deps = [
         ":test_message_def-py",
     ],
@@ -55,7 +60,7 @@ genrule(
     outs = ["test_data.bin"],
     cmd = "$(execpath :gen_test_data) $@",
     tools = [":gen_test_data"],
-    visibility = ["//visibility:public"],
+    visibility = [":__subpackages__"],
 )
 
 py_binary(
@@ -76,4 +81,16 @@ cc_test(
         "@gtest",
         "@gtest//:gtest_main",
     ],
+)
+
+cc_library(
+    name = "external_c_vector3f",
+    hdrs = ["external_c_vector3f.h"],
+    visibility = ["//visibility:private"],
+)
+
+cc_library(
+    name = "external_cc_vector3f",
+    hdrs = ["external_cc_vector3f.h"],
+    visibility = ["//visibility:private"],
 )

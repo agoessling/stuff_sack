@@ -25,16 +25,15 @@ def c_type_name(type_object):
   return root_type.name
 
 
-def c_field_name(field):
-  length_list = []
-  current_type = field.type
-  while isinstance(current_type, ss.Array):
-    length_list.append(current_type.length)
-    current_type = current_type.type
+def c_full_type_name(t):
+  brackets = ''.join(f'[{x}]' for x in t.all_lengths)
+  return c_type_name(t) + brackets
 
-  brackets = ''.join(f'[{x}]' for x in length_list)
 
-  return f'{field.name}{brackets}'
+def c_field_name(field, prefix=''):
+  brackets = ''.join(f'[{x}]' for x in field.type.all_lengths)
+
+  return f'{prefix}{field.name}{brackets}'
 
 
 def pack_function_name(obj):
@@ -90,15 +89,20 @@ typedef enum {{
 }} {enum.name};'''
 
 
-def struct_field_declaration(field):
-  return f'{c_type_name(field.type)} {c_field_name(field)}'
+def struct_field_declaration(field, use_alias=False):
+  type_name = c_type_name(field.type)
+  field_name = c_field_name(field)
+  if use_alias and field.alias:
+    type_name = field.alias
+    field_name = field.name
+  return f'{type_name} {field_name}'
 
 
 def struct_declaration(struct):
   n = '\n'
   return f'''\
 typedef struct {{
-{n.join([f'  {struct_field_declaration(f)};' for f in struct.fields])}
+{n.join([f'  {struct_field_declaration(f, use_alias=True)};' for f in struct.fields])}
 }} {struct.name};'''
 
 
@@ -168,7 +172,7 @@ def array_pack(name, obj, offset, index_str='', iter_var='i'):
     s += utils.indent(array_pack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
     s += '\n'
   else:
-    s += f'  {pack_function_name(obj.root_type)}(&data->{name}{index_str}, buffer + {offset_str});\n'
+    s += f'  {pack_function_name(obj.root_type)}(&{name}{index_str}, buffer + {offset_str});\n'
 
   s += '}'
 
@@ -212,6 +216,23 @@ def message_unpack(obj):
 }}'''
 
 
+def struct_pack_alias_body(obj):
+  definitions = []
+  copies = []
+  for f in obj.fields:
+    if not f.alias:
+      continue
+
+    addr = '&'
+    if isinstance(f.type, ss.Array):
+      addr = ''
+
+    definitions.append(f'{f.type.root_type.name} {c_field_name(f, "_")};')
+    copies.append(f'memcpy({addr}_{f.name}, &data->{f.name}, sizeof(_{f.name}));')
+
+  return '\n'.join(definitions + copies)
+
+
 def struct_pack(obj):
   return f'''\
 static inline void {pack_function_name(obj)}(const {c_type_name(obj)} *data, uint8_t *buffer) {{
@@ -220,14 +241,20 @@ static inline void {pack_function_name(obj)}(const {c_type_name(obj)} *data, uin
 
 
 def struct_pack_body(obj):
-  s = ''
+  s = struct_pack_alias_body(obj)
+  if s:
+    s += '\n\n'
 
   offset = 0
   for field in obj.fields:
+    prefix = 'data->'
+    if field.alias:
+      prefix = '_'
+
     if isinstance(field.type, ss.Array):
-      s += array_pack(field.name, field.type, offset) + '\n'
+      s += array_pack(prefix + field.name, field.type, offset) + '\n'
     else:
-      s += f'{pack_function_name(field.type)}(&data->{field.name}, buffer + {offset});\n'
+      s += f'{pack_function_name(field.type)}(&{prefix}{field.name}, buffer + {offset});\n'
 
     offset += field.type.packed_size
 
@@ -269,11 +296,28 @@ def array_unpack(name, obj, offset, index_str='', iter_var='i'):
     s += utils.indent(array_unpack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
     s += '\n'
   else:
-    s += f'  {unpack_function_name(obj.root_type)}(buffer + {offset_str}, &data->{name}{index_str});\n'
+    s += f'  {unpack_function_name(obj.root_type)}(buffer + {offset_str}, &{name}{index_str});\n'
 
   s += '}'
 
   return s
+
+
+def struct_unpack_alias_body(obj):
+  defs = []
+  copies = []
+  for f in obj.fields:
+    if not f.alias:
+      continue
+
+    addr = '&'
+    if isinstance(f.type, ss.Array):
+      addr = ''
+
+    defs.append(f'{f.type.root_type.name} {c_field_name(f, "_")};')
+    copies.append(f'memcpy(&data->{f.name}, {addr}_{f.name}, sizeof(data->{f.name}));')
+
+  return '\n'.join(defs), '\n'.join(copies)
 
 
 def struct_unpack(obj):
@@ -286,16 +330,28 @@ static inline void {unpack_function_name(obj)}(const uint8_t *buffer, {c_type_na
 def struct_unpack_body(obj):
   s = ''
 
+  alias_defs, alias_copies = struct_unpack_alias_body(obj)
+
+  if alias_defs:
+    s += alias_defs + '\n\n'
+
   offset = 0
   for field in obj.fields:
+    prefix = 'data->'
+    if field.alias:
+      prefix = '_'
+
     if field.type.name == 'SsHeader':
       pass
     elif isinstance(field.type, ss.Array):
-      s += array_unpack(field.name, field.type, offset) + '\n'
+      s += array_unpack(prefix + field.name, field.type, offset) + '\n'
     else:
-      s += f'{unpack_function_name(field.type)}(buffer + {offset}, &data->{field.name});\n'
+      s += f'{unpack_function_name(field.type)}(buffer + {offset}, &{prefix}{field.name});\n'
 
     offset += field.type.packed_size
+
+  if alias_copies:
+    s += '\n' + alias_copies + '\n'
 
   return s[:-1]
 
@@ -312,6 +368,12 @@ def static_assert(all_types, include_enums=True):
       s += f'static_assert(sizeof({c_type_name(t)}) == {t.bytes}, "{c_type_name(t)} size mismatch.");\n'
     if include_enums and isinstance(t, ss.Enum):
       s += f'static_assert(kNum{t.name} < {" * ".join(["256"] * t.bytes)} / 2, "{t.name} size mismatch.");\n'
+    if isinstance(t, ss.Struct):
+      for f in t.fields:
+        if not f.alias:
+          continue
+        s += (f'static_assert(sizeof({f.alias}) == sizeof({c_full_type_name(f.type)}), ' +
+              f'"{t.name}.{f.name} alias size mismatch.");\n')
 
   return s[:-1]
 
@@ -404,14 +466,17 @@ typedef enum {
 } SsStatus;'''
 
 
-def c_header(all_types):
+def c_header(all_types, includes):
   messages = [x for x in all_types if isinstance(x, ss.Message)]
 
+  n = '\n'
   s = f'''\
 #pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
+
+{n.join([f'#include "{inc}"' for inc in includes])}
 
 {message_type_enum(messages)}
 
@@ -530,10 +595,10 @@ def main():
   with open(args.spec, 'r') as f:
     spec = yaml.unsafe_load(f)
 
-  all_types = ss.parse_yaml(args.spec)
+  all_types = ss.parse_yaml(args.spec, 'c')
 
   with open(args.header, 'w') as f:
-    f.write(c_header(all_types))
+    f.write(c_header(all_types, args.includes))
 
   with open(args.c_file, 'w') as f:
     includes = [args.header] + args.includes

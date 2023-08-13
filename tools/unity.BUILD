@@ -5,5 +5,9 @@ cc_library(
         "src/unity_internals.h",
     ],
     hdrs = ["src/unity.h"],
+    defines = [
+        "UNITY_INCLUDE_FLOAT",
+        "UNITY_INCLUDE_DOUBLE",
+    ],
     visibility = ["//visibility:public"],
 )

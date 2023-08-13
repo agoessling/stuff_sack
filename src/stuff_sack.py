@@ -68,6 +68,9 @@ def _yaml_check_map_with_meta(yaml):
         if not isinstance(value, str):
           raise SpecParseError('Value of "_description" ({}) in {} must be a string.'.format(
               value, yaml))
+      elif key == '_alias':
+        if not isinstance(value, dict):
+          raise SpecParseError('Value of "_alias" ({}) in {} must be a map.'.format(value, yaml))
       else:
         raise SpecParseError('Unrecognized metadata field "{}" in {}.'.format(key, yaml))
 
@@ -83,6 +86,7 @@ class SpecParseError(Exception):
 
 class DataType:
   all_types = {}
+  config = {}
 
   def __init__(self, name, description=None):
     if name in self.all_types:
@@ -376,10 +380,11 @@ class Enum(DataType):
 
 class StructField:
 
-  def __init__(self, name, field_type, description=None):
+  def __init__(self, name, field_type, description=None, alias=None):
     self.name = name
     self.type = field_type
     self.description = description
+    self.alias = alias
 
   @property
   def uid(self):
@@ -390,7 +395,7 @@ class StructField:
     return self.type.root_type
 
   @classmethod
-  def from_yaml(cls, yaml):
+  def from_yaml(cls, yaml, alias_tag):
     _yaml_check_map_with_meta(yaml)
     name, field_type = _yaml_get_from_map_with_meta(yaml)
 
@@ -404,7 +409,14 @@ class StructField:
     else:
       type_object = DataType.get_type(field_type)
 
-    return cls(name, type_object, yaml.get('_description'))
+    alias_name = None
+    alias_map = yaml.get('_alias')
+    if alias_map and alias_tag in alias_map:
+      alias_name = alias_map[alias_tag]
+      if not isinstance(alias_name, str):
+        raise SpecParseError(f'Key and value of "_alias" map {alias_map} must be strings.')
+
+    return cls(name, type_object, yaml.get('_description'), alias_name)
 
   def __str__(self):
     return str((self.name, self.type.name, self.description))
@@ -442,7 +454,7 @@ class Struct(DataType):
 
     obj = cls(name, yaml.get('description'))
     for field in yaml['fields']:
-      obj.add_field(StructField.from_yaml(field))
+      obj.add_field(StructField.from_yaml(field, cls.config.get('alias_tag')))
 
     return obj
 
@@ -492,11 +504,14 @@ def reset_types():
   header.add_field(StructField('len', DataType.get_type('uint16'), 'Message length.'))
 
 
-def parse_yaml(filename):
+def parse_yaml(filename, alias_tag=None):
   with open(filename, 'r') as f:
     type_map = yaml.unsafe_load(f)
 
   _yaml_check_map(type_map, [], [], False)
+
+  config = {'alias_tag': alias_tag}
+  DataType.config = config
 
   reset_types()
   for name, info in type_map.items():

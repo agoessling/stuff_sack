@@ -149,7 +149,7 @@ Enum2Bytes:
   type: Enum
   description: This is an enum description.
   values:
-    - { Value0:, _description: This is a enum value description }
+    - { Value0, _description: This is a enum value description }
     - Value1:
     - Value2:
     - Value3:
@@ -313,6 +313,25 @@ PrimitiveTest:
     - float_type: float
     - double_type: double
 
+Vector3f:
+  type: Struct
+  fields:
+    - x: float
+    - y: float
+    - z: float
+
+AliasTest:
+  type: Message
+  fields:
+    - {
+        position: [float, 3],
+        _alias: {c: ExternalCVector3f, cpp: ExternalCppVector3f},
+      }
+    - {
+        velocity: Vector3f,
+        _alias: {c: ExternalCVector3f, cpp: ExternalCppVector3f},
+      }
+
 ArrayElem:
   type: Struct
   description: This is a struct description.
@@ -324,6 +343,9 @@ ArrayTest:
   type: Message
   description: This is a message description.
   fields:
-    - { array_1d: [ArrayElem, 3], _description: This is a message field description. }
+    - {
+        array_1d: [ArrayElem, 3],
+        _description: This is a message field description.,
+      }
     - array_2d: [[ArrayElem, 3], 2]
     - array_3d: [[[ArrayElem, 3], 2], 1]

@@ -254,6 +254,35 @@ TEST(Array, Packing) {
   }
 }
 
+TEST(Alias, Packing) {
+  AliasTest alias_test = {
+      .position = {1.2f, 2.3f, 3.4f},
+      .velocity = {4.5f, 5.6f, 6.7f},
+  };
+  AliasTest unpacked;
+
+  uint8_t bytes[AliasTest::kPackedSize] = {
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x99, 0x99, 0x9a, 0x40, 0x13, 0x33, 0x33, 0x40,
+      0x59, 0x99, 0x9a, 0x40, 0x90, 0x00, 0x00, 0x40, 0xb3, 0x33, 0x33, 0x40, 0xd6, 0x66, 0x66,
+  };
+  uint8_t packed[AliasTest::kPackedSize];
+
+  alias_test.Pack(packed);
+  // Copy over uid and len.
+  memcpy(bytes, packed, 6);
+
+  EXPECT_THAT(packed, ElementsAreArray(bytes));
+
+  Status status = unpacked.Unpack(bytes);
+  EXPECT_EQ(status, Status::kSuccess);
+  EXPECT_EQ(unpacked.position.x, alias_test.position.x);
+  EXPECT_EQ(unpacked.position.y, alias_test.position.y);
+  EXPECT_EQ(unpacked.position.z, alias_test.position.z);
+  EXPECT_EQ(unpacked.velocity.x, alias_test.velocity.x);
+  EXPECT_EQ(unpacked.velocity.y, alias_test.velocity.y);
+  EXPECT_EQ(unpacked.velocity.z, alias_test.velocity.z);
+}
+
 TEST(UnpackMessage, InspectHeader) {
   EXPECT_EQ(kHeaderPackedSize, 6);
 

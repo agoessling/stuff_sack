@@ -169,7 +169,7 @@ def message_declaration(msg):
   n = '\n'
   return f'''\
 struct {msg.name} {{
-{n.join([f'  {c_ss.struct_field_declaration(f)};' for f in msg.fields])}
+{n.join([f'  {c_ss.struct_field_declaration(f, use_alias=True)};' for f in msg.fields])}
 
   static constexpr MsgType kType = MsgType::k{msg.name};
   static constexpr uint32_t kUid = {msg.uid:#010x};
@@ -233,9 +233,10 @@ def packing_functions(t):
   raise TypeError('Unknown type: {}'.format(type(t)))
 
 
-def cc_header(all_types):
+def cc_header(all_types, includes):
   messages = [x for x in all_types if isinstance(x, ss.Message)]
 
+  n = '\n'
   s = f'''\
 #pragma once
 
@@ -247,6 +248,8 @@ def cc_header(all_types):
 #include <type_traits>
 #include <utility>
 #include <variant>
+
+{n.join([f'#include "{inc}"' for inc in includes])}
 
 namespace ss {{
 
@@ -279,11 +282,12 @@ std::pair<AnyMessage, Status> UnpackMessage(const uint8_t *buffer, size_t len);
   return s
 
 
-def cc_source(all_types, header):
+def cc_source(all_types, includes):
   messages = [x for x in all_types if isinstance(x, ss.Message)]
 
+  n = '\n'
   s = f'''\
-#include "{header}"
+{n.join([f'#include "{inc}"' for inc in includes])}
 
 #include <cstdint>
 #include <cstddef>
@@ -335,15 +339,16 @@ def main():
   parser.add_argument('--spec', required=True, help='YAML message specification.')
   parser.add_argument('--header', required=True, help='Library header file name.')
   parser.add_argument('--source', required=True, help='Library source file name.')
+  parser.add_argument('--includes', nargs='+', default=[], help='Additional includes.')
   args = parser.parse_args()
 
-  all_types = ss.parse_yaml(args.spec)
+  all_types = ss.parse_yaml(args.spec, 'cpp')
 
   with open(args.header, 'w') as f:
-    f.write(cc_header(all_types))
+    f.write(cc_header(all_types, args.includes))
 
   with open(args.source, 'w') as f:
-    f.write(cc_source(all_types, args.header))
+    f.write(cc_source(all_types, [args.header] + args.includes))
 
 
 if __name__ == '__main__':
