@@ -32,17 +32,17 @@ def c_field_name(field):
     length_list.append(current_type.length)
     current_type = current_type.type
 
-  brackets = ''.join('[{}]'.format(x) for x in length_list)
+  brackets = ''.join(f'[{x}]' for x in length_list)
 
-  return '{}{}'.format(field.name, brackets)
+  return f'{field.name}{brackets}'
 
 
 def pack_function_name(obj):
-  return 'SsPack{}'.format(utils.snake_to_camel(obj.name))
+  return f'SsPack{utils.snake_to_camel(obj.name)}'
 
 
 def unpack_function_name(obj):
-  return 'SsUnpack{}'.format(utils.snake_to_camel(obj.name))
+  return f'SsUnpack{utils.snake_to_camel(obj.name)}'
 
 
 def declaration(type_object):
@@ -58,57 +58,48 @@ def declaration(type_object):
   if isinstance(type_object, ss.Struct):
     return struct_declaration(type_object)
 
-  raise TypeError('Unknown type: {}'.format(type(type_object)))
+  raise TypeError(f'Unknown type: {type(type_object)}')
 
 
 def bitfield_c_type(bitfield):
-  return 'uint{}_t'.format(bitfield.bytes * 8)
+  return f'uint{bitfield.bytes * 8}_t'
 
 
 def bitfield_field_declaration(bitfield, field):
-  return '{} {} : {}'.format(bitfield_c_type(bitfield), field.name, field.bits)
+  return f'{bitfield_c_type(bitfield)} {field.name} : {field.bits}'
 
 
 def bitfield_declaration(bitfield):
-  s = ''
-  s += 'typedef struct {\n'
+  s = 'typedef struct {\n'
 
   for field in bitfield.fields:
-    s += utils.indent('{};\n'.format(bitfield_field_declaration(bitfield, field)))
+    s += f'  {bitfield_field_declaration(bitfield, field)};\n'
 
-  s += '}} {};'.format(bitfield.name)
+  s += f'}} {bitfield.name};'
 
   return s
 
 
 def enum_declaration(enum):
-  s = ''
-  s += 'typedef enum {\n'
-  s += utils.indent('k{}ForceSigned = -1,\n'.format(enum.name))
-
-  for value in enum.values:
-    s += utils.indent('k{}{} = {},\n'.format(enum.name, value.name, value.value))
-
-  s += utils.indent('kNum{} = {},\n'.format(enum.name, len(enum.values)))
-  s += '}} {};'.format(enum.name)
-
-  return s
+  n = '\n'
+  return f'''\
+typedef enum {{
+  k{enum.name}ForceSigned = -1,
+{n.join([f'  k{enum.name}{v.name} = {v.value},' for v in enum.values])}
+  kNum{enum.name} = {len(enum.values)},
+}} {enum.name};'''
 
 
 def struct_field_declaration(field):
-  return '{} {}'.format(c_type_name(field.type), c_field_name(field))
+  return f'{c_type_name(field.type)} {c_field_name(field)}'
 
 
 def struct_declaration(struct):
-  s = ''
-  s += 'typedef struct {\n'
-
-  for field in struct.fields:
-    s += utils.indent('{};\n'.format(struct_field_declaration(field)))
-
-  s += '}} {};'.format(struct.name)
-
-  return s
+  n = '\n'
+  return f'''\
+typedef struct {{
+{n.join([f'  {struct_field_declaration(f)};' for f in struct.fields])}
+}} {struct.name};'''
 
 
 def pack(type_object):
@@ -156,119 +147,94 @@ def unpack(type_object):
 
 
 def primitive_pack(obj):
+  n = '\n'
   bits = obj.bytes * 8
-  s = ''
-  s += 'static inline void {}(const {} *data, uint8_t *buffer) {{\n'.format(
-      pack_function_name(obj), c_type_name(obj))
-  s += utils.indent('uint{}_t raw_data = (uint{}_t)*data;\n'.format(bits, bits))
-
-  for i in range(obj.bytes):
-    s += utils.indent('buffer[{}] = (uint8_t)(raw_data >> {});\n'.format(
-        i, (obj.bytes - i - 1) * 8))
-
-  s += '}'
-
-  return s
+  return f'''\
+static inline void {pack_function_name(obj)}(const {c_type_name(obj)} *data, uint8_t *buffer) {{
+  uint{bits}_t raw_data = (uint{bits}_t)*data;
+{n.join([f'  buffer[{i}] = (uint8_t)(raw_data >> {(obj.bytes - i - 1) * 8});' for
+    i in range(obj.bytes)])}
+}}'''
 
 
 def primitive_union_pack(obj):
+  n = '\n'
   bits = obj.bytes * 8
-  s = ''
-  s += 'static inline void {}(const {} *data, uint8_t *buffer) {{\n'.format(
-      pack_function_name(obj), c_type_name(obj))
-  s += utils.indent('union {\n')
-  s += utils.indent('{} data;\n'.format(c_type_name(obj)), 2)
-  s += utils.indent('uint{}_t raw_data;\n'.format(bits), 2)
-  s += utils.indent('} data_union;\n\n')
+  return f'''\
+static inline void {pack_function_name(obj)}(const {c_type_name(obj)} *data, uint8_t *buffer) {{
+  union {{
+    {c_type_name(obj)} data;
+    uint{bits}_t raw_data;
+  }} data_union;
 
-  s += utils.indent('data_union.data = *data;\n')
-
-  for i in range(obj.bytes):
-    s += utils.indent('buffer[{}] = (uint8_t)(data_union.raw_data >> {});\n'.format(
-        i, (obj.bytes - i - 1) * 8))
-
-  s += '}'
-
-  return s
+  data_union.data = *data;
+{n.join([f'  buffer[{i}] = (uint8_t)(data_union.raw_data >> {(obj.bytes - i - 1) * 8});' for
+    i in range(obj.bytes)])}
+}}'''
 
 
 def array_pack(name, obj, offset, index_str='', iter_var='i'):
   if ord(iter_var) > ord('z'):
     raise ValueError('Invalid iteration variable: {}'.format(iter_var))
 
-  offset_str = '{} * {} + {}'.format(iter_var, obj.type.packed_size, offset)
-  index_str += '[{}]'.format(iter_var)
+  offset_str = f'{iter_var} * {obj.type.packed_size} + {offset}'
+  index_str += f'[{iter_var}]'
 
-  s = ''
-  s += 'for(int32_t {0} = 0; {0} < {1}; ++{0}) {{\n'.format(iter_var, obj.length)
+  s = f'for (int32_t {iter_var} = 0; {iter_var} < {obj.length}; ++{iter_var}) {{\n'
 
   if isinstance(obj.type, ss.Array):
     s += utils.indent(array_pack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
+    s += '\n'
   else:
-    s += utils.indent('{}(&data->{}{}, buffer + {});\n'.format(pack_function_name(obj.root_type),
-                                                               name, index_str, offset_str))
+    s += f'  {pack_function_name(obj.root_type)}(&data->{name}{index_str}, buffer + {offset_str});\n'
 
-  s += '}\n'
+  s += '}'
 
   return s
 
 
 def message_pack_prototype(obj):
-  return 'void {}({} *data, uint8_t *buffer)'.format(pack_function_name(obj), c_type_name(obj))
+  return f'void {pack_function_name(obj)}({c_type_name(obj)} *data, uint8_t *buffer)'
 
 
 def message_unpack_prototype(obj):
-  return 'SsStatus {}(const uint8_t *buffer, {} *data)'.format(unpack_function_name(obj),
-                                                               c_type_name(obj))
+  return f'SsStatus {unpack_function_name(obj)}(const uint8_t *buffer, {c_type_name(obj)} *data)'
 
 
 def message_pack(obj):
-  s = ''
-  s += '{} {{\n'.format(message_pack_prototype(obj))
+  return f'''\
+{message_pack_prototype(obj)} {{
+  data->ss_header.uid = {obj.uid:#010x};
+  data->ss_header.len = {obj.packed_size};
 
-  s += utils.indent('data->ss_header.uid = {:#010x};\n'.format(obj.uid))
-  s += utils.indent('data->ss_header.len = {};\n\n'.format(obj.packed_size))
-
-  s += utils.indent('{}\n'.format(struct_pack_body(obj)))
-
-  s += '}'
-
-  return s
+{utils.indent(struct_pack_body(obj))}
+}}'''
 
 
 def message_unpack(obj):
-  s = ''
-  s += '{} {{\n'.format(message_unpack_prototype(obj))
+  return f'''\
+{message_unpack_prototype(obj)} {{
+  {unpack_function_name(obj.fields[0].type)}(buffer + 0, &data->ss_header);
 
-  s += utils.indent('{}(buffer + 0, &data->ss_header);\n\n'.format(
-      unpack_function_name(obj.fields[0].type)))
+  if (data->ss_header.uid != {obj.uid:#010x}) {{
+    return kSsStatusInvalidUid;
+  }}
 
-  s += utils.indent('if (data->ss_header.uid != {:#010x}) {{\n'.format(obj.uid))
-  s += utils.indent('return kSsStatusInvalidUid;\n', 2)
-  s += utils.indent('}\n\n')
+  if (data->ss_header.len != {obj.packed_size}) {{
+    return kSsStatusInvalidLen;
+  }}
 
-  s += utils.indent('if (data->ss_header.len != {}) {{\n'.format(obj.packed_size))
-  s += utils.indent('return kSsStatusInvalidLen;\n', 2)
-  s += utils.indent('}\n\n')
+{utils.indent(struct_unpack_body(obj, skip_header=True))}
 
-  s += utils.indent('{}\n\n'.format(struct_unpack_body(obj, skip_header=True)))
-
-  s += utils.indent('return kSsStatusSuccess;\n')
-  s += '}'
-
-  return s
+  return kSsStatusSuccess;
+}}'''
 
 
 def struct_pack(obj):
-  s = ''
-  s += 'static inline void {}(const {} *data, uint8_t *buffer) {{\n'.format(
-      pack_function_name(obj), c_type_name(obj))
-
-  s += utils.indent(struct_pack_body(obj))
-
-  s += '}'
-
-  return s
+  return f'''\
+static inline void {pack_function_name(obj)}(const {c_type_name(obj)} *data, uint8_t *buffer) {{
+{utils.indent(struct_pack_body(obj))}
+}}'''
 
 
 def struct_pack_body(obj):
@@ -277,10 +243,9 @@ def struct_pack_body(obj):
   offset = 0
   for field in obj.fields:
     if isinstance(field.type, ss.Array):
-      s += array_pack(field.name, field.type, offset)
+      s += array_pack(field.name, field.type, offset) + '\n'
     else:
-      s += '{}(&data->{}, buffer + {});\n'.format(pack_function_name(field.type), field.name,
-                                                  offset)
+      s += f'{pack_function_name(field.type)}(&data->{field.name}, buffer + {offset});\n'
 
     offset += field.type.packed_size
 
@@ -288,76 +253,60 @@ def struct_pack_body(obj):
 
 
 def primitive_unpack(obj):
+  n = '\n'
   bits = obj.bytes * 8
-  s = ''
-  s += 'static inline void {}(const uint8_t *buffer, {} *data) {{\n'.format(
-      unpack_function_name(obj), c_type_name(obj))
-  s += utils.indent('uint{}_t raw_data = 0;\n'.format(bits))
-
-  for i in range(obj.bytes):
-    s += utils.indent('raw_data |= (uint{}_t)buffer[{}] << {};\n'.format(
-        bits, i, (obj.bytes - i - 1) * 8))
-
-  s += utils.indent('*data = ({})raw_data;\n'.format(c_type_name(obj)))
-  s += '}'
-
-  return s
+  return f'''\
+static inline void {unpack_function_name(obj)}(const uint8_t *buffer, {c_type_name(obj)} *data) {{
+  uint{bits}_t raw_data = 0;
+{n.join([f'  raw_data |= (uint{bits}_t)buffer[{i}] << {(obj.bytes - i -1) * 8};' for
+    i in range(obj.bytes)])}
+  *data = ({c_type_name(obj)})raw_data;
+}}'''
 
 
 def primitive_union_unpack(obj):
+  n = '\n'
   bits = obj.bytes * 8
-  s = ''
-  s += 'static inline void {}(const uint8_t *buffer, {} *data) {{\n'.format(
-      unpack_function_name(obj), c_type_name(obj))
+  return f'''\
+static inline void {unpack_function_name(obj)}(const uint8_t *buffer, {c_type_name(obj)} *data) {{
+  union {{
+    {c_type_name(obj)} data;
+    uint{bits}_t raw_data;
+  }} data_union;
 
-  s += utils.indent('union {\n')
-  s += utils.indent('{} data;\n'.format(c_type_name(obj)), 2)
-  s += utils.indent('uint{}_t raw_data;\n'.format(bits), 2)
-  s += utils.indent('} data_union;\n\n')
+  data_union.raw_data = 0;
+{n.join([f'  data_union.raw_data |= (uint{bits}_t)buffer[{i}] << {(obj.bytes - i - 1) * 8};' for
+    i in range(obj.bytes)])}
 
-  s += utils.indent('data_union.raw_data = 0;\n')
-
-  for i in range(obj.bytes):
-    s += utils.indent('data_union.raw_data |= (uint{}_t)buffer[{}] << {};\n'.format(
-        bits, i, (obj.bytes - i - 1) * 8))
-
-  s += utils.indent('\n*data = data_union.data;\n')
-  s += '}'
-
-  return s
+  *data = data_union.data;
+}}'''
 
 
 def array_unpack(name, obj, offset, index_str='', iter_var='i'):
   if ord(iter_var) > ord('z'):
     raise ValueError('Invalid iteration variable: {}'.format(iter_var))
 
-  offset_str = '{} * {} + {}'.format(iter_var, obj.type.packed_size, offset)
-  index_str += '[{}]'.format(iter_var)
+  offset_str = f'{iter_var} * {obj.type.packed_size} + {offset}'
+  index_str += f'[{iter_var}]'
 
-  s = ''
-  s += 'for(int32_t {0} = 0; {0} < {1}; ++{0}) {{\n'.format(iter_var, obj.length)
+  s = f'for (int32_t {iter_var} = 0; {iter_var} < {obj.length}; ++{iter_var}) {{\n'
 
   if isinstance(obj.type, ss.Array):
     s += utils.indent(array_unpack(name, obj.type, offset_str, index_str, chr(ord(iter_var) + 1)))
+    s += '\n'
   else:
-    s += utils.indent('{}(buffer + {}, &data->{}{});\n'.format(unpack_function_name(obj.root_type),
-                                                               offset_str, name, index_str))
+    s += f'  {unpack_function_name(obj.root_type)}(buffer + {offset_str}, &data->{name}{index_str});\n'
 
-  s += '}\n'
+  s += '}'
 
   return s
 
 
 def struct_unpack(obj):
-  s = ''
-  s += 'static inline void {}(const uint8_t *buffer, {} *data) {{\n'.format(
-      unpack_function_name(obj), c_type_name(obj))
-
-  s += utils.indent('{}\n'.format(struct_unpack_body(obj)))
-
-  s += '}'
-
-  return s
+  return f'''\
+static inline void {unpack_function_name(obj)}(const uint8_t *buffer, {c_type_name(obj)} *data) {{
+{utils.indent(struct_unpack_body(obj))}
+}}'''
 
 
 def struct_unpack_body(obj, skip_header=False):
@@ -368,10 +317,9 @@ def struct_unpack_body(obj, skip_header=False):
     if skip_header and field.type.name == 'SsHeader':
       pass
     elif isinstance(field.type, ss.Array):
-      s += array_unpack(field.name, field.type, offset)
+      s += array_unpack(field.name, field.type, offset) + '\n'
     else:
-      s += '{}(buffer + {}, &data->{});\n'.format(unpack_function_name(field.type), offset,
-                                                  field.name)
+      s += f'{unpack_function_name(field.type)}(buffer + {offset}, &data->{field.name});\n'
 
     offset += field.type.packed_size
 
@@ -379,7 +327,7 @@ def struct_unpack_body(obj, skip_header=False):
 
 
 def packed_size_name(message):
-  return 'SS_{}_PACKED_SIZE'.format(utils.camel_to_snake(message.name).upper())
+  return f'SS_{utils.camel_to_snake(message.name).upper()}_PACKED_SIZE'
 
 
 def static_assert(all_types):
@@ -387,11 +335,9 @@ def static_assert(all_types):
 
   for t in all_types:
     if isinstance(t, (ss.Primitive, ss.Bitfield)):
-      s += 'static_assert(sizeof({}) == {}, "{} size mismatch.");\n'.format(
-          c_type_name(t), t.bytes, c_type_name(t))
+      s += f'static_assert(sizeof({c_type_name(t)}) == {t.bytes}, "{c_type_name(t)} size mismatch.");\n'
     if isinstance(t, ss.Enum):
-      s += 'static_assert(kNum{} < {} / 2, "{} size mismatch.");\n'.format(
-          t.name, ' * '.join(['256'] * t.bytes), t.name)
+      s += f'static_assert(kNum{t.name} < {" * ".join(["256"] * t.bytes)} / 2, "{t.name} size mismatch.");\n'
 
   return s[:-1]
 
@@ -462,47 +408,55 @@ def message_log(obj):
 }}'''
 
 
-def c_header(all_types):
-  messages = [x for x in all_types if isinstance(x, ss.Message)]
+def message_type_enum(messages):
+  n = '\n'
+  return f'''\
+typedef enum {{
+  kSsMsgTypeForceSigned = -1,
+{f',{n}'.join([f'  kSsMsgType{x.name} = {i}' for i, x in enumerate(messages)])},
+  kSsMsgTypeUnknown = {len(messages)},
+  kNumSsMsgType = {len(messages) + 1},
+}} SsMsgType;'''
 
-  s = ''
-  s += '#pragma once\n\n'
-  s += '#include <stdbool.h>\n'
-  s += '#include <stdint.h>\n\n'
 
-  s += 'typedef enum {\n'
-  s += utils.indent('kSsMsgTypeForceSigned = -1,\n')
-
-  for i, msg in enumerate(messages):
-    s += utils.indent('kSsMsgType{} = {},\n'.format(msg.name, i))
-
-  s += utils.indent('kSsMsgTypeUnknown = {},\n'.format(len(messages)))
-  s += utils.indent('kNumSsMsgType = {},\n'.format(len(messages) + 1))
-  s += '} SsMsgType;\n\n'
-
-  s += \
-'''typedef enum {
+def status_enum():
+  return '''\
+typedef enum {
   kSsStatusForceSigned = -1,
   kSsStatusSuccess = 0,
   kSsStatusInvalidUid = 1,
   kSsStatusInvalidLen = 2,
   kNumSsStatus = 3,
-} SsStatus;\n\n'''
+} SsStatus;'''
+
+
+def c_header(all_types):
+  messages = [x for x in all_types if isinstance(x, ss.Message)]
+
+  s = f'''\
+#pragma once
+
+#include <stdbool.h>
+#include <stdint.h>
+
+{message_type_enum(messages)}
+
+{status_enum()}\n\n'''
 
   for t in all_types:
     d = declaration(t)
     if d:
-      s += '{}\n\n'.format(d)
+      s += f'{d}\n\n'
 
   for msg in messages:
-    s += '#define {} {}\n'.format(packed_size_name(msg), msg.packed_size)
+    s += f'#define {packed_size_name(msg)} {msg.packed_size}\n'
   s += '#define SS_HEADER_PACKED_SIZE 6\n\n'
 
   s += 'SsMsgType SsInspectHeader(const uint8_t *buffer);\n'
 
   for msg in messages:
-    s += '{};\n'.format(message_pack_prototype(msg))
-    s += '{};\n'.format(message_unpack_prototype(msg))
+    s += f'{message_pack_prototype(msg)};\n'
+    s += f'{message_unpack_prototype(msg)};\n'
   s += '\n'
 
   s += 'static const char kSsLogDelimiter[] = "SsLogFileDelimiter";\n\n'
@@ -511,7 +465,7 @@ def c_header(all_types):
   s += 'int SsFindLogDelimiter(void *fd);\n\n'
 
   for msg in messages:
-    s += '{};\n'.format(message_log_prototype(msg))
+    s += f'{message_log_prototype(msg)};\n'
 
   return s[:-1]
 
@@ -525,11 +479,12 @@ def c_file(spec, all_types, headers):
     s += '#include "{}"\n'.format(header)
   s += '\n'
 
-  s += '#include <assert.h>\n'
-  s += '#include <stdbool.h>\n'
-  s += '#include <stdint.h>\n\n'
+  s += f'''\
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 
-  s += '{}\n\n'.format(static_assert(all_types))
+{static_assert(all_types)}\n\n'''
 
   for t in all_types:
     s += '{}\n\n'.format(pack(t))
@@ -538,19 +493,19 @@ def c_file(spec, all_types, headers):
   s += 'static const uint32_t kMessageUids[{}] = {{\n'.format(len(messages))
 
   for msg in messages:
-    s += utils.indent('{:#010x},\n'.format(msg.uid))
+    s += f'  {msg.uid:#010x},\n'
 
   s += '};\n\n'
 
-  s += 'static const SsMsgType kSsMsgTypes[{}] = {{\n'.format(len(messages))
+  s += f'static const SsMsgType kSsMsgTypes[{len(messages)}] = {{\n'
 
   for msg in messages:
-    s += utils.indent('kSsMsgType{},\n'.format(msg.name))
+    s += f'  kSsMsgType{msg.name},\n'
 
   s += '};\n\n'
 
-  s += \
-'''static inline SsMsgType GetSsMsgTypeFromUid(uint32_t uid) {
+  s += '''\
+static inline SsMsgType GetSsMsgTypeFromUid(uint32_t uid) {
   for (int32_t i = 0; i < sizeof(kMessageUids) / sizeof(kMessageUids[0]); ++i) {
     if (uid == kMessageUids[i]) {
       return kSsMsgTypes[i];
@@ -565,12 +520,12 @@ SsMsgType SsInspectHeader(const uint8_t *buffer) {
   return GetSsMsgTypeFromUid(header.uid);
 }\n\n'''
 
-  s += '{}\n\n'.format(yaml_log_header(spec, messages))
-  s += '{}\n\n'.format(write_log_header())
-  s += '{}\n\n'.format(find_log_delimiter())
+  s += yaml_log_header(spec, messages) + '\n\n'
+  s += write_log_header() + '\n\n'
+  s += find_log_delimiter() + '\n\n'
 
   for msg in messages:
-    s += '{}\n\n'.format(message_log(msg))
+    s += message_log(msg) + '\n\n'
 
   return s[:-1]
 
