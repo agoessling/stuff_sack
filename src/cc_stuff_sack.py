@@ -5,110 +5,87 @@ import src.c_stuff_sack as c_ss
 from src import utils
 
 
-def cc_header(all_types, c_header):
-  messages = [x for x in all_types if isinstance(x, ss.Message)]
-  structs = [x for x in all_types if isinstance(x, ss.Struct) and not isinstance(x, ss.Message)]
-  bitfields = [x for x in all_types if isinstance(x, ss.Bitfield)]
-  enums = [x for x in all_types if isinstance(x, ss.Enum)]
+def status_enum():
+  return '''\
+enum class Status {
+  kSuccess = 0,
+  kInvalidUid = 1,
+  kInvalidLen = 2,
+};'''
 
-  s = f'''\
-#pragma once
 
-#include <cstddef>
-#include <array>
-#include <functional>
-#include <memory>
-#include <type_traits>
-#include <utility>
-#include <variant>
-#include <vector>
+def message_type_enum(messages):
+  n = '\n'
+  return f'''\
+enum class MsgType {{
+{f',{n}'.join([f'  k{x.name} = {i}' for i, x in enumerate(messages)])},
+  kUnknown = {len(messages)},
+}};'''
 
-namespace ss_c {{
-extern "C" {{
-#include "{c_header}"
+
+def any_message_variant(messages):
+  n = ',\n'
+  return f'''\
+using AnyMessage = std::variant<
+  std::monostate,
+{n.join(['  ' + msg.name for msg in messages])}
+>;'''
+
+
+def inspect_header_definition(messages):
+  n = '\n'
+  return f'''\
+static constexpr uint32_t kMessageUids[{len(messages)}] = {{
+{n.join([f'  {m.uid:#010x},' for m in messages])}
+}};
+
+static constexpr MsgType kMessageTypes[{len(messages)}] = {{
+{n.join([f'  MsgType::k{m.name},' for m in messages])}
+}};
+
+static inline constexpr MsgType GetMsgTypeFromUid(uint32_t uid) {{
+  for (size_t i = 0; i < {len(messages)}; ++i) {{
+    if (uid == kMessageUids[i]) return kMessageTypes[i];
+  }}
+  return MsgType::kUnknown;
 }}
-}} // namespace ss_c
 
-namespace ss {{
+MsgType InspectHeader(const uint8_t *buffer) {{
+  SsHeader header;
+  SsUnpackSsHeader(buffer, &header);
+  return GetMsgTypeFromUid(header.uid);
+}}'''
 
-enum class Status {{
-  kSuccess = ss_c::kSsStatusSuccess,
-  kInvalidUid = ss_c::kSsStatusInvalidUid,
-  kInvalidLen = ss_c::kSsStatusInvalidLen,
-}};\n\n'''
 
-  s += '\n'.join([f'using {x.name} = ss_c::{x.name};' for x in enums + bitfields + structs])
-  s += '\n\n'
+def unpack_message_definition(messages):
+  n = '\n'
+  s = f'''\
+std::pair<AnyMessage, Status> UnpackMessage(const uint8_t *buffer, size_t len) {{
+  if (len < kHeaderPackedSize) return {{std::monostate{{}}, Status::kInvalidLen}};
 
-  for msg in messages:
-    s += f'''\
-struct {msg.name} : public ss_c::{msg.name} {{
-  static constexpr size_t kPackedSize = {c_ss.packed_size_name(msg)};
+  const MsgType msg_type = InspectHeader(buffer);\n\n'''
 
-  void Pack(uint8_t *buffer) {{
-    ss_c::{c_ss.pack_function_name(msg)}(this, buffer);
-  }}
-
-  std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack() {{
-    auto buffer = std::make_unique<std::array<uint8_t, kPackedSize>>();
-    ss_c::{c_ss.pack_function_name(msg)}(this, buffer->data());
-    return buffer;
-  }}
-
-  Status UnpackInto(const uint8_t *buffer) {{
-    return static_cast<Status>(ss_c::{c_ss.unpack_function_name(msg)}(buffer, this));
-  }}
-
-  static std::pair<Status, {msg.name}> UnpackNew(const uint8_t *buffer) {{
-    {msg.name} msg;
-    Status status = static_cast<Status>(ss_c::{c_ss.unpack_function_name(msg)}(buffer, &msg));
-    return {{status, msg}};
-  }}
-}};\n\n'''
-
-  s += f'static constexpr size_t kNumMsgTypes = {len(messages)};\n\n'
-
-  s += 'enum class MsgType {\n'
-  for msg in messages:
-    s += f'  k{msg.name} = ss_c::kSsMsgType{msg.name},\n'
-  s += '  kUnknown = ss_c::kSsMsgTypeUnknown\n'
-  s += '};\n\n'
-
-  s += 'static constexpr size_t kHeaderPackedSize = SS_HEADER_PACKED_SIZE;\n\n'
-
-  s += '''\
-static inline MsgType InspectHeader(const uint8_t *buffer) {
-  return static_cast<MsgType>(ss_c::SsInspectHeader(buffer));
-}\n\n'''
-
-  s += 'using AnyMessage = std::variant<\n'
-  s += '  std::monostate,\n'
-  s += ',\n'.join(['  ' + msg.name for msg in messages])
-  s += '\n>;\n\n'
-
-  s += f'''\
-static inline std::pair<Status, AnyMessage> UnpackMessage(const uint8_t *buffer, size_t len) {{
-  if (len < kHeaderPackedSize) {{
-    return {{Status::kInvalidLen, {{}}}};
-  }}
-
-  const MsgType msg_type = static_cast<MsgType>(ss_c::SsInspectHeader(buffer));\n\n'''
   for msg in messages:
     s += f'''\
   if (msg_type == MsgType::k{msg.name}) {{
-    if (len != {msg.name}::kPackedSize) {{
-      return {{Status::kInvalidLen, {{}}}};
-    }}
+    if (len != {msg.name}::kPackedSize) return {{std::monostate{{}}, Status::kInvalidLen}};
     return {msg.name}::UnpackNew(buffer);
   }}\n\n'''
 
   s += '''\
-  return {Status::kInvalidUid, {}};
-}\n\n'''
+  return {std::monostate{}, Status::kInvalidUid};
+}'''
 
-  s += '''\
+  return s
+
+
+def message_dispatcher_declaration(messages):
+  n = '\n'
+  s = '''\
 class MessageDispatcher {
  public:
+  Status Unpack(const uint8_t *data, size_t len) const;
+
   template<typename T>
   void AddCallback(std::function<void(const T&)> func) {\n'''
 
@@ -120,49 +97,221 @@ class MessageDispatcher {
 '''
     first = False
 
-  s += '''\
-    } else {
+  s += f'''\
+    }} else {{
       static_assert(always_false_v<T>);
-    }
-  }\n\n'''
+    }}
+  }}
 
-  s += '''\
-  Status Unpack(const uint8_t *data, size_t len) {
-    const auto [status, msg] = UnpackMessage(data, len);
-    if (status != Status::kSuccess) return status;
+ private:
+  template <typename T>
+  static constexpr bool always_false_v = false;
 
-    std::visit([this] (auto&& msg) {
-      using T  = std::decay_t<decltype(msg)>;\n\n'''
+{n.join([f'  std::vector<std::function<void(const {m.name}&)>> {utils.camel_to_snake(m.name)}_callbacks_;'
+    for m in messages])}
+}};'''
+
+  return s
+
+
+def message_dispatcher_definition(messages):
+  s = '''\
+Status MessageDispatcher::Unpack(const uint8_t *data, size_t len) const {
+  const auto [msg, status] = UnpackMessage(data, len);
+  if (status != Status::kSuccess) return status;
+
+  std::visit([this] (auto&& msg) {
+    using T  = std::decay_t<decltype(msg)>;\n\n'''
 
   first = True
   for msg in messages:
     s += f'''\
-      {'if' if first else '} else if'} constexpr (std::is_same_v<T, {msg.name}>) {{
-        for (const auto& func : {utils.camel_to_snake(msg.name)}_callbacks_) {{
-          func(msg);
-        }}\n'''
+    {'if' if first else '} else if'} constexpr (std::is_same_v<T, {msg.name}>) {{
+      for (const auto& func : {utils.camel_to_snake(msg.name)}_callbacks_) {{
+        func(msg);
+      }}\n'''
     first = False
 
   s += '''\
-      }
-    }, msg);
+    }
+  }, msg);
 
-    return status;
-  }\n\n'''
+  return status;
+}'''
 
-  s += '''\
- private:
-  template <typename T>
-  static constexpr bool always_false_v = false;\n\n'''
+  return s
 
-  s += '\n'.join([
-      f'  std::vector<std::function<void(const {x.name}&)>> {utils.camel_to_snake(x.name)}_callbacks_;'
-      for x in messages
-  ])
 
-  s += '\n};\n\n'
+def declaration(t):
+  if isinstance(t, ss.Primitive):
+    return None
+  if isinstance(t, ss.Bitfield):
+    return c_ss.bitfield_declaration(t)
+  if isinstance(t, ss.Enum):
+    return enum_declaration(t)
+  if isinstance(t, ss.Message):
+    return message_declaration(t)
+  if isinstance(t, ss.Struct):
+    return c_ss.struct_declaration(t)
 
-  s += '}  // namespace ss\n'
+  raise TypeError(f'Unknown type: {type(t)}')
+
+
+def enum_declaration(enum):
+  n = '\n'
+  return f'''\
+enum class {enum.name} : int{enum.bytes * 8}_t {{
+{n.join([f'  k{v.name} = {v.value},' for v in enum.values])}
+}};'''
+
+
+def message_declaration(msg):
+  n = '\n'
+  return f'''\
+struct {msg.name} {{
+{n.join([f'  {c_ss.struct_field_declaration(f)};' for f in msg.fields])}
+
+  static constexpr MsgType kType = MsgType::k{msg.name};
+  static constexpr uint32_t kUid = {msg.uid:#010x};
+  static constexpr size_t kPackedSize = {msg.packed_size};
+
+  static std::pair<{msg.name}, Status> UnpackNew(const uint8_t *buffer);
+
+  void Pack(uint8_t *buffer);
+  std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack();
+  Status Unpack(const uint8_t *buffer);
+}};'''
+
+
+def message_pack(msg):
+  return f'''\
+void {msg.name}::Pack(uint8_t *buffer) {{
+  ss_header.uid = kUid;
+  ss_header.len = kPackedSize;
+  {c_ss.pack_function_name(msg)}(this, buffer);
+}}
+
+std::unique_ptr<std::array<uint8_t, {msg.name}::kPackedSize>> {msg.name}::Pack() {{
+  auto buffer = std::make_unique<std::array<uint8_t, kPackedSize>>();
+  Pack(buffer->data());
+  return buffer;
+}}'''
+
+
+def message_unpack(msg):
+  return f'''\
+Status {msg.name}::Unpack(const uint8_t *buffer) {{
+  {c_ss.unpack_function_name(msg.fields[0].type)}(buffer + 0, &ss_header);
+
+  if (ss_header.uid != kUid) return Status::kInvalidUid;
+  if (ss_header.len != kPackedSize) return Status::kInvalidLen;
+
+  {c_ss.unpack_function_name(msg)}(buffer, this);
+
+  return Status::kSuccess;
+}}
+
+std::pair<{msg.name}, Status> {msg.name}::UnpackNew(const uint8_t *buffer) {{
+  {msg.name} data;
+  const Status status = data.Unpack(buffer);
+
+  if (status != Status::kSuccess) return {{{{}}, status}};
+
+  return {{data, status}};
+}}'''
+
+
+def packing_functions(t):
+  if isinstance(t, (ss.Primitive, ss.Bitfield, ss.Enum)):
+    return c_ss.primitive_pack(t) + '\n\n' + c_ss.primitive_unpack(t)
+  if isinstance(t, ss.Message):
+    return c_ss.struct_pack(t) + '\n\n' + c_ss.struct_unpack(t) + '\n\n' + \
+        message_pack(t) + '\n\n' + message_unpack(t)
+  if isinstance(t, ss.Struct):
+    return c_ss.struct_pack(t) + '\n\n' + c_ss.struct_unpack(t)
+
+  raise TypeError('Unknown type: {}'.format(type(t)))
+
+
+def cc_header(all_types):
+  messages = [x for x in all_types if isinstance(x, ss.Message)]
+
+  s = f'''\
+#pragma once
+
+#include <cstdint>
+#include <cstddef>
+#include <array>
+#include <functional>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <variant>
+
+namespace ss {{
+
+{status_enum()}
+
+static constexpr size_t kNumMsgTypes = {len(messages)};
+
+{message_type_enum(messages)}
+
+static constexpr size_t kHeaderPackedSize = 6;
+
+MsgType InspectHeader(const uint8_t *buffer);
+
+'''
+
+  for t in all_types:
+    d = declaration(t)
+    if d:
+      s += d + '\n\n'
+
+  s += f'''\
+{any_message_variant(messages)}
+
+std::pair<AnyMessage, Status> UnpackMessage(const uint8_t *buffer, size_t len);
+
+{message_dispatcher_declaration(messages)}
+
+}}  // namespace ss\n'''
+
+  return s
+
+
+def cc_source(all_types, header):
+  messages = [x for x in all_types if isinstance(x, ss.Message)]
+
+  s = f'''\
+#include "{header}"
+
+#include <cstdint>
+#include <cstddef>
+#include <cstring>
+#include <array>
+#include <functional>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <variant>
+
+namespace ss {{
+
+{c_ss.static_assert(all_types, include_enums=False)}
+
+'''
+
+  for t in all_types:
+    s += packing_functions(t) + '\n\n'
+
+  s += f'''\
+{inspect_header_definition(messages)}
+
+{unpack_message_definition(messages)}
+
+{message_dispatcher_definition(messages)}
+
+}}  // namespace ss\n'''
 
   return s
 
@@ -171,13 +320,16 @@ def main():
   parser = argparse.ArgumentParser(description='Generate message pack C++ library.')
   parser.add_argument('--spec', required=True, help='YAML message specification.')
   parser.add_argument('--header', required=True, help='Library header file name.')
-  parser.add_argument('--c_header', required=True, help='C header file name.')
+  parser.add_argument('--source', required=True, help='Library source file name.')
   args = parser.parse_args()
 
   all_types = ss.parse_yaml(args.spec)
 
   with open(args.header, 'w') as f:
-    f.write(cc_header(all_types, args.c_header))
+    f.write(cc_header(all_types))
+
+  with open(args.source, 'w') as f:
+    f.write(cc_source(all_types, args.header))
 
 
 if __name__ == '__main__':

@@ -62,16 +62,16 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
         name = name + "-cc-gen",
         srcs = [
             message_spec,
-            ":" + name + ".h",
         ],
         outs = [
+            name + ".cc",
             name + ".hpp",
         ],
         cmd = ("$(execpath @stuff_sack//src:cc_stuff_sack) --spec $(execpath {}) " +
-               "--header $(execpath {}) --c_header $(execpath {})").format(
+               "--source $(execpath {}) --header $(execpath {})").format(
             message_spec,
+            name + ".cc",
             name + ".hpp",
-            ":" + name + ".h",
         ),
         tools = ["@stuff_sack//src:cc_stuff_sack"],
         visibility = ["//visibility:private"],
@@ -79,8 +79,8 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
 
     native.cc_library(
         name = name + "-cc",
+        srcs = [name + ".cc"],
         hdrs = [name + ".hpp"],
-        deps = [":" + name + "-c"],
         **kwargs
     )
 

@@ -103,14 +103,8 @@ typedef struct {{
 
 
 def pack(type_object):
-  if isinstance(type_object, ss.Bitfield):
-    return primitive_union_pack(type_object)
-
-  if type_object.name in ('float', 'double'):
-    return primitive_union_pack(type_object)
-
   if isinstance(type_object, ss.Enum):
-    return primitive_pack(type_object)
+    return enum_pack(type_object)
 
   if isinstance(type_object, ss.Message):
     return message_pack(type_object)
@@ -118,21 +112,15 @@ def pack(type_object):
   if isinstance(type_object, ss.Struct):
     return struct_pack(type_object)
 
-  if isinstance(type_object, ss.Primitive):
+  if isinstance(type_object, (ss.Primitive, ss.Bitfield)):
     return primitive_pack(type_object)
 
   raise TypeError('Unknown type: {}'.format(type(type_object)))
 
 
 def unpack(type_object):
-  if isinstance(type_object, ss.Bitfield):
-    return primitive_union_unpack(type_object)
-
-  if type_object.name in ('float', 'double'):
-    return primitive_union_unpack(type_object)
-
   if isinstance(type_object, ss.Enum):
-    return primitive_unpack(type_object)
+    return enum_unpack(type_object)
 
   if isinstance(type_object, ss.Message):
     return message_unpack(type_object)
@@ -140,7 +128,7 @@ def unpack(type_object):
   if isinstance(type_object, ss.Struct):
     return struct_unpack(type_object)
 
-  if isinstance(type_object, ss.Primitive):
+  if isinstance(type_object, (ss.Primitive, ss.Bitfield)):
     return primitive_unpack(type_object)
 
   raise TypeError('Unknown type: {}'.format(type(type_object)))
@@ -151,25 +139,19 @@ def primitive_pack(obj):
   bits = obj.bytes * 8
   return f'''\
 static inline void {pack_function_name(obj)}(const {c_type_name(obj)} *data, uint8_t *buffer) {{
-  uint{bits}_t raw_data = (uint{bits}_t)*data;
+  uint{bits}_t raw_data;
+  memcpy(&raw_data, data, sizeof(raw_data));
 {n.join([f'  buffer[{i}] = (uint8_t)(raw_data >> {(obj.bytes - i - 1) * 8});' for
     i in range(obj.bytes)])}
 }}'''
 
 
-def primitive_union_pack(obj):
-  n = '\n'
+def enum_pack(obj):
   bits = obj.bytes * 8
   return f'''\
 static inline void {pack_function_name(obj)}(const {c_type_name(obj)} *data, uint8_t *buffer) {{
-  union {{
-    {c_type_name(obj)} data;
-    uint{bits}_t raw_data;
-  }} data_union;
-
-  data_union.data = *data;
-{n.join([f'  buffer[{i}] = (uint8_t)(data_union.raw_data >> {(obj.bytes - i - 1) * 8});' for
-    i in range(obj.bytes)])}
+  const int{bits}_t raw_data = *data;
+  SsPackInt{bits}(&raw_data, buffer);
 }}'''
 
 
@@ -224,7 +206,7 @@ def message_unpack(obj):
     return kSsStatusInvalidLen;
   }}
 
-{utils.indent(struct_unpack_body(obj, skip_header=True))}
+{utils.indent(struct_unpack_body(obj))}
 
   return kSsStatusSuccess;
 }}'''
@@ -260,25 +242,17 @@ static inline void {unpack_function_name(obj)}(const uint8_t *buffer, {c_type_na
   uint{bits}_t raw_data = 0;
 {n.join([f'  raw_data |= (uint{bits}_t)buffer[{i}] << {(obj.bytes - i -1) * 8};' for
     i in range(obj.bytes)])}
-  *data = ({c_type_name(obj)})raw_data;
+  memcpy(data, &raw_data, sizeof(*data));
 }}'''
 
 
-def primitive_union_unpack(obj):
-  n = '\n'
+def enum_unpack(obj):
   bits = obj.bytes * 8
   return f'''\
 static inline void {unpack_function_name(obj)}(const uint8_t *buffer, {c_type_name(obj)} *data) {{
-  union {{
-    {c_type_name(obj)} data;
-    uint{bits}_t raw_data;
-  }} data_union;
-
-  data_union.raw_data = 0;
-{n.join([f'  data_union.raw_data |= (uint{bits}_t)buffer[{i}] << {(obj.bytes - i - 1) * 8};' for
-    i in range(obj.bytes)])}
-
-  *data = data_union.data;
+  int{bits}_t raw_data;
+  SsUnpackInt{bits}(buffer, &raw_data);
+  *data = raw_data;
 }}'''
 
 
@@ -309,12 +283,12 @@ static inline void {unpack_function_name(obj)}(const uint8_t *buffer, {c_type_na
 }}'''
 
 
-def struct_unpack_body(obj, skip_header=False):
+def struct_unpack_body(obj):
   s = ''
 
   offset = 0
   for field in obj.fields:
-    if skip_header and field.type.name == 'SsHeader':
+    if field.type.name == 'SsHeader':
       pass
     elif isinstance(field.type, ss.Array):
       s += array_unpack(field.name, field.type, offset) + '\n'
@@ -330,13 +304,13 @@ def packed_size_name(message):
   return f'SS_{utils.camel_to_snake(message.name).upper()}_PACKED_SIZE'
 
 
-def static_assert(all_types):
+def static_assert(all_types, include_enums=True):
   s = ''
 
   for t in all_types:
     if isinstance(t, (ss.Primitive, ss.Bitfield)):
       s += f'static_assert(sizeof({c_type_name(t)}) == {t.bytes}, "{c_type_name(t)} size mismatch.");\n'
-    if isinstance(t, ss.Enum):
+    if include_enums and isinstance(t, ss.Enum):
       s += f'static_assert(kNum{t.name} < {" * ".join(["256"] * t.bytes)} / 2, "{t.name} size mismatch.");\n'
 
   return s[:-1]
@@ -483,6 +457,7 @@ def c_file(spec, all_types, headers):
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 {static_assert(all_types)}\n\n'''
 

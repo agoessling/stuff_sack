@@ -12,14 +12,14 @@ TEST(Bitfield, Packing) {
   EXPECT_EQ(Bitfield2BytesTest::kPackedSize, 8);
   EXPECT_EQ(Bitfield4BytesTest::kPackedSize, 10);
 
-  Bitfield4BytesTest bitfield_test = {{
+  Bitfield4BytesTest bitfield_test = {
       .bitfield =
           {
               .field0 = 6,
               .field1 = 27,
               .field2 = 264,
           },
-  }};
+  };
 
   uint8_t bytes[Bitfield4BytesTest::kPackedSize] = {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0xde,
@@ -34,7 +34,7 @@ TEST(Bitfield, Packing) {
     EXPECT_THAT(packed, ElementsAreArray(bytes));
 
     Bitfield4BytesTest unpacked;
-    Status status = unpacked.UnpackInto(bytes);
+    Status status = unpacked.Unpack(bytes);
     EXPECT_EQ(status, Status::kSuccess);
     EXPECT_EQ(unpacked.bitfield.field0, bitfield_test.bitfield.field0);
     EXPECT_EQ(unpacked.bitfield.field1, bitfield_test.bitfield.field1);
@@ -44,7 +44,7 @@ TEST(Bitfield, Packing) {
     const auto packed = bitfield_test.Pack();
     EXPECT_THAT(*packed, ElementsAreArray(bytes));
 
-    const auto [status, unpacked] = Bitfield4BytesTest::UnpackNew(bytes);
+    const auto [unpacked, status] = Bitfield4BytesTest::UnpackNew(bytes);
     EXPECT_EQ(status, Status::kSuccess);
     EXPECT_EQ(unpacked.bitfield.field0, bitfield_test.bitfield.field0);
     EXPECT_EQ(unpacked.bitfield.field1, bitfield_test.bitfield.field1);
@@ -56,12 +56,12 @@ TEST(Enum, Packing) {
   EXPECT_EQ(Enum1BytesTest::kPackedSize, 7);
   EXPECT_EQ(Enum2BytesTest::kPackedSize, 8);
 
-  Enum2BytesTest enum_test = {{
-      .enumeration = Enum2Bytes::kNumEnum2Bytes,
-  }};
+  Enum2BytesTest enum_test = {
+      .enumeration = Enum2Bytes::kValue127,
+  };
 
   uint8_t bytes[Enum2BytesTest::kPackedSize] = {
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F,
   };
 
   {
@@ -73,7 +73,7 @@ TEST(Enum, Packing) {
     EXPECT_THAT(packed, ElementsAreArray(bytes));
 
     Enum2BytesTest unpacked;
-    Status status = unpacked.UnpackInto(bytes);
+    Status status = unpacked.Unpack(bytes);
     EXPECT_EQ(status, Status::kSuccess);
     EXPECT_EQ(unpacked.enumeration, enum_test.enumeration);
   }
@@ -81,14 +81,14 @@ TEST(Enum, Packing) {
     const auto packed = enum_test.Pack();
     EXPECT_THAT(*packed, ElementsAreArray(bytes));
 
-    const auto [status, unpacked] = Enum2BytesTest::UnpackNew(bytes);
+    const auto [unpacked, status] = Enum2BytesTest::UnpackNew(bytes);
     EXPECT_EQ(status, Status::kSuccess);
     EXPECT_EQ(unpacked.enumeration, enum_test.enumeration);
   }
 }
 
 TEST(Primitive, Packing) {
-  PrimitiveTest primitive_test = {{
+  PrimitiveTest primitive_test = {
       .uint8 = 0x01,
       .uint16 = 0x0201,
       .uint32 = 0x04030201,
@@ -100,7 +100,7 @@ TEST(Primitive, Packing) {
       .boolean = true,
       .float_type = 3.1415926,
       .double_type = 3.1415926,
-  }};
+  };
 
   uint8_t bytes[PrimitiveTest::kPackedSize] = {
       0x00, 0x00, 0x00, 0x00,  // uid
@@ -127,7 +127,7 @@ TEST(Primitive, Packing) {
     EXPECT_THAT(packed, ElementsAreArray(bytes));
 
     PrimitiveTest unpacked;
-    Status status = unpacked.UnpackInto(bytes);
+    Status status = unpacked.Unpack(bytes);
     EXPECT_EQ(status, Status::kSuccess);
     EXPECT_EQ(unpacked.uint8, primitive_test.uint8);
     EXPECT_EQ(unpacked.uint16, primitive_test.uint16);
@@ -145,7 +145,7 @@ TEST(Primitive, Packing) {
     const auto packed = primitive_test.Pack();
     EXPECT_THAT(*packed, ElementsAreArray(bytes));
 
-    const auto [status, unpacked] = PrimitiveTest::UnpackNew(bytes);
+    const auto [unpacked, status] = PrimitiveTest::UnpackNew(bytes);
     EXPECT_EQ(status, Status::kSuccess);
     EXPECT_EQ(unpacked.uint8, primitive_test.uint8);
     EXPECT_EQ(unpacked.uint16, primitive_test.uint16);
@@ -162,39 +162,39 @@ TEST(Primitive, Packing) {
 }
 
 TEST(Array, Packing) {
-  ArrayTest array_test = {{.array_1d =
-                               {
-                                   {.field1 = 0},
-                                   {.field1 = 1},
-                                   {.field1 = 2},
-                               },
-                           .array_2d =
-                               {
-                                   {
-                                       {.field1 = 0},
-                                       {.field1 = 1},
-                                       {.field1 = 2},
-                                   },
-                                   {
-                                       {.field1 = 3},
-                                       {.field1 = 4},
-                                       {.field1 = 5},
-                                   },
-                               },
-                           .array_3d = {
-                               {
-                                   {
-                                       {.field1 = 0},
-                                       {.field1 = 1},
-                                       {.field1 = 2},
-                                   },
-                                   {
-                                       {.field1 = 3},
-                                       {.field1 = 4},
-                                       {.field1 = 5},
-                                   },
-                               },
-                           }}};
+  ArrayTest array_test = {.array_1d =
+                              {
+                                  {.field1 = 0},
+                                  {.field1 = 1},
+                                  {.field1 = 2},
+                              },
+                          .array_2d =
+                              {
+                                  {
+                                      {.field1 = 0},
+                                      {.field1 = 1},
+                                      {.field1 = 2},
+                                  },
+                                  {
+                                      {.field1 = 3},
+                                      {.field1 = 4},
+                                      {.field1 = 5},
+                                  },
+                              },
+                          .array_3d = {
+                              {
+                                  {
+                                      {.field1 = 0},
+                                      {.field1 = 1},
+                                      {.field1 = 2},
+                                  },
+                                  {
+                                      {.field1 = 3},
+                                      {.field1 = 4},
+                                      {.field1 = 5},
+                                  },
+                              },
+                          }};
 
   uint8_t bytes[ArrayTest::kPackedSize] = {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
@@ -212,7 +212,7 @@ TEST(Array, Packing) {
     EXPECT_THAT(packed, ElementsAreArray(bytes));
 
     ArrayTest unpacked;
-    Status status = unpacked.UnpackInto(bytes);
+    Status status = unpacked.Unpack(bytes);
     EXPECT_EQ(status, Status::kSuccess);
     EXPECT_EQ(unpacked.array_1d[0].field1, array_test.array_1d[0].field1);
     EXPECT_EQ(unpacked.array_1d[1].field1, array_test.array_1d[1].field1);
@@ -234,7 +234,7 @@ TEST(Array, Packing) {
     const auto packed = array_test.Pack();
     EXPECT_THAT(*packed, ElementsAreArray(bytes));
 
-    const auto [status, unpacked] = ArrayTest::UnpackNew(bytes);
+    const auto [unpacked, status] = ArrayTest::UnpackNew(bytes);
     EXPECT_EQ(status, Status::kSuccess);
     EXPECT_EQ(unpacked.array_1d[0].field1, array_test.array_1d[0].field1);
     EXPECT_EQ(unpacked.array_1d[1].field1, array_test.array_1d[1].field1);
@@ -270,21 +270,21 @@ TEST(UnpackMessage, InspectHeader) {
 TEST(UnpackMessage, Variant) {
   {
     const uint8_t bytes[4] = {};
-    const auto [status, msg] = UnpackMessage(bytes, sizeof(bytes));
+    const auto [msg, status] = UnpackMessage(bytes, sizeof(bytes));
     EXPECT_EQ(status, Status::kInvalidLen);
     EXPECT_TRUE(std::holds_alternative<std::monostate>(msg));
   }
   {
     auto packed = PrimitiveTest{}.Pack();
     (*packed)[0] = 0x00;
-    const auto [status, msg] = UnpackMessage(packed->data(), packed->size());
+    const auto [msg, status] = UnpackMessage(packed->data(), packed->size());
     EXPECT_EQ(status, Status::kInvalidUid);
     EXPECT_TRUE(std::holds_alternative<std::monostate>(msg));
   }
   {
-    PrimitiveTest primitive_test = {{.int8 = -55}};
+    PrimitiveTest primitive_test = {.int8 = -55};
     auto packed = primitive_test.Pack();
-    const auto [status, msg] = UnpackMessage(packed->data(), packed->size());
+    const auto [msg, status] = UnpackMessage(packed->data(), packed->size());
     EXPECT_EQ(status, Status::kSuccess);
     EXPECT_TRUE(std::holds_alternative<PrimitiveTest>(msg));
     EXPECT_EQ(std::get<PrimitiveTest>(msg).int8, primitive_test.int8);
@@ -294,8 +294,8 @@ TEST(UnpackMessage, Variant) {
 TEST(MessageDispatcher, Unpack) {
   MessageDispatcher dispatcher;
 
-  PrimitiveTest primitive_test = {{.int8 = -55}};
-  Enum2BytesTest enum_test = {{.enumeration = Enum2Bytes::kNumEnum2Bytes}};
+  PrimitiveTest primitive_test = {.int8 = -55};
+  Enum2BytesTest enum_test = {.enumeration = Enum2Bytes::kValue127};
 
   PrimitiveTest unpacked_primitive_test;
   Enum2BytesTest unpacked_enum_test;
