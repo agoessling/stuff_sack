@@ -26,6 +26,10 @@ Generated libraries currently implemented for:
   + [Structs](#structs)
     - [Type Descriptions](#type-descriptions)
   + [Messages](#messages)
+  + [Metadata](#metadata)
+    - [Top Level Types](#top-level-types)
+    - [Struct and Message Fields](#struct-and-message-fields)
+  + [Type Aliasing](#type-aliasing)
 * [Generating / Building Libraries](#generating--building-libraries)
   + [Viewing Generated Library Documentation](#viewing-generated-library-documentation)
 * [Implementation Details](#implementation-details)
@@ -177,6 +181,37 @@ MessageName:
     - field_name_2: [uint8, 2]
 ```
 
+### Metadata
+
+Metadata can be added to elements within the message specification:
+
+#### Top Level Types
+
+* `description` (string) - Description of defined type.
+
+#### Struct and Message Fields
+
+Struct and message field metadata is always prefixed with a leading underscore to differentiate it
+from the field name.
+
+* `_description` (string) - Description of field.
+* `_alias` (map[string, string]) - Map of library names (e.g. "c" or "cpp") to alias types for the
+field.  See [Type Aliasing](#type-aliasing) for more information.
+
+### Type Aliasing
+
+Struct and message field types can be aliased to externally defined types on a per library (e.g. C /
+C++) basis.  This is useful when you wish to include a type from an external library in your message
+definitions.  For example, aliasing `float[3]` with
+[`Eigen::Vector3f`](https://eigen.tuxfamily.org/dox/group__matrixtypedefs.html#ga5ec9ce2d8adbcd6888f3fbf2e1c095a4).
+The aliasing type must have the same size and alignment of the aliased type.  This is checked at
+compile time.
+
+**NOTE:** The interpretation of the underlying memory of the aliasing type must
+remain stable as the stuff_sack versioning system through UIDs does not know anything about the
+aliasing type.  For example, if the field ordering of `Eigen::Vector3f` changed from x, y, z to z,
+y, x, library users not utilizing the aliasing type would receive / send incorrect data.
+
 ## Generating / Building Libraries
 
 `stuff_sack` utilizes [Bazel](https://bazel.build/) to build the generated libraries and message
@@ -216,8 +251,12 @@ gen_message_def(
 
 The macro has arguments:
 
-* `name` - target name to be used as basename of various outputs.
-* `message_spec` - YAML message definition.
+* `name` - **required** - target name to be used as basename of various outputs.
+* `message_spec` - **required** - YAML message definition.
+* `c_deps` - Dependencies required by the generated C library.
+* `c_includes` - Headers to include in the generated C library (e.g. for aliases).
+* `cc_deps` - Dependencies required by the generated C++ library.
+* `cc_includes` - Headers to include in the generated C++ library (e.g. for aliases).
 * `...` - all further arguments (e.g. `visibility`) are passed as `**kwargs` to the resulting
   `cc_library` and `py_library` outputs.
 
