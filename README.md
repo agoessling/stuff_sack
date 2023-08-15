@@ -12,6 +12,7 @@ consistent (up-to-date) definition before unpacking.
 Generated libraries currently implemented for:
 
 * **C** - without dynamic memory allocation
+* **C++** - with and without dynamic memory allocation
 * **Python**
 
 ## Table of Contents
@@ -44,6 +45,7 @@ You can find examples for:
 * `BUILD` file -- [test/BUILD](test/BUILD).
 * Message definitions -- [test/test_message_spec.yaml](test/test_message_spec.yaml)
 * C library usage -- [test/test_c_stuff_sack.c](test/test_c_stuff_sack.c)
+* C++ library usage -- [test/test_cc_stuff_sack.c](test/test_cc_stuff_sack.cc)
 * Python library usage -- [test/test_py_stuff_sack.py](test/test_py_stuff_sack.py)
 
 You can build and view the documentation for the generated libraries like so (or view a snapshot
@@ -223,6 +225,8 @@ The macro generates several outputs:
 
 * `cc_library` - resulting C library with type definitions and pack / unpack functions.
   * Output target name suffix: "-c" e.g. `test_message_def-c`.
+* `cc_library` - resulting C++ library with type definitions and pack / unpack functions.
+  * Output target name suffix: "-cc" e.g. `test_message_def-cc`.
 * `py_library` - resulting Python library with type definitions and pack / unpack functions.
   * Output target name suffix: "-py" e.g. `test_message_def-py`.
 * `sphinx_html` - generated [Sphinx](https://github.com/agoessling/rules_sphinx) documentation for
