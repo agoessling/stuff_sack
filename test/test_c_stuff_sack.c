@@ -219,12 +219,12 @@ static void TestAliasing(void) {
   SsStatus status = SsUnpackAliasTest(bytes, &unpacked);
   TEST_ASSERT_EQUAL_INT(kSsStatusSuccess, status);
 
-  TEST_ASSERT_EQUAL_FLOAT(alias_test.position.x, unpacked.position.x);
-  TEST_ASSERT_EQUAL_FLOAT(alias_test.position.y, unpacked.position.y);
-  TEST_ASSERT_EQUAL_FLOAT(alias_test.position.z, unpacked.position.z);
-  TEST_ASSERT_EQUAL_FLOAT(alias_test.velocity.x, unpacked.velocity.x);
-  TEST_ASSERT_EQUAL_FLOAT(alias_test.velocity.y, unpacked.velocity.y);
-  TEST_ASSERT_EQUAL_FLOAT(alias_test.velocity.z, unpacked.velocity.z);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.position.t, unpacked.position.t);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.position.u, unpacked.position.u);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.position.v, unpacked.position.v);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.velocity.t, unpacked.velocity.t);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.velocity.u, unpacked.velocity.u);
+  TEST_ASSERT_EQUAL_FLOAT(alias_test.velocity.v, unpacked.velocity.v);
 }
 
 static void TestInspectHeader(void) {

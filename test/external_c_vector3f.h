@@ -1,7 +1,7 @@
 #pragma once
 
 typedef struct {
-  float x;
-  float y;
-  float z;
+  float t;
+  float u;
+  float v;
 } ExternalCVector3f;

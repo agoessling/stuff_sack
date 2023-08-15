@@ -1,7 +1,7 @@
 #pragma once
 
 struct ExternalCppVector3f {
-  float x;
-  float y;
-  float z;
+  float t;
+  float u;
+  float v;
 };

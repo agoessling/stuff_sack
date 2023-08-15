@@ -244,6 +244,41 @@ class TestArray(unittest.TestCase):
             self.assertEqual(s.field1, unpacked.array_3d[i][j][k].field1)
 
 
+class TestAlias(unittest.TestCase):
+
+  @staticmethod
+  def get_test_message():
+    msg = msg_def.AliasTest()
+    msg.position[0] = 1.2
+    msg.position[1] = 2.3
+    msg.position[2] = 3.4
+    msg.velocity.x = 4.5
+    msg.velocity.y = 5.6
+    msg.velocity.z = 6.7
+
+    buf = msg_def.AliasTest.get_buffer()
+    buf[6:] = [
+      0x3f, 0x99, 0x99, 0x9a, 0x40, 0x13, 0x33, 0x33, 0x40, 0x59, 0x99, 0x9a, 0x40, 0x90, 0x00,
+      0x00, 0x40, 0xb3, 0x33, 0x33, 0x40, 0xd6, 0x66, 0x66,
+    ]  # yapf: disable
+
+    return msg, buf
+
+  def test_pack_unpack(self):
+    msg, buf = self.get_test_message()
+
+    packed = msg.pack()
+    self.assertEqual(buf[6:], packed[6:])
+
+    unpacked = msg_def.AliasTest.unpack(packed)
+    self.assertEqual(msg.position[0], unpacked.position[0])
+    self.assertEqual(msg.position[1], unpacked.position[1])
+    self.assertEqual(msg.position[2], unpacked.position[2])
+    self.assertEqual(msg.velocity.x, unpacked.velocity.x)
+    self.assertEqual(msg.velocity.y, unpacked.velocity.y)
+    self.assertEqual(msg.velocity.z, unpacked.velocity.z)
+
+
 class UnpackTest(unittest.TestCase):
 
   def test_unpack(self):

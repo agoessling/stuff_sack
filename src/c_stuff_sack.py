@@ -374,6 +374,8 @@ def static_assert(all_types, include_enums=True):
           continue
         s += (f'static_assert(sizeof({f.alias}) == sizeof({c_full_type_name(f.type)}), ' +
               f'"{t.name}.{f.name} alias size mismatch.");\n')
+        s += (f'static_assert(alignof({f.alias}) == alignof({c_full_type_name(f.type)}), ' +
+              f'"{t.name}.{f.name} alias alignment mismatch.");\n')
 
   return s[:-1]
 
@@ -521,6 +523,7 @@ def c_file(spec, all_types, headers):
   s += f'''\
 #include <assert.h>
 #include <stdbool.h>
+#include <stdalign.h>
 #include <stdint.h>
 #include <string.h>
 

@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "test/external_cc_vector3f.h"
 #include "test/test_message_def.hpp"
 
 using namespace ss;
@@ -275,12 +276,12 @@ TEST(Alias, Packing) {
 
   Status status = unpacked.Unpack(bytes);
   EXPECT_EQ(status, Status::kSuccess);
-  EXPECT_EQ(unpacked.position.x, alias_test.position.x);
-  EXPECT_EQ(unpacked.position.y, alias_test.position.y);
-  EXPECT_EQ(unpacked.position.z, alias_test.position.z);
-  EXPECT_EQ(unpacked.velocity.x, alias_test.velocity.x);
-  EXPECT_EQ(unpacked.velocity.y, alias_test.velocity.y);
-  EXPECT_EQ(unpacked.velocity.z, alias_test.velocity.z);
+  EXPECT_EQ(unpacked.position.t, alias_test.position.t);
+  EXPECT_EQ(unpacked.position.u, alias_test.position.u);
+  EXPECT_EQ(unpacked.position.v, alias_test.position.v);
+  EXPECT_EQ(unpacked.velocity.t, alias_test.velocity.t);
+  EXPECT_EQ(unpacked.velocity.u, alias_test.velocity.u);
+  EXPECT_EQ(unpacked.velocity.v, alias_test.velocity.v);
 }
 
 TEST(UnpackMessage, InspectHeader) {
