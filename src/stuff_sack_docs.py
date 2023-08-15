@@ -59,6 +59,20 @@ def c_bitfield_doc(b, domain='c'):
   return s
 
 
+def c_alias_destination(domain, field):
+  xref = ':c:type:'
+  if domain == 'cpp':
+    xref = ':cpp:any:'
+
+  if field.root_type.name in [
+      'uint8', 'uint16', 'uint32', 'uin64', 'int8', 'int16', 'int32', 'int64', 'bool', 'float',
+      'double'
+  ]:
+    xref = ':samp:'
+
+  return f'{xref}`{c_stuff_sack.c_full_type_name(field.type)}`'
+
+
 def c_structure_doc(struct, domain='c'):
   s = f'''\
 {header(struct.name, 3)}
@@ -69,9 +83,11 @@ def c_structure_doc(struct, domain='c'):
 
 '''
   for field in struct.fields:
-    s += f'  .. {domain}:var:: {c_stuff_sack.struct_field_declaration(field)}\n'
+    s += f'  .. {domain}:var:: {c_stuff_sack.struct_field_declaration(field, use_alias=True)}\n'
     if field.description:
       s += f'\n    {field.description}\n'
+    if field.alias:
+      s += f'\n    Aliased onto {c_alias_destination(domain, field)}\n'
 
   return s
 
@@ -87,9 +103,11 @@ def c_message_doc(m):
 '''
 
   for field in m.fields:
-    s += f'  .. c:var:: {c_stuff_sack.struct_field_declaration(field)}\n'
+    s += f'  .. c:var:: {c_stuff_sack.struct_field_declaration(field, use_alias=True)}\n'
     if field.description:
       s += f'\n    {field.description}\n'
+    if field.alias:
+      s += f'\n    Aliased onto {c_alias_destination("c", field)}\n'
 
   s += '\n'
 
@@ -112,7 +130,6 @@ def c_message_doc(m):
 
 
 def cpp_enum_doc(e):
-  n = '\n'
   s = f'''\
 .. cpp:enum-class:: {e.name}
 
@@ -123,21 +140,27 @@ def cpp_enum_doc(e):
     if v.description:
       s += '\n\n    ' + v.description
 
-  return s
+  return s + '\n'
 
 
 def cpp_message_doc(m):
   s = f'''\
+{header(m.name, 3)}
+
 .. cpp:struct:: {m.name}
 
-  {m.description if m.description else ''}'''
+  {m.description if m.description else ''}
+
+'''
 
   for f in m.fields:
-    s += f'\n\n  .. cpp:member:: {c_stuff_sack.struct_field_declaration(f)}'
+    s += f'  .. cpp:member:: {c_stuff_sack.struct_field_declaration(f, use_alias=True)}\n'
     if f.description:
-      s += '\n\n    ' + f.description
+      s += '\n    ' + f.description + '\n'
+    if f.alias:
+      s += f'\n    Aliased onto {c_alias_destination("cpp", f)}\n'
 
-  s += f'''\n\n\
+  s += f'''
   .. cpp:member:: static constexpr MsgType kType = MsgType::k{m.name}
 
   .. cpp:member:: static constexpr uint32_t kUid = {m.uid:#010x}
@@ -158,7 +181,8 @@ def cpp_message_doc(m):
 
   .. cpp:function:: Status Unpack(const uint8_t *buffer)
 
-    Unpack :c:var:`buffer` into message.'''
+    Unpack :c:var:`buffer` into message.
+'''
 
   return s
 
@@ -350,7 +374,19 @@ def write_index_doc(directory, lib_name, rel_spec_path):
     f.write('  :language: YAML\n\n')
 
 
-def write_c_doc(directory, lib_name, enums, bitfields, structs, messages):
+def write_c_doc(directory, lib_name, yaml_file):
+  all_types = stuff_sack.parse_yaml(yaml_file, 'c')
+
+  enums = [x for x in all_types if isinstance(x, stuff_sack.Enum)]
+  bitfields = [x for x in all_types if isinstance(x, stuff_sack.Bitfield)]
+  structs = [
+      x for x in all_types
+      if isinstance(x, stuff_sack.Struct) and not isinstance(x, stuff_sack.Message)
+  ]
+  messages = [x for x in all_types if isinstance(x, stuff_sack.Message)]
+
+  enums = c_stuff_sack.get_extra_enums(messages) + enums
+
   with open(os.path.join(directory, '{}_c.rst'.format(lib_name)), 'w') as f:
     f.write(header('{} C Documentation'.format(lib_name), 1) + '\n')
 
@@ -428,7 +464,19 @@ def write_c_doc(directory, lib_name, enums, bitfields, structs, messages):
       f.write(c_message_doc(m))
 
 
-def write_cc_doc(directory, lib_name, enums, bitfields, structs, messages):
+def write_cc_doc(directory, lib_name, yaml_file):
+  all_types = stuff_sack.parse_yaml(yaml_file, 'cpp')
+
+  enums = [x for x in all_types if isinstance(x, stuff_sack.Enum)]
+  bitfields = [x for x in all_types if isinstance(x, stuff_sack.Bitfield)]
+  structs = [
+      x for x in all_types
+      if isinstance(x, stuff_sack.Struct) and not isinstance(x, stuff_sack.Message)
+  ]
+  messages = [x for x in all_types if isinstance(x, stuff_sack.Message)]
+
+  enums = cc_stuff_sack.get_extra_enums(messages) + enums
+
   n = '\n'
   with open(os.path.join(directory, '{}_cc.rst'.format(lib_name)), 'w') as f:
     f.write(f'''\
@@ -482,10 +530,23 @@ def write_cc_doc(directory, lib_name, enums, bitfields, structs, messages):
 {header('Messages', 2)}
 
 {n.join([cpp_message_doc(m) for m in messages])}
+
 ''')
 
 
-def write_py_doc(directory, lib_name, enums, bitfields, structs, messages):
+def write_py_doc(directory, lib_name, yaml_file):
+  all_types = stuff_sack.parse_yaml(yaml_file, 'c')
+
+  enums = [x for x in all_types if isinstance(x, stuff_sack.Enum)]
+  bitfields = [x for x in all_types if isinstance(x, stuff_sack.Bitfield)]
+  structs = [
+      x for x in all_types
+      if isinstance(x, stuff_sack.Struct) and not isinstance(x, stuff_sack.Message)
+  ]
+  messages = [x for x in all_types if isinstance(x, stuff_sack.Message)]
+
+  enums = c_stuff_sack.get_extra_enums(messages) + enums
+
   with open(os.path.join(directory, '{}_py.rst'.format(lib_name)), 'w') as f:
     f.write(header('{} Python Documentation'.format(lib_name), 1))
     f.write('\n')
@@ -584,22 +645,10 @@ def main():
   rel_output_dir = os.path.relpath(args.output_dir, args.gen_dir)
   rel_spec_path = os.path.relpath(args.spec, rel_output_dir)
 
-  all_types = stuff_sack.parse_yaml(args.spec)
-  enums = [x for x in all_types if isinstance(x, stuff_sack.Enum)]
-  bitfields = [x for x in all_types if isinstance(x, stuff_sack.Bitfield)]
-  structs = [
-      x for x in all_types
-      if isinstance(x, stuff_sack.Struct) and not isinstance(x, stuff_sack.Message)
-  ]
-  messages = [x for x in all_types if isinstance(x, stuff_sack.Message)]
-
-  c_enums = c_stuff_sack.get_extra_enums(messages)
-  cpp_enums = cc_stuff_sack.get_extra_enums(messages)
-
   write_index_doc(args.output_dir, args.name, rel_spec_path)
-  write_c_doc(args.output_dir, args.name, c_enums + enums, bitfields, structs, messages)
-  write_cc_doc(args.output_dir, args.name, cpp_enums + enums, bitfields, structs, messages)
-  write_py_doc(args.output_dir, args.name, c_enums + enums, bitfields, structs, messages)
+  write_c_doc(args.output_dir, args.name, args.spec)
+  write_cc_doc(args.output_dir, args.name, args.spec)
+  write_py_doc(args.output_dir, args.name, args.spec)
 
 
 if __name__ == '__main__':
