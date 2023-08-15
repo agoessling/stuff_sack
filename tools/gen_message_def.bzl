@@ -104,6 +104,7 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
         outs = [
             name + "_index.rst",
             name + "_c.rst",
+            name + "_cc.rst",
             name + "_py.rst",
         ],
         cmd = ("$(execpath @stuff_sack//src:stuff_sack_docs) --name {}".format(name) +
@@ -127,6 +128,7 @@ def gen_message_def(name, message_spec, c_deps = None, **kwargs):
         index = name + "_index.rst",
         srcs = [
             name + "_c.rst",
+            name + "_cc.rst",
             name + "_py.rst",
             message_spec,
         ],

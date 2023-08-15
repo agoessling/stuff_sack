@@ -20,6 +20,7 @@ py_binary(
     visibility = ["//visibility:public"],
     deps = [
         ":c_stuff_sack",
+        ":cc_stuff_sack",
         ":py_stuff_sack",
         ":stuff_sack",
     ],

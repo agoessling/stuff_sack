@@ -316,6 +316,20 @@ namespace ss {{
   return s
 
 
+def get_extra_enums(messages):
+  msg_type = ss.Enum('MsgType', 'Message types.')
+  for m in messages:
+    msg_type.add_value(ss.EnumValue(m.name, m.description))
+  msg_type.add_value(ss.EnumValue('Unknown', 'Unknown message type.'))
+
+  status = ss.Enum('Status', 'Stuff Sack status code.')
+  status.add_value(ss.EnumValue('Success', 'Success.'))
+  status.add_value(ss.EnumValue('InvalidUid', 'Invalid message UID.'))
+  status.add_value(ss.EnumValue('InvalidLen', 'Invalid message length.'))
+
+  return [msg_type, status]
+
+
 def main():
   parser = argparse.ArgumentParser(description='Generate message pack C++ library.')
   parser.add_argument('--spec', required=True, help='YAML message specification.')

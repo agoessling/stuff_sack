@@ -505,11 +505,7 @@ SsMsgType SsInspectHeader(const uint8_t *buffer) {
   return s[:-1]
 
 
-def parse_yaml(spec):
-  all_types = ss.parse_yaml(spec)
-
-  messages = [x for x in all_types if isinstance(x, ss.Message)]
-
+def get_extra_enums(messages):
   msg_type = ss.Enum('SsMsgType', 'Message types.')
   for m in messages:
     msg_type.add_value(ss.EnumValue(m.name, m.description))
@@ -520,7 +516,7 @@ def parse_yaml(spec):
   status.add_value(ss.EnumValue('InvalidUid', 'Invalid message UID.'))
   status.add_value(ss.EnumValue('InvalidLen', 'Invalid message length.'))
 
-  return [msg_type, status] + list(all_types)
+  return [msg_type, status]
 
 
 def main():

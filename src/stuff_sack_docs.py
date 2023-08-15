@@ -2,6 +2,7 @@ import argparse
 import os.path
 
 from src import c_stuff_sack
+from src import cc_stuff_sack
 from src import py_stuff_sack
 from src import stuff_sack
 
@@ -40,35 +41,35 @@ def c_enum_doc(t):
   return s
 
 
-def c_bitfield_doc(b):
+def c_bitfield_doc(b, domain='c'):
   s = f'''\
 {header(b.name, 3)}
 
-.. c:struct:: {b.name}
+.. {domain}:struct:: {b.name}
 
   {b.description if b.description else ''}
 
 '''
 
   for field in b.fields:
-    s += f'  .. c:var:: {c_stuff_sack.bitfield_field_declaration(b, field)}\n'
+    s += f'  .. {domain}:var:: {c_stuff_sack.bitfield_field_declaration(b, field)}\n'
     if field.description:
       s += f'\n    {field.description}\n'
 
   return s
 
 
-def c_structure_doc(struct):
+def c_structure_doc(struct, domain='c'):
   s = f'''\
 {header(struct.name, 3)}
 
-.. c:struct:: {struct.name}
+.. {domain}:struct:: {struct.name}
 
   {struct.description if struct.description else ''}
 
 '''
   for field in struct.fields:
-    s += f'  .. c:var:: {c_stuff_sack.struct_field_declaration(field)}\n'
+    s += f'  .. {domain}:var:: {c_stuff_sack.struct_field_declaration(field)}\n'
     if field.description:
       s += f'\n    {field.description}\n'
 
@@ -106,6 +107,58 @@ def c_message_doc(m):
   s += '  Write message (:c:var:`data`) to log described by :c:var:`fd` (transparently passed to\n'
   s += '  :c:func:`SsWriteFile`). Returns the number of bytes written and negative values on\n'
   s += '  error.\n\n'
+
+  return s
+
+
+def cpp_enum_doc(e):
+  n = '\n'
+  s = f'''\
+.. cpp:enum-class:: {e.name}
+
+  {e.description if e.description else ''}'''
+
+  for v in e.values:
+    s += f'\n\n  .. cpp:enumerator:: k{v.name} = {v.value}'
+    if v.description:
+      s += '\n\n    ' + v.description
+
+  return s
+
+
+def cpp_message_doc(m):
+  s = f'''\
+.. cpp:struct:: {m.name}
+
+  {m.description if m.description else ''}'''
+
+  for f in m.fields:
+    s += f'\n\n  .. cpp:member:: {c_stuff_sack.struct_field_declaration(f)}'
+    if f.description:
+      s += '\n\n    ' + f.description
+
+  s += f'''\n\n\
+  .. cpp:member:: static constexpr MsgType kType = MsgType::k{m.name}
+
+  .. cpp:member:: static constexpr uint32_t kUid = {m.uid:#010x}
+
+  .. cpp:member:: static constexpr size_t kPackedSize = {m.packed_size}
+
+  .. cpp:function:: static std::pair<{m.name}, Status> UnpackNew(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into new message and return it.
+
+  .. cpp:function:: void Pack(uint8_t *buffer)
+
+    Pack message into :cpp:var:`buffer`.
+
+  .. cpp:function:: std::unique_ptr<std::array<uint8_t, kPackedSize>> Pack()
+
+    Pack message into newly allocated buffer and return it.
+
+  .. cpp:function:: Status Unpack(const uint8_t *buffer)
+
+    Unpack :c:var:`buffer` into message.'''
 
   return s
 
@@ -288,6 +341,7 @@ def write_index_doc(directory, lib_name, rel_spec_path):
   :glob:
 
   *_c
+  *_cc
   *_py\n
 ''')
 
@@ -301,6 +355,9 @@ def write_c_doc(directory, lib_name, enums, bitfields, structs, messages):
     f.write(header('{} C Documentation'.format(lib_name), 1) + '\n')
 
     f.write(header('Helper Functions', 2) + '\n')
+
+    f.write('.. c:macro:: SS_HEADER_PACKED_SIZE\n\n')
+    f.write('  Packed size of :c:struct:`SsHeader` is 6 bytes.\n\n')
 
     f.write(c_function_doc('SsMsgType SsInspectHeader(const uint8_t *buffer)') + '\n')
     f.write('  Determine message type from header in :c:var:`buffer`.\n\n')
@@ -369,6 +426,63 @@ def write_c_doc(directory, lib_name, enums, bitfields, structs, messages):
     for m in messages:
       f.write('\n')
       f.write(c_message_doc(m))
+
+
+def write_cc_doc(directory, lib_name, enums, bitfields, structs, messages):
+  n = '\n'
+  with open(os.path.join(directory, '{}_cc.rst'.format(lib_name)), 'w') as f:
+    f.write(f'''\
+{header(f'{lib_name} C++ Documentation', 1)}
+
+.. cpp:namespace:: ss
+
+{header('Helper Functions', 2)}
+
+.. cpp:var:: static constexpr size_t kNumMsgTypes = {len(messages)}
+
+.. cpp:var:: static constexpr size_t kHeaderPackedSize = 6
+
+.. cpp:function:: MsgType InspectHeader(const uint8_t *buffer)
+
+  Determine message type from header in :c:var:`buffer`.
+
+.. cpp:type:: AnyMessage = std::variant<std::monostate, {','.join([m.name for m in messages])}>
+
+.. cpp:function:: std::pair<AnyMessage, Status> UnpackMessage(const uint8_t *buffer, size_t len)
+
+  Unpack :c:var:`buffer` into new message based on header and return it in the form of the
+  AnyMessage variant.
+
+.. cpp:class:: MessageDispatcher
+
+  Dispatch class that can manage the unpacking of messages.  Users can register callbacks for
+  specific messages and when found the dispatcher will call them with with a const reference to
+  the newly unpacked message.
+
+  .. cpp:function:: Status Unpack(const uint8_t *data, size_t len) const
+
+    Attempt to unpack a message from :cpp:var:`data` and call the associated callbacks.
+
+  .. cpp:function:: template <typename T> void AddCallback(std::function<void(const T&)> func)
+
+    Register callback function for message type :cpp:any:`T`.
+
+{header('Enums', 2)}
+
+{n.join([cpp_enum_doc(e) for e in enums])}
+
+{header('Bitfields', 2)}
+
+{n.join([c_bitfield_doc(b, 'cpp') for b in bitfields])}
+
+{header('Structures', 2)}
+
+{n.join([c_structure_doc(c, 'cpp') for c in structs])}
+
+{header('Messages', 2)}
+
+{n.join([cpp_message_doc(m) for m in messages])}
+''')
 
 
 def write_py_doc(directory, lib_name, enums, bitfields, structs, messages):
@@ -470,7 +584,7 @@ def main():
   rel_output_dir = os.path.relpath(args.output_dir, args.gen_dir)
   rel_spec_path = os.path.relpath(args.spec, rel_output_dir)
 
-  all_types = c_stuff_sack.parse_yaml(args.spec)
+  all_types = stuff_sack.parse_yaml(args.spec)
   enums = [x for x in all_types if isinstance(x, stuff_sack.Enum)]
   bitfields = [x for x in all_types if isinstance(x, stuff_sack.Bitfield)]
   structs = [
@@ -479,9 +593,13 @@ def main():
   ]
   messages = [x for x in all_types if isinstance(x, stuff_sack.Message)]
 
+  c_enums = c_stuff_sack.get_extra_enums(messages)
+  cpp_enums = cc_stuff_sack.get_extra_enums(messages)
+
   write_index_doc(args.output_dir, args.name, rel_spec_path)
-  write_c_doc(args.output_dir, args.name, enums, bitfields, structs, messages)
-  write_py_doc(args.output_dir, args.name, enums, bitfields, structs, messages)
+  write_c_doc(args.output_dir, args.name, c_enums + enums, bitfields, structs, messages)
+  write_cc_doc(args.output_dir, args.name, cpp_enums + enums, bitfields, structs, messages)
+  write_py_doc(args.output_dir, args.name, c_enums + enums, bitfields, structs, messages)
 
 
 if __name__ == '__main__':
