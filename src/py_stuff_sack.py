@@ -87,6 +87,7 @@ class EnumMixin:
 
 
 class _Message(ctypes.Structure):
+  __slots__ = []
 
   @classmethod
   def get_buffer(cls):
@@ -197,7 +198,7 @@ def get_globals(library, message_spec):
 
     if isinstance(t, stuff_sack.Bitfield):
       fields = [(f.name, BITFIELD_MAP[t.bytes], f.bits) for f in t.fields]
-      global_vars[t.name] = type(t.name, (ctypes.Structure,), {'_fields_': fields})
+      global_vars[t.name] = type(t.name, (ctypes.Structure,), {'__slots__': [], '_fields_': fields})
       ctypes_map[t.name] = global_vars[t.name]
 
     if isinstance(t, stuff_sack.Struct):
@@ -210,7 +211,7 @@ def get_globals(library, message_spec):
 
         fields.append((field.name, field_type))
 
-      attrs = {'_fields_': fields}
+      attrs = {'__slots__': [], '_fields_': fields}
 
       base = ctypes.Structure
       if isinstance(t, stuff_sack.Message):
