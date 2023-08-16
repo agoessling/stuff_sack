@@ -1,5 +1,8 @@
 load("@rules_sphinx//sphinx:defs.bzl", "sphinx_html")
 
+COPTS = ["-std=c17", "-Wall", "-Werror"]
+CXXOPTS = ["-std=c++17", "-Wall", "-Werror"]
+
 def gen_message_def(
         name,
         message_spec,
@@ -42,6 +45,7 @@ def gen_message_def(
         name = name + "-c",
         srcs = [name + ".c"],
         hdrs = [name + ".h"],
+        copts = COPTS,
         deps = c_deps + ["@stuff_sack//src:logging"],
         **kwargs
     )
@@ -52,6 +56,7 @@ def gen_message_def(
             name + ".c",
             name + ".h",
         ],
+        copts = COPTS,
         deps = c_deps + ["@stuff_sack//src:logging"],
         linkshared = True,
         visibility = ["//visibility:private"],
@@ -99,6 +104,7 @@ def gen_message_def(
         name = name + "-cc",
         srcs = [name + ".cc"],
         hdrs = [name + ".hpp"],
+        copts = CXXOPTS,
         deps = cc_deps,
         **kwargs
     )

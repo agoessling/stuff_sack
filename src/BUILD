@@ -1,3 +1,6 @@
+COPTS = ["-std=c17", "-Wall", "-Werror"]
+CXXOPTS = ["-std=c++17", "-Wall", "-Werror"]
+
 py_library(
     name = "utils",
     srcs = ["utils.py"],
@@ -80,6 +83,7 @@ cc_library(
     srcs = ["uid_hash.cc"],
     hdrs = ["uid_hash.h"],
     visibility = ["//visibility:public"],
+    copts = CXXOPTS,
     deps = [
         ":crc32",
     ],
@@ -91,6 +95,7 @@ cc_binary(
         "uid_hash.cc",
         "uid_hash.h",
     ],
+    copts = CXXOPTS,
     linkshared = True,
     local_defines = ["PYTHON_LIB"],
     visibility = ["//visibility:public"],
@@ -113,6 +118,7 @@ cc_library(
     name = "logging",
     srcs = ["logging.c"],
     hdrs = ["logging.h"],
+    copts = COPTS,
     visibility = ["//visibility:public"],
     alwayslink = True,
 )
