@@ -1,5 +1,14 @@
-COPTS = ["-std=c17", "-Wall", "-Werror"]
-CXXOPTS = ["-std=c++17", "-Wall", "-Werror"]
+COPTS = [
+    "-std=c17",
+    "-Wall",
+    "-Werror",
+]
+
+CXXOPTS = [
+    "-std=c++17",
+    "-Wall",
+    "-Werror",
+]
 
 py_library(
     name = "utils",
@@ -82,8 +91,8 @@ cc_library(
     name = "uid_hash",
     srcs = ["uid_hash.cc"],
     hdrs = ["uid_hash.h"],
-    visibility = ["//visibility:public"],
     copts = CXXOPTS,
+    visibility = ["//visibility:public"],
     deps = [
         ":crc32",
     ],

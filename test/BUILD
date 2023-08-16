@@ -1,14 +1,16 @@
-load("//tools:gen_message_def.bzl", "gen_message_def")
+load("//tools:gen_stuff_sack.bzl", "all_stuff_sack")
 
 exports_files(
     ["test_message_spec.yaml"],
     ["//visibility:public"],
 )
 
-gen_message_def(
+all_stuff_sack(
     name = "test_message_def",
+    c_alias_tag = "linalg-c",
     c_deps = [":external_c_vector3f"],
     c_includes = ["test/external_c_vector3f.h"],
+    cc_alias_tag = "linalg-cpp",
     cc_deps = [":external_cc_vector3f"],
     cc_includes = ["test/external_cc_vector3f.h"],
     message_spec = "test_message_spec.yaml",

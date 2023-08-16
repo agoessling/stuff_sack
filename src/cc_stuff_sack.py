@@ -337,12 +337,13 @@ def get_extra_enums(messages):
 def main():
   parser = argparse.ArgumentParser(description='Generate message pack C++ library.')
   parser.add_argument('--spec', required=True, help='YAML message specification.')
-  parser.add_argument('--header', required=True, help='Library header file name.')
   parser.add_argument('--source', required=True, help='Library source file name.')
+  parser.add_argument('--header', required=True, help='Library header file name.')
   parser.add_argument('--includes', nargs='+', default=[], help='Additional includes.')
+  parser.add_argument('--alias_tag', help='Alias tag to be used for generation.')
   args = parser.parse_args()
 
-  all_types = ss.parse_yaml(args.spec, 'cpp')
+  all_types = ss.parse_yaml(args.spec, args.alias_tag)
 
   with open(args.header, 'w') as f:
     f.write(cc_header(all_types, args.includes))

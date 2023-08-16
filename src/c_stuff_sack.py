@@ -315,7 +315,7 @@ def struct_unpack_alias_body(obj):
       addr = ''
 
     defs.append(f'{f.type.root_type.name} {c_field_name(f, "_")};')
-    copies.append(f'memcpy(&data->{f.name}, {addr}_{f.name}, sizeof(data->{f.name}));')
+    copies.append(f'memcpy((uint8_t *)&data->{f.name}, {addr}_{f.name}, sizeof(data->{f.name}));')
 
   return '\n'.join(defs), '\n'.join(copies)
 
@@ -374,8 +374,6 @@ def static_assert(all_types, include_enums=True):
           continue
         s += (f'static_assert(sizeof({f.alias}) == sizeof({c_full_type_name(f.type)}), ' +
               f'"{t.name}.{f.name} alias size mismatch.");\n')
-        s += (f'static_assert(alignof({f.alias}) == alignof({c_full_type_name(f.type)}), ' +
-              f'"{t.name}.{f.name} alias alignment mismatch.");\n')
 
   return s[:-1]
 
@@ -590,20 +588,21 @@ def get_extra_enums(messages):
 def main():
   parser = argparse.ArgumentParser(description='Generate message pack C library.')
   parser.add_argument('--spec', required=True, help='YAML message specification.')
+  parser.add_argument('--source', required=True, help='Library source file name.')
   parser.add_argument('--header', required=True, help='Library header file name.')
-  parser.add_argument('--c_file', required=True, help='C library file name.')
   parser.add_argument('--includes', nargs='+', default=[], help='Additional includes.')
+  parser.add_argument('--alias_tag', help='Alias tag to be used for generation.')
   args = parser.parse_args()
 
   with open(args.spec, 'r') as f:
     spec = yaml.unsafe_load(f)
 
-  all_types = ss.parse_yaml(args.spec, 'c')
+  all_types = ss.parse_yaml(args.spec, args.alias_tag)
 
   with open(args.header, 'w') as f:
     f.write(c_header(all_types, args.includes))
 
-  with open(args.c_file, 'w') as f:
+  with open(args.source, 'w') as f:
     includes = [args.header] + args.includes
 
     f.write(c_file(spec, all_types, includes))

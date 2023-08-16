@@ -325,11 +325,11 @@ AliasTest:
   fields:
     - {
         position: [float, 3],
-        _alias: {c: ExternalCVector3f, cpp: ExternalCppVector3f},
+        _alias: {linalg-c: ExternalCVector3f, linalg-cpp: ExternalCppVector3f},
       }
     - {
         velocity: Vector3f,
-        _alias: {c: ExternalCVector3f, cpp: ExternalCppVector3f},
+        _alias: {linalg-c: ExternalCVector3f, linalg-cpp: ExternalCppVector3f},
       }
 
 ArrayElem:

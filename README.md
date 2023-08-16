@@ -31,6 +31,7 @@ Generated libraries currently implemented for:
     - [Struct and Message Fields](#struct-and-message-fields)
   + [Type Aliasing](#type-aliasing)
 * [Generating / Building Libraries](#generating--building-libraries)
+  * [Finer Grained Control](#finer-grained-control)
   + [Viewing Generated Library Documentation](#viewing-generated-library-documentation)
 * [Implementation Details](#implementation-details)
   + [Messages](#messages-1)
@@ -49,11 +50,11 @@ You can find examples for:
 * `BUILD` file -- [test/BUILD](test/BUILD).
 * Message definitions -- [test/test_message_spec.yaml](test/test_message_spec.yaml)
 * C library usage -- [test/test_c_stuff_sack.c](test/test_c_stuff_sack.c)
-* C++ library usage -- [test/test_cc_stuff_sack.c](test/test_cc_stuff_sack.cc)
+* C++ library usage -- [test/test_cc_stuff_sack.cc](test/test_cc_stuff_sack.cc)
 * Python library usage -- [test/test_py_stuff_sack.py](test/test_py_stuff_sack.py)
 
 You can build and view the documentation for the generated libraries like so (or view a snapshot
-[here](https://agoessling.github.io/stuff_sack/)):
+[**HERE**](https://agoessling.github.io/stuff_sack/)):
 
 ```Shell
 bazel run //test:test_message_def-docs.view
@@ -204,8 +205,7 @@ Struct and message field types can be aliased to externally defined types on a p
 C++) basis.  This is useful when you wish to include a type from an external library in your message
 definitions.  For example, aliasing `float[3]` with
 [`Eigen::Vector3f`](https://eigen.tuxfamily.org/dox/group__matrixtypedefs.html#ga5ec9ce2d8adbcd6888f3fbf2e1c095a4).
-The aliasing type must have the same size and alignment of the aliased type.  This is checked at
-compile time.
+The aliasing type must have the same size as the aliased type.  This is enforced at compile time.
 
 **NOTE:** The interpretation of the underlying memory of the aliasing type must
 remain stable as the stuff_sack versioning system through UIDs does not know anything about the
@@ -236,13 +236,13 @@ load("@stuff_sack//tools:level_3_repositories.bzl", "stuff_sack_level_3_deps")
 stuff_sack_level_3_deps()
 ```
 
-Then within the relevant `BUILD` file within your project use the `gen_message_def` macro to
+Then within the relevant `BUILD` file within your project use the `all_stuff_sack` macro to
 generate and build the libraries and utilities associated with a message specification YAML file.
 
 ```Starlark
-load("@stuff_sack//tools:gen_message_def.bzl", "gen_message_def")
+load("@stuff_sack//tools:gen_stuff_sack.bzl", "all_stuff_sack")
 
-gen_message_def(
+all_stuff_sack(
     name = "test_message_def",
     message_spec = "test_message_spec.yaml",
     ...
@@ -255,9 +255,11 @@ The macro has arguments:
 * `message_spec` - **required** - YAML message definition.
 * `c_deps` - Dependencies required by the generated C library.
 * `c_includes` - Headers to include in the generated C library (e.g. for aliases).
+* `c_alias_tag` - Alias tag to use in the generated C library.
 * `cc_deps` - Dependencies required by the generated C++ library.
 * `cc_includes` - Headers to include in the generated C++ library (e.g. for aliases).
-* `...` - all further arguments (e.g. `visibility`) are passed as `**kwargs` to the resulting
+* `cc_alias_tag` - Alias tag to use in the generated C++ library.
+* `**kwargs` - all further arguments (e.g. `visibility`) are passed as `**kwargs` to the resulting
   `cc_library` and `py_library` outputs.
 
 The macro generates several outputs:
@@ -271,6 +273,17 @@ The macro generates several outputs:
 * `sphinx_html` - generated [Sphinx](https://github.com/agoessling/rules_sphinx) documentation for
   resulting libraries.
   * Output target name suffix: "-docs" e.g. `test_message_def-docs`.
+
+### Finer Grained Control
+
+You can also generate specific (or multiple) libraries for each language through macros:
+
+* `c_stuff_sack`
+* `cc_stuff_sack`
+* `py_stuff_sack`
+* `doc_stuff_sack`
+
+See [tools/gen_stuff_sack.bzl](tools/gen_stuff_sack.bzl) for their parameter lists.
 
 ### Viewing Generated Library Documentation
 

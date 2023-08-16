@@ -374,8 +374,8 @@ def write_index_doc(directory, lib_name, rel_spec_path):
     f.write('  :language: YAML\n\n')
 
 
-def write_c_doc(directory, lib_name, yaml_file):
-  all_types = stuff_sack.parse_yaml(yaml_file, 'c')
+def write_c_doc(directory, lib_name, yaml_file, alias_tag):
+  all_types = stuff_sack.parse_yaml(yaml_file, alias_tag)
 
   enums = [x for x in all_types if isinstance(x, stuff_sack.Enum)]
   bitfields = [x for x in all_types if isinstance(x, stuff_sack.Bitfield)]
@@ -464,8 +464,8 @@ def write_c_doc(directory, lib_name, yaml_file):
       f.write(c_message_doc(m))
 
 
-def write_cc_doc(directory, lib_name, yaml_file):
-  all_types = stuff_sack.parse_yaml(yaml_file, 'cpp')
+def write_cc_doc(directory, lib_name, yaml_file, alias_tag):
+  all_types = stuff_sack.parse_yaml(yaml_file, alias_tag)
 
   enums = [x for x in all_types if isinstance(x, stuff_sack.Enum)]
   bitfields = [x for x in all_types if isinstance(x, stuff_sack.Bitfield)]
@@ -640,14 +640,16 @@ def main():
   parser.add_argument('--spec', required=True, help='YAML message specification.')
   parser.add_argument('--output_dir', required=True, help='Sphinx output directory.')
   parser.add_argument('--gen_dir', required=True, help='Sphinx root directory.')
+  parser.add_argument('--c_alias_tag', help='Alias tag to be used for C documentation.')
+  parser.add_argument('--cc_alias_tag', help='Alias tag to be used for C++ documentation.')
   args = parser.parse_args()
 
   rel_output_dir = os.path.relpath(args.output_dir, args.gen_dir)
   rel_spec_path = os.path.relpath(args.spec, rel_output_dir)
 
   write_index_doc(args.output_dir, args.name, rel_spec_path)
-  write_c_doc(args.output_dir, args.name, args.spec)
-  write_cc_doc(args.output_dir, args.name, args.spec)
+  write_c_doc(args.output_dir, args.name, args.spec, args.c_alias_tag)
+  write_cc_doc(args.output_dir, args.name, args.spec, args.cc_alias_tag)
   write_py_doc(args.output_dir, args.name, args.spec)
 
 
