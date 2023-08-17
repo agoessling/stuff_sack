@@ -191,4 +191,4 @@ def all_stuff_sack(
     c_stuff_sack(name, message_spec, c_deps, c_includes, c_alias_tag, **kwargs)
     cc_stuff_sack(name, message_spec, cc_deps, cc_includes, cc_alias_tag, **kwargs)
     py_stuff_sack(name, message_spec, **kwargs)
-    doc_stuff_sack(name, message_spec, **kwargs)
+    doc_stuff_sack(name, message_spec, c_alias_tag, cc_alias_tag, **kwargs)
