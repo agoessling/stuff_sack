@@ -33,6 +33,13 @@ class TestBitfield(unittest.TestCase):
     self.assertEqual(msg.bitfield.field1, unpacked.bitfield.field1)
     self.assertEqual(msg.bitfield.field2, unpacked.bitfield.field2)
 
+  def test_description(self):
+    self.assertEqual('This is a bitfield description.', msg_def.Bitfield4Bytes.description)
+
+  def test_field_description(self):
+    self.assertEqual('This is a bitfield field description.',
+                     msg_def.Bitfield4Bytes.field_descriptions[0])
+
 
 class TestEnum(unittest.TestCase):
 
@@ -122,6 +129,12 @@ class TestEnum(unittest.TestCase):
     self.assertEqual('Value2', s.enumeration.name)
     s.enumeration = msg_def.Enum1Bytes.Value10
     self.assertEqual('Value10', s.enumeration.name)
+
+  def test_description(self):
+    self.assertEqual('This is an enum description.', msg_def.Enum2Bytes.description)
+
+  def test_value_description(self):
+    self.assertEqual('This is a enum value description', msg_def.Enum2Bytes.value_descriptions[0])
 
 
 class TestPrimitive(unittest.TestCase):
@@ -242,6 +255,15 @@ class TestArray(unittest.TestCase):
           with self.subTest(msg='3D Array.', i=i, j=j, k=k):
             self.assertEqual(s.field0, unpacked.array_3d[i][j][k].field0)
             self.assertEqual(s.field1, unpacked.array_3d[i][j][k].field1)
+
+  def test_description(self):
+    self.assertEqual('This is a struct description.', msg_def.ArrayElem.description)
+
+  def test_field_description(self):
+    self.assertEqual('This is a struct field description.', msg_def.ArrayElem.field_descriptions[0])
+
+  def test_message_description(self):
+    self.assertEqual('This is a message description.', msg_def.ArrayTest.description)
 
 
 class TestAlias(unittest.TestCase):

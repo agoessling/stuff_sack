@@ -186,19 +186,27 @@ def get_globals(library, message_spec):
   for t in all_types:
     if isinstance(t, stuff_sack.Enum):
       values = {v.name: v.value for v in t.values}
-      e = _EnumType(t.name, (
-          EnumMixin,
-          ENUM_MAP[t.bytes],
-      ), {
+      value_descr = [v.description for v in t.values]
+      attrs = {
           '_values_': values,
-          '__metaclass__': _EnumType
-      })
+          '__metaclass__': _EnumType,
+          'description': t.description,
+          'value_descriptions':value_descr,
+      }
+      e = _EnumType(t.name, (EnumMixin, ENUM_MAP[t.bytes]), attrs)
       global_vars[t.name] = e
       ctypes_map[t.name] = global_vars[t.name]
 
     if isinstance(t, stuff_sack.Bitfield):
       fields = [(f.name, BITFIELD_MAP[t.bytes], f.bits) for f in t.fields]
-      global_vars[t.name] = type(t.name, (ctypes.Structure,), {'__slots__': [], '_fields_': fields})
+      field_descr = [f.description for f in t.fields]
+      attrs = {
+          '__slots__': [],
+          '_fields_': fields,
+          'description': t.description,
+          'field_descriptions': field_descr,
+      }
+      global_vars[t.name] = type(t.name, (ctypes.Structure,), attrs)
       ctypes_map[t.name] = global_vars[t.name]
 
     if isinstance(t, stuff_sack.Struct):
@@ -211,7 +219,13 @@ def get_globals(library, message_spec):
 
         fields.append((field.name, field_type))
 
-      attrs = {'__slots__': [], '_fields_': fields}
+      field_descr = [f.description for f in t.fields]
+      attrs = {
+          '__slots__': [],
+          '_fields_': fields,
+          'description': t.description,
+          'field_descriptions': field_descr,
+      }
 
       base = ctypes.Structure
       if isinstance(t, stuff_sack.Message):
