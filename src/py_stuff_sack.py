@@ -248,6 +248,8 @@ def get_globals(library, message_spec):
         msg_list.append(global_vars[t.name])
 
   def unpack_message(buf):
+    if not isinstance(buf, ctypes.Array):
+      buf = (ctypes.c_ubyte * len(buf))(*buf)
     msg_type = ss_lib.SsInspectHeader(ctypes.byref(buf))
     if msg_type < 0 or msg_type >= len(msg_list):
       raise UnknownMessage("Unknown message UID.")

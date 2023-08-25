@@ -309,6 +309,12 @@ class UnpackTest(unittest.TestCase):
 
     self.assertIsInstance(msg_def.unpack_message(buf), msg_def.PrimitiveTest)
 
+    buf_bytes = bytes(x for x in buf)
+    self.assertIsInstance(msg_def.unpack_message(buf_bytes), msg_def.PrimitiveTest)
+
+    buf_list = [x for x in buf]
+    self.assertIsInstance(msg_def.unpack_message(buf_list), msg_def.PrimitiveTest)
+
     buf[:4] = [0x00, 0x00, 0x00, 0x00]
     with self.assertRaises(msg_def.UnknownMessage):
       msg_def.unpack_message(buf)
