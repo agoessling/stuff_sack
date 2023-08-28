@@ -367,6 +367,7 @@ def static_assert(all_types, include_enums=True):
     if isinstance(t, (ss.Primitive, ss.Bitfield)):
       s += f'static_assert(sizeof({c_type_name(t)}) == {t.bytes}, "{c_type_name(t)} size mismatch.");\n'
     if include_enums and isinstance(t, ss.Enum):
+      s += f'static_assert(sizeof({t.name}) == sizeof(int), "Size of {t.name} not equal to int.");\n'
       s += f'static_assert(kNum{t.name} < {" * ".join(["256"] * t.bytes)} / 2, "{t.name} size mismatch.");\n'
     if isinstance(t, ss.Struct):
       for f in t.fields:

@@ -141,13 +141,6 @@ def to_ctypes_name(name, default=None):
 
 
 def get_globals(library, message_spec):
-  ENUM_MAP = {
-      1: ctypes.c_int8,
-      2: ctypes.c_int16,
-      4: ctypes.c_int32,
-      8: ctypes.c_int64,
-  }
-
   BITFIELD_MAP = {
       1: ctypes.c_uint8,
       2: ctypes.c_uint16,
@@ -193,7 +186,7 @@ def get_globals(library, message_spec):
           'description': t.description,
           'value_descriptions':value_descr,
       }
-      e = _EnumType(t.name, (EnumMixin, ENUM_MAP[t.bytes]), attrs)
+      e = _EnumType(t.name, (EnumMixin, ctypes.c_int), attrs)
       global_vars[t.name] = e
       ctypes_map[t.name] = global_vars[t.name]
 

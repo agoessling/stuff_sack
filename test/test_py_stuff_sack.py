@@ -1,3 +1,4 @@
+import ctypes
 import os
 import unittest
 
@@ -59,6 +60,11 @@ class TestEnum(unittest.TestCase):
 
     self.assertEqual(128, len(msg_def.Enum2Bytes))
     self.assertEqual(8, msg_def.Enum2BytesTest.packed_size)
+
+    self.assertEqual(ctypes.sizeof(ctypes.c_int),
+                     ctypes.sizeof(msg_def.Enum1BytesTest().enumeration))
+    self.assertEqual(ctypes.sizeof(ctypes.c_int),
+                     ctypes.sizeof(msg_def.Enum2BytesTest().enumeration))
 
   def test_pack_unpack(self):
     msg, buf = self.get_test_message()

@@ -48,6 +48,9 @@ static void TestEnum(void) {
   TEST_ASSERT_EQUAL_INT(128, kNumEnum2Bytes);
   TEST_ASSERT_EQUAL_INT(8, SS_ENUM2_BYTES_TEST_PACKED_SIZE);
 
+  TEST_ASSERT_EQUAL_INT(sizeof(int), sizeof(Enum1Bytes));
+  TEST_ASSERT_EQUAL_INT(sizeof(int), sizeof(Enum2Bytes));
+
   Enum2BytesTest enum_test = {
       .enumeration = kNumEnum2Bytes,
   };
